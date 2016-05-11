@@ -1,0 +1,63 @@
+{
+	"activityType":"impressions",
+	"items":[
+		{
+			"source":"front_door_affiliate_pty_id",
+			"actions":[
+				{
+					"name":"set-default-value",
+					"description":"Sets default value of Aff party id",
+					"actionType":"simpleCopy",
+					"config":[
+
+					]
+				},
+				{
+					"name":"set-default-value",
+					"description":"Sets default value of Aff party id",
+					"actionType":"condition"
+				},
+				{
+					"name":"set-default-value",
+					"description":"Sets default value of Aff party id",
+					"actionType":"lookup"
+				},
+				{
+					"name":"set-default-value",
+					"description":"Sets default value of Aff party id",
+					"actionType":"lookupAndEnrich"
+				},
+				
+				{
+					"name":"set-default-value",
+					"description":"Sets default value of Aff party id",
+					"actionType":"custom"
+				}
+			]
+
+		},
+
+        {
+            "source":"B",
+            "actions":[
+                {
+                    "actionType":"simpleCopy",
+                    "config":[
+                    ]
+                }
+            ]
+        },
+        {
+            "source":"C",
+            "actions":[
+                {
+                    "actionType":"simpleCopy",
+                    "config":[
+                    ]
+                }
+            ]
+        },
+
+	]
+	
+}

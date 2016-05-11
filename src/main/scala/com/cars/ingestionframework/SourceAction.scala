@@ -1,12 +1,13 @@
 package com.cars.ingestionframework
 
 import scala.collection.immutable.HashMap
+import org.json4s.JsonAST.JValue
 
 case class SourceAction(
-  source: String, 
+  source: List[String], 
   actions: List[Action]
 ) extends Action
-
+{
   /** Run through all actions and perform each in order.
     */
   def perform(
@@ -15,18 +16,20 @@ case class SourceAction(
     currentEnrichedMap: Map[String, String]): 
     Map[String, String] = {
 
-    var enrichedMap = currentEnrichedMap
+    Map.empty[String, String]
 
-    actions.foreach{ action => 
-      val mapAddition = action.perform(field, sourceJson, enrichedMap)
-
-      // merge in the results
-      enrichedMap = enrichedMap.merged(mapAddition)
-    }
-
-    // (todo) there's a better way to do this than foreach...
-
-    // return the aggregate of all things actions:
-    enrichedMap
+    //var enrichedMap = currentEnrichedMap
+    //
+    //actions.foreach{ action => 
+    //  val mapAddition = action.perform(field, sourceJson, enrichedMap)
+    //
+    //  // merge in the results
+    //  enrichedMap = enrichedMap.merged(mapAddition)
+    //}
+    //
+    //// (todo) there's a better way to do this than foreach...
+    //
+    //// return the aggregate of all things actions:
+    //enrichedMap
   }
-)
+}

@@ -1,8 +1,8 @@
 {
-	"activityType":"impressions",
-	"items":[
+	"activityType": "impressions",
+	"items": [
 		{
-			"source": [ "AField" ]
+			"source": [ "AField" ],
 			"actions":[
 				{
 					"actionType":"Action1"

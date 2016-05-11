@@ -11,5 +11,6 @@ trait Action
     */
   def perform(field: List[String], sourceJson: JValue, currentEnrichedMap: Map[String, String]): 
     Map[String, String] 
+
 }
 

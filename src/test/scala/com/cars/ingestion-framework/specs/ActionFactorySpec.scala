@@ -5,7 +5,7 @@ import org.scalatest.junit.JUnitRunner
 // Fix for Scalatest on Gradle:  (from http://stackoverflow.com/questions/18823855/cant-run-scalatest-with-gradle)
 // Alternately, try using https://github.com/maiflai/gradle-scalatest
 //@org.junit.runner.RunWith(classOf[org.scalatest.junit.JUnitRunner])
-class ConfigParserSpec extends UnitSpec {
+class ActionFactorySpec extends UnitSpec {
 
   // before all tests have run
   override def beforeAll() = {
@@ -35,14 +35,23 @@ class ConfigParserSpec extends UnitSpec {
   //////////////////////////////////////////////////////////////////////////////
 
   val resourcesDir = "./src/test/resources/"
-  val configFile = resourcesDir + "testconfig.json"
+  val configFile = resourcesDir + "testconfig-one-action.json"
 
-  describe("ConfigParser.parse")  // ------------------------------------------------
+  val actionFactory = new ActionFactoryForTest()
+
+  describe("ActionListFactory.create")  // ------------------------------------------------
   {
-    it("should successfully parse a file") {
+    it("should successfully parse a one-action config file") {
 
-      // should not throw
-      ConfigParser.parse(configFile)
+      val itemList: List[SourceAction] = actionFactory.create(configFile)
+      itemList.size should be (1)
+      itemList.head.source should be (List("AField"))
+      itemList.head.actions.size should be (1)
+
+      itemList.head.actions.head match {
+        case a: Action1 => ; //a.actionType should not be ("Action1")
+        case _ => fail()
+      }
     }
 
     //it("should retrieve what was stored") {

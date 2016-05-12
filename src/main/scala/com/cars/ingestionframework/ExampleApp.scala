@@ -36,9 +36,6 @@ object ExampleApp {
     // Get the input file 
     //val inputRDD = sc.textFile(inputFilePath) // TODO - restore
     val inputRDD = sc.parallelize(List(oneLineInput))
-    println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX inputRDD = ")
-    inputRDD.collect().foreach(i => println("NEXT: "+i))
-    println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX ")
     
     // use default formats for parsing
     implicit val jsonFormats = org.json4s.DefaultFormats
@@ -53,58 +50,57 @@ object ExampleApp {
       (ast \ "metaData") merge (ast \ "activityMap")
     }
     
-    println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% flattenedImpressionsRDD = ")
-    flattenedImpressionsRDD.collect().foreach(i => println("NEXT: "+pretty(render(i))))
-    println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")    
+    // for every impression, perform all actions from config file.
+    // TODOTODO - I had to collect this RDD before running this... not sure why yet...
+    flattenedImpressionsRDD.collect.map{ ast => 
     
-    var allEnriched = List.empty[Map[String, String]]
+      // This is the output map, to be filled with the results of validation & 
+      // enrichment actions.  Later it will be converted to Avro format and saved.
+      var enrichedMap: Map[String, String] = new HashMap[String, String]
+    
+      // extract all the fields: (TODO write helper for this)
+      val fields = ast match { 
+        case j: JObject => j.values
+        case _ => throw new Exception("couldn't find values in record: "+ast); // todo - reject this
+      }
 
-    //// for every impression, perform all actions from config file.
-    //flattenedImpressionsRDD.foreach{ ast => 
-    //
-    //  // This is the output map, to be filled with the results of validation & 
-    //  // enrichment actions.  Later it will be converted to Avro format and saved.
-    //  var enrichedMap = new HashMap[String, String]
-    //
-    //  // for every field in this impression data:
-    //  ast.children.foreach{ field => 
-    //
-    //    // Search in the configuration to find the SourceAction for this field.
-    //    val sourceAction = actions.filter( _.source == field).headOption
-    //
-    //    if(sourceAction.nonEmpty) {
-    //      // Found it. Call performActions.
-    //      val mapAddition = sourceAction.get.perform(sourceAction.get.source, ast, enrichedMap)
-    //      // TODO - pass in list (get list from source in config)
-    //
-    //      // Then merge in the results.
-    //      enrichedMap //TODOTODO = MapUtil.merge(mapAddition, enrichedMap)
-    //    }
-    //    else {
-    //      // TODO - handle the case where there is no configuration for this field.
-    //      // Right now it is a no-op (the field is filtered).  However, this 
-    //      // could default to 'simple-copy' behavior (or something else) for
-    //      // ease of use.
-    //    }
-    //  }
-    //
-    //  //// Now write out the enriched record. (TODO - is there a better way to do this?  This will write one file per enriched record.)
-    //  //AvroWriter.appendEnrichedToFile(enrichedMap, "hdfs://some/path/to/enriched/data")
-    //
-    //  // (For now, just return the enriched data)
-    //  allEnriched = MapUtil.merge(enrichedMap, allEnriched)
-    //}
-    //
-    allEnriched
+      // for every field in this impression data:
+      fields.foreach{ case (key: String, value: Any) => 
+
+        // Search in the configuration to find the SourceAction for this field.
+        val sourceAction = actions.filter( _.source.contains(key) ).headOption
+        // (TODO check with Ramesh to see if the input source fields are always unique in config file)
+        
+        if(sourceAction.nonEmpty) {
+          // Found it. Call performActions.
+          val mapAddition = sourceAction.get.perform(sourceAction.get.source, ast, enrichedMap)
+          // TODO - pass in list (get list from source in config)
+        
+          // Then merge in the results.
+          enrichedMap = enrichedMap ++ mapAddition 
+        }
+        else {
+          // TODO - handle the case where there is no configuration for this field.
+          // Right now it is a no-op (the field is filtered).  However, this 
+          // could default to 'simple-copy' behavior (or something else) for
+          // ease of use.
+        }
+      }
+    
+      //// Now write out the enriched record. (TODO - is there a better way to do this?  This will write one file per enriched record.)
+      //AvroWriter.appendEnrichedToFile(enrichedMap, "hdfs://some/path/to/enriched/data")
+    
+      // (For now, just return the enriched data)
+      enrichedMap
+    }.toList
   }
 
-  /** 
+  /** run this.  this is only really for manually testing.  See ExampleAppSpec 
+    * for detailed integration tests.
     *
     */
   def main(args: Array[String]) = {
     
-    // TODO - spark stuff - get the spark context, etc.
-          
     // initialise spark context
     val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
     val sc = new SparkContext(conf)
@@ -116,6 +112,7 @@ object ExampleApp {
         inputFilePath = "./src/test/resources/input-integration.json")
 
       // TODO check listOfEnriched
+      println("listOfEnriched = "+listOfEnriched)
 
     }
     finally {

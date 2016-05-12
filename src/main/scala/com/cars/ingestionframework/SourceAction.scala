@@ -16,20 +16,18 @@ case class SourceAction(
     currentEnrichedMap: Map[String, String]): 
     Map[String, String] = {
 
-    Map.empty[String, String]
+    var enrichedMap = currentEnrichedMap
+    
+    actions.foreach{ action => 
+      val mapAddition = action.perform(sourceFields, sourceJson, enrichedMap)
 
-    //var enrichedMap = currentEnrichedMap
-    //
-    //actions.foreach{ action => 
-    //  val mapAddition = action.perform(field, sourceJson, enrichedMap)
-    //
-    //  // merge in the results
-    //  enrichedMap = enrichedMap.merged(mapAddition)
-    //}
-    //
-    //// (todo) there's a better way to do this than foreach...
-    //
-    //// return the aggregate of all things actions:
-    //enrichedMap
+      // merge in the results
+      enrichedMap = enrichedMap ++ mapAddition
+    }
+    
+    // (todo) there's a better way to do this than foreach...
+    
+    // return the aggregate of all things actions:
+    enrichedMap
   }
 }

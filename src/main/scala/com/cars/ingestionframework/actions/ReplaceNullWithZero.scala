@@ -9,7 +9,7 @@ class ReplaceNullWith(replacement: Int) extends Action
   /** Simple Copy - simply copies the input(s) to the output.
     *
     */
-  def perform(field: List[String], sourceJson: JValue, currentEnrichedMap: Map[String, String]): 
+  def perform(sourceFields: List[String], sourceJson: JValue, currentEnrichedMap: Map[String, String]): 
     Map[String, String] = {
 
     Map.empty[String, String]

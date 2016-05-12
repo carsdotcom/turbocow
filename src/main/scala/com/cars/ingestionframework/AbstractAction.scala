@@ -9,7 +9,7 @@ package com.cars.ingestionframework
 //    * @return key-value map that will be added to the currentEnrichedMap 
 //    *         before the next call.  
 //    */
-//  def perform(field: List[String], sourceJson: JValue, currentEnrichedMap: Map[String, String]): 
+//  def perform(sourceFields: List[String], sourceJson: JValue, currentEnrichedMap: Map[String, String]): 
 //    Map[String, String] 
 //}
 

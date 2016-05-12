@@ -11,7 +11,7 @@ case class SourceAction(
   /** Run through all actions and perform each in order.
     */
   def perform(
-    field: List[String], 
+    sourceFields: List[String], 
     sourceJson: JValue, 
     currentEnrichedMap: Map[String, String]): 
     Map[String, String] = {

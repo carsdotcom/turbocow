@@ -15,20 +15,17 @@ class SimpleCopy extends Action
     Map[String, String] = {
 
     // for each sourceField, get the data out of the sourceJson, and add it to map to return.
-    println("=============== sourceFields = "+sourceFields)
     sourceFields.flatMap{ field => 
-
-      println("========= field = "+field)
 
       // search in the source json for this field name.
       val found = (sourceJson \ field)
 
       if(found == JNothing) {
-        println("========= JNOTHING")
+        // Returning None in a flatMap adds nothing to the resulting collection:
         None
       }
       else {
-        println("========= returning tuple")
+        // Add this tuple to the resulting list (which is converted to a map later)
         Some((field, found.extract[String]))
       }
       

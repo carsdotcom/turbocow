@@ -5,7 +5,7 @@
 			"source": [ "AField", "BField" ],
 			"actions":[
 				{
-					"actionType":"simple-copy"
+					"actionType": "simple-copy"
 				}
 			]
 
@@ -14,7 +14,7 @@
             "source": [ "CField", "DField" ],
             "actions":[
                 {
-                    "actionType":"replace-null-with-0"
+                    "actionType": "replace-null-with-0"
                 }
             ]
 

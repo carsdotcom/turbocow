@@ -1,0 +1,11 @@
+{
+    "metaData": {
+        "AField": "A",
+        "BField": "B"
+    },
+    "activityMap": {
+        "CField": null
+    }
+
+}
+

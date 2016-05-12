@@ -11,6 +11,8 @@ import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 
+import Defs._
+
 // Example spark application that handles ingestion of impression data
 object ExampleApp {
 
@@ -22,10 +24,6 @@ object ExampleApp {
     configFilePath: String, 
     inputFilePath: String ):
     List[Map[String, String]]= {
-
-    //val textFileRDD = sc.textFile("build.sbt")
-    //println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% num lines: "+textFileRDD.count())
-    //println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% top line : "+textFileRDD.collect.head)
 
     // Parse the config.  Creates a list of SourceActions.
     val actions: List[SourceAction] = new ActionFactory().create(configFilePath)
@@ -64,8 +62,12 @@ object ExampleApp {
         case _ => throw new Exception("couldn't find values in record: "+ast); // todo - reject this
       }
 
-      // for every field in this impression data:
-      fields.foreach{ case (key: String, value: Any) => 
+      /** Process a field - called below, uses wrapped function vars.
+        * This was necessary because of the match on (key, null) below (for "fields");
+        * so this code is not duplicated.
+        */
+      def processField(key: String): 
+        StringMap = {
 
         // Search in the configuration to find the SourceAction for this field.
         val sourceAction = actions.filter( _.source.contains(key) ).headOption
@@ -77,14 +79,21 @@ object ExampleApp {
           // TODO - pass in list (get list from source in config)
         
           // Then merge in the results.
-          enrichedMap = enrichedMap ++ mapAddition 
+          mapAddition 
         }
         else {
           // TODO - handle the case where there is no configuration for this field.
           // Right now it is a no-op (the field is filtered).  However, this 
           // could default to 'simple-copy' behavior (or something else) for
           // ease of use.
+          Map.empty[String, String] // don't add anything
         }
+      }
+
+      // for every field in this impression data:
+      fields.foreach{ 
+        case (key: String, value: Any) => enrichedMap = enrichedMap ++ processField(key)
+        case (key: String, null) => enrichedMap = enrichedMap ++ processField(key)
       }
     
       //// Now write out the enriched record. (TODO - is there a better way to do this?  This will write one file per enriched record.)

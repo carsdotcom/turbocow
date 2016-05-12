@@ -10,7 +10,6 @@ import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 import Defs._
-import com.sun.prism.PixelFormat.DataType
 import org.apache.avro.Schema
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql._

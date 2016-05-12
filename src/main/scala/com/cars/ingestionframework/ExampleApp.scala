@@ -1,17 +1,25 @@
 package com.cars.ingestionframework.exampleapp
 
 import com.cars.ingestionframework._
-import scala.collection.immutable.HashMap
 
+import scala.collection.immutable.HashMap
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
-
 import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
-
 import Defs._
+import com.sun.prism.PixelFormat.DataType
+import org.apache.avro.Schema
+import org.apache.spark.broadcast.Broadcast
+import org.apache.spark.sql._
+import org.apache.spark.sql.types.{DataType, StringType, StructField, StructType}
+
+import scala.collection.mutable.ListBuffer
+import scala.collection.JavaConverters._
+import scala.io.Source
+
 
 // Example spark application that handles ingestion of impression data
 object ExampleApp {
@@ -39,10 +47,12 @@ object ExampleApp {
     implicit val jsonFormats = org.json4s.DefaultFormats
     
     // parse the input json data 
-    var allImpressionsRDD = inputRDD.map( jsonRecord => {
+    val allImpressionsRDD = inputRDD.map( jsonRecord => {
       parse(jsonRecord)
     })
-    
+
+
+
     // merge them so activityMap & metaData are together
     val flattenedImpressionsRDD = allImpressionsRDD.map{ ast => 
       (ast \ "metaData") merge (ast \ "activityMap")
@@ -50,7 +60,7 @@ object ExampleApp {
     
     // for every impression, perform all actions from config file.
     // TODOTODO - I had to collect this RDD before running this... not sure why yet...
-    flattenedImpressionsRDD.collect.map{ ast => 
+    flattenedImpressionsRDD.collect.map{ ast =>
     
       // This is the output map, to be filled with the results of validation & 
       // enrichment actions.  Later it will be converted to Avro format and saved.
@@ -95,11 +105,16 @@ object ExampleApp {
         case (key: String, value: Any) => enrichedMap = enrichedMap ++ processField(key)
         case (key: String, null) => enrichedMap = enrichedMap ++ processField(key)
       }
-    
+
+
+
+
       //// Now write out the enriched record. (TODO - is there a better way to do this?  This will write one file per enriched record.)
       //AvroWriter.appendEnrichedToFile(enrichedMap, "hdfs://some/path/to/enriched/data")
-    
+
       // (For now, just return the enriched data)
+
+
       enrichedMap
     }.toList
   }
@@ -108,19 +123,43 @@ object ExampleApp {
     * for detailed integration tests.
     *
     */
+  var sc : SparkContext = new SparkContext();
   def main(args: Array[String]) = {
     
     // initialise spark context
     val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
-    val sc = new SparkContext(conf)
-    
+     sc = new SparkContext(conf)
+    val sqlContext = new SQLContext(sc)
+
+    val avroSchemaHDFSPath = args(2) // AvroSceham HDFS path as third argument
+    val schemaParser = new Schema.Parser // create Instance Avro Schema Parser
+    val avroSchema = schemaParser.parse(avroSchemaHDFSPath).asInstanceOf[StructType] // Parse AvroSchema as Instance of StructType
+
+
     try {
       val listOfEnriched: List[Map[String, String]] = enrich(
         sc, 
         configFilePath = "./src/test/resources/testconfig-integration.json", 
         inputFilePath = "./src/test/resources/input-integration.json")
 
-      // TODO check listOfEnriched
+        var RowsBuffer = new ListBuffer[Row]
+
+      //Loop through enriched record fields
+        for(i <- listOfEnriched.length)
+          {
+            //convert all the fields' values to a sequence
+             RowsBuffer += Row.fromSeq(listOfEnriched(i).values.toSeq)
+
+
+          }
+
+
+      //Converts RowsBuffer to a List[Row]
+      //Converts all Scala List[Row] to util.List[Row] of Java and provide avroScehma from HDFS path
+      val DataFrame = sqlContext.createDataFrame(RowsBuffer.toList.asJava,avroSchema)
+      val EnrichedOutputHDFS = ""
+      DataFrame.write.format("com.databricks.spark.avro").save(EnrichedOutputHDFS)
+
       println("listOfEnriched = "+listOfEnriched)
 
     }
@@ -129,6 +168,23 @@ object ExampleApp {
       sc.stop()
     }
     
+  }
+
+  /*def getAvroSchema(HDFSPath : String): Array[StructField] =
+  {
+    val x: Array[StructField] = new Array[StructField](1)
+
+
+    return x
+
+
+
+  }*/
+
+  def getDimensionsBroadcast(path : String): Broadcast[Map[String, (String, String, String)]] =
+  {
+    val result_rdd = sc.broadcast(sc.textFile(path).map(_.split(',')).map(y => (y(0), (y(1),y(2),y(3)))).collectAsMap().toMap)
+    return result_rdd
   }
 
 }

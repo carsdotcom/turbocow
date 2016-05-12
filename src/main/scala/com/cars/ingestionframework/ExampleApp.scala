@@ -131,9 +131,11 @@ object ExampleApp {
      sc = new SparkContext(conf)
     val sqlContext = new SQLContext(sc)
 
-    val avroSchemaHDFSPath = args(2) // AvroSceham HDFS path as third argument
+    val avroSchemaHDFSPath = "./src/test/resources/avroScehma.avsc" // AvroSceham HDFS path as third argument
     val schemaParser = new Schema.Parser // create Instance Avro Schema Parser
     val avroSchema = schemaParser.parse(avroSchemaHDFSPath).asInstanceOf[StructType] // Parse AvroSchema as Instance of StructType
+
+
 
 
     try {
@@ -157,7 +159,7 @@ object ExampleApp {
       //Converts RowsBuffer to a List[Row]
       //Converts all Scala List[Row] to util.List[Row] of Java and provide avroScehma from HDFS path
       val DataFrame = sqlContext.createDataFrame(RowsBuffer.toList.asJava,avroSchema)
-      val EnrichedOutputHDFS = ""
+      val EnrichedOutputHDFS = "./target/output"
       DataFrame.write.format("com.databricks.spark.avro").save(EnrichedOutputHDFS)
 
       println("listOfEnriched = "+listOfEnriched)

@@ -1,0 +1,16 @@
+{
+	"activityType": "impressions",
+	"items": [
+		{
+			"source": [ "AField", "CField", "DField" ], 
+			"actions":[
+				{
+					"actionType": "replace-null-with-999"
+				}
+			]
+
+		}
+	]
+	
+}
+

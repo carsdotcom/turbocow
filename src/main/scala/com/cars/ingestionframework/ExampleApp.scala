@@ -51,9 +51,7 @@ object ExampleApp {
     val allImpressionsRDD = inputRDD.map( jsonRecord => {
       parse(jsonRecord)
     })
-
-
-
+    
     // merge them so activityMap & metaData are together
     val flattenedImpressionsRDD = allImpressionsRDD.map{ ast => 
       (ast \ "metaData") merge (ast \ "activityMap")
@@ -106,16 +104,11 @@ object ExampleApp {
         case (key: String, value: Any) => enrichedMap = enrichedMap ++ processField(key)
         case (key: String, null) => enrichedMap = enrichedMap ++ processField(key)
       }
-
-
-
-
+    
       //// Now write out the enriched record. (TODO - is there a better way to do this?  This will write one file per enriched record.)
       //AvroWriter.appendEnrichedToFile(enrichedMap, "hdfs://some/path/to/enriched/data")
-
+    
       // (For now, just return the enriched data)
-
-
       enrichedMap
     }.toList
   }
@@ -124,7 +117,6 @@ object ExampleApp {
     * for detailed integration tests.
     *
     */
-
   def main(args: Array[String]) = {
     
     // initialise spark context
@@ -136,9 +128,6 @@ object ExampleApp {
     val schemaParser = new Schema.Parser // create Instance Avro Schema Parser
     val avroSchema = schemaParser.parse(avroSchemaHDFSPath).asInstanceOf[StructType] // Parse AvroSchema as Instance of StructType
 
-
-
-
     try {
       val listOfEnriched: List[Map[String, String]] = enrich(
         sc, 
@@ -147,15 +136,11 @@ object ExampleApp {
 
         var RowsBuffer = new ListBuffer[Row]
 
-      //Loop through enriched record fields
-        for(i <- listOfEnriched)
-          {
+        //Loop through enriched record fields
+        for(i <- listOfEnriched) {
             //convert all the fields' values to a sequence
              RowsBuffer += Row.fromSeq(i.values.toSeq)
-
-
-          }
-
+        }
 
       //Converts RowsBuffer to a List[Row]
       //Converts all Scala List[Row] to util.List[Row] of Java and provide avroScehma from HDFS path
@@ -178,11 +163,7 @@ object ExampleApp {
   {
     val x: Array[StructField] = new Array[StructField](1)
 
-
     return x
-
-
-
   }*/
 
   /*def getDimensionsBroadcast(path : String): Broadcast[Map[String, (String, String, String)]] =

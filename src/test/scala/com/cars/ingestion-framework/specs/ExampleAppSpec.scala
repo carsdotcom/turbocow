@@ -47,6 +47,7 @@ class ExampleAppSpec extends UnitSpec {
       // initialise spark context
       val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
       val sc = new SparkContext(conf)
+      
       try {
         val enriched: List[Map[String, String]] = ExampleApp.enrich(
           sc, 

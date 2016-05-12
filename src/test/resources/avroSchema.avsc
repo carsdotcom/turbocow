@@ -1,0 +1,164 @@
+{
+  "type" : "record",
+  "name" : "topLevelRecord",
+  "fields" : [ {
+    "name" : "accepted",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "activityType",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "adobe_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "affiliate_pty_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "application",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "appVersion",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "authenticated_consumer",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "bot_type",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "carrier",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "channel_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "clicktale_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "clientIp",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "connection",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "deviceId",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "deviceModel",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "deviceOS",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "deviceType",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "alsuid",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "input_parm_type_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "isBot",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "latitude",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "longitude",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "macAddress",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "optimizely_end_user_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "page_url",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "refererURL",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "search_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "serviceVersion",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "sessionId",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "site_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "timeStamp",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "user_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "user_input_date_time",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "user_input_parm_value",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "user_input_type_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "userAgent",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "web_page_type_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "xforwardedFor",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "reasonForReject",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "dma_code",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "affiliate_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "customer_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "zip_code_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "make_int_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "model_int_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "model_year_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "search_mileage_range_max_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "search_mileage_range_min_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "search_price_max_range_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "search_price_min_range_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "vehicle_category_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "vehicle_subcategory_id",
+    "type" : [ "string", "null" ]
+  }, {
+    "name" : "successFlag",
+    "type" : [ "string", "null" ]
+  } ]
+}

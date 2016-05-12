@@ -1,0 +1,18 @@
+{
+	"activityType": "impressions",
+	"items": [
+		{
+			"source": [ "AField", "BField" ],
+			"actions":[
+				{
+					"actionType":"Action1"
+				},
+                {
+                    "actionType":"Action2"
+                }
+			]
+
+		}
+	]
+	
+}

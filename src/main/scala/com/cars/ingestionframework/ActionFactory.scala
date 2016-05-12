@@ -44,8 +44,16 @@ class ActionFactory {
     * Note: config will be JNothing if not present.
     * Called from create(), above.
     */
-  def createActionForType(actionType: String, actionConfig: JValue): Action = actionType match {
-    case _ => throw new RuntimeException("todo - what to do if specified action not found in code?  actionType = "+actionType)
+  def createActionForType(actionType: String, actionConfig: JValue): Action = {
+
+    // regexes:
+    val replaceNullWithRE = """replace-null-with-([0-9]+)""".r
+
+    actionType match {
+      case "simple-copy" => new actions.SimpleCopy
+      case replaceNullWithRE(number) => new actions.ReplaceNullWith(number.toInt)
+      case _ => throw new RuntimeException("todo - what to do if specified action not found in code?  actionType = "+actionType)
+    }
   }
 
 }

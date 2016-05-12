@@ -7,13 +7,20 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 
+import org.json4s._
+import org.json4s.JsonDSL._
+import org.json4s.jackson.JsonMethods._
+
 // Example spark application that handles ingestion of impression data
 object ExampleApp {
 
   /** Run the spark application
     *
     */
-  def run(sc: SparkContext, configFilePath: String ) = {
+  def run(
+    sc: SparkContext, 
+    configFilePath: String, 
+    inputFilePath: String ) = {
 
     //val textFileRDD = sc.textFile("build.sbt")
     //println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% num lines: "+textFileRDD.count())
@@ -22,23 +29,33 @@ object ExampleApp {
     // Parse the config.  Creates a list of SourceActions.
     val actions: List[SourceAction] = new ActionFactory().create(configFilePath)
     
-    //// create map of source to an action list
-    //val actions: List[SourceAction] = ActionListFactory.create(config)
-    //
-    //// Get the input file
-    //val inputRDD = sc.textFile("hdfs://input/file/path")
-    //
-    //// parse the input json data 
-    //var allImpressionsRDD = inputRDD.map( jsonRecord => {
-    //  implicit val formats = DefaultFormats
-    //  parse(jsonRecord)
-    //})
-    //
-    //// merge them so activityMap & metaData are together
-    //val flattenedImpressionsRDD = allImpressionsRDD.map{ ast => 
-    //  (ast \ "metaData") merge (ast \ "activityMap")
-    //}
-    //
+    // (strip the newlines - todo - what does real input look like?)
+    val oneLineInput = scala.io.Source.fromFile(inputFilePath).getLines.mkString.filter( _ != '\n' )
+    
+    // Get the input file 
+    //val inputRDD = sc.textFile(inputFilePath) // todo - restore
+    val inputRDD = sc.parallelize(List(oneLineInput))
+    println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX inputRDD = ")
+    inputRDD.collect().foreach(i => println("NEXT: "+i))
+    println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX ")
+    
+    // use default formats for parsing
+    implicit val jsonFormats = org.json4s.DefaultFormats
+    
+    // parse the input json data 
+    var allImpressionsRDD = inputRDD.map( jsonRecord => {
+      parse(jsonRecord)
+    })
+    
+    // merge them so activityMap & metaData are together
+    val flattenedImpressionsRDD = allImpressionsRDD.map{ ast => 
+      (ast \ "metaData") merge (ast \ "activityMap")
+    }
+    
+    println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% flattenedImpressionsRDD = ")
+    flattenedImpressionsRDD.collect().foreach(i => println("NEXT: "+pretty(render(i))))
+    println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")    
+    
     //// for every impression, perform all actions from config file.
     //flattenedImpressionsRDD.foreach{ ast => 
     //
@@ -81,10 +98,17 @@ object ExampleApp {
     val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
     val sc = new SparkContext(conf)
     
-    run(sc, "./src/test/resources/testconfig.json")
+    try {
+      run(
+        sc, 
+        configFilePath = "./src/test/resources/testconfig-integration.json", 
+        inputFilePath = "./src/test/resources/input-integration.json")
+    }
+    finally {
+      // terminate spark context
+      sc.stop()
+    }
     
-    // terminate spark context
-    sc.stop()
   }
 
 }

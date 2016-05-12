@@ -1,0 +1,25 @@
+{
+	"activityType": "impressions",
+	"items": [
+		{
+			"source": [ "AField", "BField" ],
+			"actions":[
+				{
+					"actionType":"simple-copy"
+				}
+			]
+
+		},
+        {
+            "source": [ "CField", "DField" ],
+            "actions":[
+                {
+                    "actionType":"replace-null-with-0"
+                }
+            ]
+
+        }
+
+	]
+	
+}

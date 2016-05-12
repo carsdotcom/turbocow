@@ -2,7 +2,7 @@ package com.cars.ingestionframework
 
 import org.json4s.JsonAST.JValue
 
-class Action1 extends Action
+class Action2 extends Action
 {
   /** Perform the action
     */

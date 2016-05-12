@@ -16,6 +16,7 @@ class ActionFactoryForTest extends ActionFactory {
     catch {
       case e: Exception => actionType match {
         case "Action1" => new Action1
+        case "Action2" => new Action2
         case _ => throw new RuntimeException("action not found in ActionFactoryForTest: "+actionType)
       }
     }

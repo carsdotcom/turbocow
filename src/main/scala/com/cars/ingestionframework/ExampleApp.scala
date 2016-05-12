@@ -19,6 +19,7 @@ import org.apache.spark.sql.types.{DataType, StringType, StructField, StructType
 import scala.collection.mutable.ListBuffer
 import scala.collection.JavaConverters._
 import scala.io.Source
+import com.databricks.spark.avro._
 
 
 // Example spark application that handles ingestion of impression data
@@ -123,12 +124,12 @@ object ExampleApp {
     * for detailed integration tests.
     *
     */
-  var sc : SparkContext = new SparkContext();
+
   def main(args: Array[String]) = {
     
     // initialise spark context
     val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
-     sc = new SparkContext(conf)
+    val sc = new SparkContext(conf)
     val sqlContext = new SQLContext(sc)
 
     val avroSchemaHDFSPath = "./src/test/resources/avroScehma.avsc" // AvroSceham HDFS path as third argument
@@ -147,10 +148,10 @@ object ExampleApp {
         var RowsBuffer = new ListBuffer[Row]
 
       //Loop through enriched record fields
-        for(i <- listOfEnriched.length)
+        for(i <- listOfEnriched)
           {
             //convert all the fields' values to a sequence
-             RowsBuffer += Row.fromSeq(listOfEnriched(i).values.toSeq)
+             RowsBuffer += Row.fromSeq(i.values.toSeq)
 
 
           }
@@ -159,6 +160,7 @@ object ExampleApp {
       //Converts RowsBuffer to a List[Row]
       //Converts all Scala List[Row] to util.List[Row] of Java and provide avroScehma from HDFS path
       val DataFrame = sqlContext.createDataFrame(RowsBuffer.toList.asJava,avroSchema)
+
       val EnrichedOutputHDFS = "./target/output"
       DataFrame.write.format("com.databricks.spark.avro").save(EnrichedOutputHDFS)
 
@@ -183,11 +185,11 @@ object ExampleApp {
 
   }*/
 
-  def getDimensionsBroadcast(path : String): Broadcast[Map[String, (String, String, String)]] =
+  /*def getDimensionsBroadcast(path : String): Broadcast[Map[String, (String, String, String)]] =
   {
     val result_rdd = sc.broadcast(sc.textFile(path).map(_.split(',')).map(y => (y(0), (y(1),y(2),y(3)))).collectAsMap().toMap)
     return result_rdd
-  }
+  }*/
 
 }
 

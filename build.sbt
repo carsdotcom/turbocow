@@ -2,15 +2,16 @@ name := "ingestionframework"
 
 version := "0.1"
 
-//scalaVersion := "2.11.8"
+scalaVersion := "2.10.6"
 
 val json4SVer = "3.2.11"
 
 libraryDependencies ++= Seq(
 
-  "org.apache.kafka" % "kafka_2.11" % "0.9.0.0",
+
   "org.apache.spark" %% "spark-core" % "1.6.1",
-  "org.apache.spark" % "spark-sql_2.10" % "1.6.0",
+  "org.apache.spark" %% "spark-sql" % "1.6.0",
+  "com.databricks" %% "spark-avro" % "0.1",
   // java libs
   "joda-time" % "joda-time" % "2.7",
 

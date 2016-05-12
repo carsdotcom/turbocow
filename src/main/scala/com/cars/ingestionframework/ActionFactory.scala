@@ -22,12 +22,9 @@ class ActionFactory {
     val configAST = parse(configJson)
 
     val itemsList = (configAST \ "items").children
-    println("%%%%%%%%%%%%%%%%%%%%%%%% itemsList.children = "+itemsList.children)
-    println("%%%%%%%%%%%%%%%%%%%%%%%% itemsList.children.head = "+itemsList.children.head)
 
     // transform to a list of SourceActions:
     itemsList.map{ item => 
-      println("%%%%%%%%%%%%%%%% item = "+item) 
 
       val sourceList = (item \ "source").children.map( _.values.toString)
 
@@ -35,7 +32,6 @@ class ActionFactory {
 
         val actionType = (jobj \ "actionType").extract[String]
         val actionConfig = (jobj \ "config" )
-        println("XXXXXXXXXXXXXXXXX = "+ actionConfig)
 
         createActionForType(actionType, actionConfig)
       }

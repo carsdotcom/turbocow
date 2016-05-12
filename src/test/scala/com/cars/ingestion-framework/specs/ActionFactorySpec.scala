@@ -35,21 +35,34 @@ class ActionFactorySpec extends UnitSpec {
   //////////////////////////////////////////////////////////////////////////////
 
   val resourcesDir = "./src/test/resources/"
-  val configFile = resourcesDir + "testconfig-one-action.json"
 
   val actionFactory = new ActionFactoryForTest()
 
   describe("ActionListFactory.create")  // ------------------------------------------------
   {
-    it("should successfully parse a one-action config file") {
+    it("should successfully parse a 1-source, 1-action config file") {
 
+      val configFile = resourcesDir + "testconfig-1source-1action.json"
       val itemList: List[SourceAction] = actionFactory.create(configFile)
       itemList.size should be (1)
       itemList.head.source should be (List("AField"))
       itemList.head.actions.size should be (1)
 
       itemList.head.actions.head match {
-        case a: Action1 => ; //a.actionType should not be ("Action1")
+        case a: Action1 => ;
+        case _ => fail()
+      }
+    }
+
+    it("should successfully parse a 2-source, 1-action config file") {
+      val configFile = resourcesDir + "testconfig-2source-1action.json"
+      val itemList: List[SourceAction] = actionFactory.create(configFile)
+      itemList.size should be (1)
+      itemList.head.source should be (List("AField", "BField"))
+      itemList.head.actions.size should be (1)
+
+      itemList.head.actions.head match {
+        case a: Action1 => ;
         case _ => fail()
       }
     }

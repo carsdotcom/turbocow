@@ -11,14 +11,14 @@ class ReplaceNullWith(replacement: Int) extends Action
   /** Simple Copy - simply copies the input(s) to the output.
     *
     */
-  def perform(sourceFields: List[String], sourceJson: JValue, currentEnrichedMap: Map[String, String]): 
+  def perform(sourceFields: List[String], inputRecord: JValue, currentEnrichedMap: Map[String, String]): 
     Map[String, String] = {
 
-    // for each sourceField, get the data out of the sourceJson, and see if we need to replace it with a value
+    // for each sourceField, get the data out of the inputRecord, and see if we need to replace it with a value
     sourceFields.flatMap{ field => 
 
       // search in the source json for this field name.
-      val found = (sourceJson \ field)
+      val found = (inputRecord \ field)
 
       // TODO these could be separated out into separate actions, but this is fine:
       if(found == JNothing || found == JNull) {

@@ -23,7 +23,7 @@ By following a similar test strategy, you can verify your action works.  Here ar
 Some notes:
 
     The ExampleApp.enrich() function does all the spark stuff.  Its output isn't into Avro yet, but it just returns a List[Map[String, String]] which represents all of the enriched data that you created.  Your test should check against this object.  There will only be one item in the list if you only put one json object in your input file (recommended, for now).
-    In your action code, when searching for the current value of a field, in most cases you will probably want to check the currentEnrichedMap first, and only if not found, then the sourceJson.  (I didn't do that in my code yet because I'm not yet sure it makes sense for these actions.)
+    In your action code, when searching for the current value of a field, in most cases you will probably want to check the currentEnrichedMap first, and only if not found, then the inputRecord (I didn't do that in my code yet because I'm not yet sure it makes sense for these actions.)
     In future, the "ExampleApp" code will be outside of this framework code, and live somewhere else, maybe in the "als-search" project, maybe a different project.  The idea is that a Spark application will use the tools available in this library to help automate some of these common operations via the config file.
 
 I'll likely be in late tomorrow, due to getting done so late today.  I'll be in by lunchtime for sure.  If there is a bug and a hotfix is needed, I think I set it up correctly so that Nageswar should be able to push changes.

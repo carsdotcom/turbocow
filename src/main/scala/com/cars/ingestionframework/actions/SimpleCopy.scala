@@ -11,14 +11,14 @@ class SimpleCopy extends Action
   /** Simple Copy - simply copies the input(s) to the output.
     *
     */
-  def perform(sourceFields: List[String], sourceJson: JValue, currentEnrichedMap: Map[String, String]): 
+  def perform(sourceFields: List[String], inputRecord: JValue, currentEnrichedMap: Map[String, String]): 
     Map[String, String] = {
 
-    // for each sourceField, get the data out of the sourceJson, and add it to map to return.
+    // for each sourceField, get the data out of the inputRecord, and add it to map to return.
     sourceFields.flatMap{ field => 
 
       // search in the source json for this field name.
-      val found = (sourceJson \ field)
+      val found = (inputRecord \ field)
 
       if(found == JNothing) {
         // Returning None in a flatMap adds nothing to the resulting collection:

@@ -12,14 +12,14 @@ case class SourceAction(
     */
   def perform(
     sourceFields: List[String], 
-    sourceJson: JValue, 
+    inputRecord: JValue, 
     currentEnrichedMap: Map[String, String]): 
     Map[String, String] = {
 
     var enrichedMap = currentEnrichedMap
     
     actions.foreach{ action => 
-      val mapAddition = action.perform(sourceFields, sourceJson, enrichedMap)
+      val mapAddition = action.perform(sourceFields, inputRecord, enrichedMap)
 
       // merge in the results
       enrichedMap = enrichedMap ++ mapAddition

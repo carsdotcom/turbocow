@@ -21,7 +21,7 @@ class Lookup(actionConfig: JValue) extends Action
   /** Simple Copy - simply copies the input(s) to the output.
     *
     */
-  def perform(sourceFields: List[String], sourceJson: JValue, currentEnrichedMap: Map[String, String]): 
+  def perform(sourceFields: List[String], inputRecord: JValue, currentEnrichedMap: Map[String, String]): 
     Map[String, String] = {
 
     // The source field must have only one item in it. 
@@ -43,7 +43,7 @@ class Lookup(actionConfig: JValue) extends Action
           val configAST = parse(Source.fromFile(lookupFilePath).getLines.mkString)
 
           // get value of source field from the input JSON:
-          val lookupKeyVal: String = (sourceJson \ sourceFields.head).extract[String]
+          val lookupKeyVal: String = (inputRecord \ sourceFields.head).extract[String]
           val dimRecord: Option[JValue] = 
             configAST.children.find( record => (record \ keyField) == JString(lookupKeyVal) )
           if (dimRecord.isEmpty) {

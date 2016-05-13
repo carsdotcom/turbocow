@@ -87,7 +87,6 @@ class ExampleAppSpec extends UnitSpec {
       testReplaceNullWith(999)
     }
 
-/*
     it("should successfully process a lookup action") {
       val enriched: List[Map[String, String]] = ExampleApp.enrich(
         sc, 
@@ -100,7 +99,6 @@ class ExampleAppSpec extends UnitSpec {
       enriched.head("EnhField2") should be ("2")
       enriched.head("EnhField3") should be ("3")
     }
-*/
 
   }
 }

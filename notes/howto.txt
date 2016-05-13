@@ -1,0 +1,32 @@
+
+I thought it would be extremely helpful for people to see some working examples of this framework skeleton that Nageswar and I showed today, so I got it all working with a couple of example actions:  simple-copy and replace-null-with-X.
+
+http://git.cars.com/users/msesterhenn/repos/ingestion-framework/browse
+
+    "simple-copy" does a simple copy for all the fields named in the "source" array.  It's defined at ingestion-framework/src/main/scala/com/cars/ingestionframework/actions/SimpleCopy.scala.
+    "replace-null-with-X" sets the value to X for any fields that are missing or actually set to null (JSON null, not the string "null").  X can be any (positive) integer.  (I suppose I could support negative numbers later with some better regex wrangling.)  This adapter is defined at /code/ingestion-framework/src/main/scala/com/cars/ingestionframework/actions/ReplaceNullWithZero.scala.
+
+See ingestion-framework/src/test/scala/com/cars/ingestion-framework/specs/ExampleAppSpec.scala for the tests that verify each of the action modules.  They are really integration tests.  More unit tests need to be added, but I skimped in order to get this completed in a semi-reasonable timeframe.
+
+To run the tests, do "sbt test".  (Speed tip:  type "sbt" to enter sbt console, then "~test" will repeatedly build the tests as you modify code.  Note that something isn't releasing references, so permGen space blows out after a while and you have to kill & restart sbt.) 
+
+I went ahead and added Spark to the testing framework and it seems to work fine (outside of main()), but I need to check on this.  All tests should pass.... if your mileage varies, please let me know.
+
+By following a similar test strategy, you can verify your action works.  Here are the steps:
+
+    Create a config file for use in your test (see my ExampleAppSpec code for how I set which config file to use during the test)
+    Create an input JSON file to simulate the incoming data for your test (see ingestion-framework/src/test/resources/input-integration-replacenullwith.json as an example)
+    Write a test to verify what you think your action should accomplish (copy ExampleAppSpec.scala as a starting point. In the future, I will separate out the tests there into separate files per-action, so I suggest you do the same.)  Note: your test will fail at first.  That is good.
+    Write a class similar to simple-copy or replace-null-with-X, that extends the trait (interface) Action, and then does whatever you need to do.  If you implement it correctly, it should make your test pass.  That is also good.
+    (Repeat if you need to test different configurations or setups.  I use a few different configs in my tests, so that is expected.)
+
+Some notes:
+
+    The ExampleApp.enrich() function does all the spark stuff.  Its output isn't into Avro yet, but it just returns a List[Map[String, String]] which represents all of the enriched data that you created.  Your test should check against this object.  There will only be one item in the list if you only put one json object in your input file (recommended, for now).
+    In your action code, when searching for the current value of a field, in most cases you will probably want to check the currentEnrichedMap first, and only if not found, then the sourceJson.  (I didn't do that in my code yet because I'm not yet sure it makes sense for these actions.)
+    In future, the "ExampleApp" code will be outside of this framework code, and live somewhere else, maybe in the "als-search" project, maybe a different project.  The idea is that a Spark application will use the tools available in this library to help automate some of these common operations via the config file.
+
+I'll likely be in late tomorrow, due to getting done so late today.  I'll be in by lunchtime for sure.  If there is a bug and a hotfix is needed, I think I set it up correctly so that Nageswar should be able to push changes.
+
+
+Thanks, 

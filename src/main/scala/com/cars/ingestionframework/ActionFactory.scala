@@ -51,6 +51,7 @@ class ActionFactory {
 
     actionType match {
       case "simple-copy" => new actions.SimpleCopy
+      case "lookup" => new actions.Lookup(actionConfig)
       case replaceNullWithRE(number) => new actions.ReplaceNullWith(number.toInt)
       case _ => throw new RuntimeException("todo - what to do if specified action not found in code?  actionType = "+actionType)
     }

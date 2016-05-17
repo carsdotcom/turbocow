@@ -25,3 +25,6 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.6" % "test"
 )
 
+// Print full stack traces in tests:
+testOptions in Test += Tests.Argument("-oF")
+

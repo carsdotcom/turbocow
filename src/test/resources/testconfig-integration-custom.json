@@ -1,0 +1,36 @@
+{
+	"activityType": "impressions",
+	"items": [
+		{
+			"source": [ "AField" ], 
+			"actions":[
+				{
+					"actionType":"lookup",
+                    "config": {
+                        "lookupFilePath": "./src/test/resources/testdimension-table-for-lookup.json",
+                        "keyField": "KEYFIELD",
+                        "fieldsToSelect": [
+                            "EnhField1",
+                            "EnhField2",
+                            "EnhField3"
+                        ],
+                        "onPass": [
+                        ],
+                        "onFail": [
+                        ],
+                        "rejectIfFound": false
+                    }
+				},
+                {
+                    "actionType":"custom-add-enriched-field",
+                    "config": {
+                        "field": "customA",
+                        "value": "AAA"
+                    }
+                }
+			]
+		}
+	]
+	
+}
+

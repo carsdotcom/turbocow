@@ -7,13 +7,18 @@ import org.json4s.jackson.JsonMethods._
 import scala.io.Source
 
 /** ActionFactory - creates all of the SourceActions based on the config file.
-  *
+  * 
+  * @param customActionCreators a list of custom ActionCreator objects to be 
+  *        used, in order, before checking against the standard framework 
+  *        actions.  Note that you can override the creation of standard framework 
+  *        actions by indicating 
   */
-class ActionFactory {
+class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[ActionCreator]) 
+  extends ActionCreator {
 
   /** Create the list of SourceAction objects based on the config file.
     */
-  def create(configFilePath: String): List[SourceAction] = {
+  def createSourceActions(configFilePath: String): List[SourceAction] = {
 
     implicit val jsonFormats = org.json4s.DefaultFormats
 
@@ -30,10 +35,29 @@ class ActionFactory {
 
       val actions = (item \ "actions").children.map{ jobj => 
 
+        // Get the info for this action to send to the action creator.
         val actionType = (jobj \ "actionType").extract[String]
         val actionConfig = (jobj \ "config" )
 
-        createActionForType(actionType, actionConfig)
+        // First, attempt to create an action using custom creators, if any:
+        val customAction: Option[Action] = if (customActionCreators.nonEmpty) {
+          var action: Option[Action] = None
+          var creatorIter = customActionCreators.iterator
+          while (creatorIter.hasNext && action.isEmpty) {
+            action = creatorIter.next.createAction(actionType, actionConfig)
+          }
+          action
+        }
+        else { 
+          println("No custom action creators available.")
+          None
+        }
+
+        // If a custom action was created, then use that, otherwise 
+        // try the standard actions:
+        customAction.getOrElse{ 
+          createAction(actionType, actionConfig).getOrElse(throw new Exception(s"Couldn't create action.  Unrecogonized actionType: "+actionType)) 
+        }
       }
 
       SourceAction( sourceList, actions )
@@ -43,19 +67,31 @@ class ActionFactory {
   /** Create an Action object based on the actionType and config from the json.
     * Note: config will be JNothing if not present.
     * Called from create(), above.
+    * All standard actions supported in the framework should be created here.
     */
-  def createActionForType(actionType: String, actionConfig: JValue): Action = {
-
+  override def createAction(actionType: String, actionConfig: JValue): 
+    Option[Action] = {
+  
     // regexes:
     val replaceNullWithRE = """replace-null-with-([0-9]+)""".r
-
+  
     actionType match {
-      case "simple-copy" => new actions.SimpleCopy
-      case "lookup" => new actions.Lookup(actionConfig)
-      case replaceNullWithRE(number) => new actions.ReplaceNullWith(number.toInt)
-      case _ => throw new RuntimeException("todo - what to do if specified action not found in code?  actionType = "+actionType)
+      case "simple-copy" => Option(new actions.SimpleCopy)
+      case "lookup" => Option(new actions.Lookup(actionConfig))
+      case replaceNullWithRE(number) => Option(new actions.ReplaceNullWith(number.toInt))
+      case _ => None
     }
   }
+}
 
+/** Companion object for additional constructors.
+  * 
+  */
+object ActionFactory {
+
+  /** Helper constructor to instantiate with just one custom creator
+    */
+  def apply(singleActionCreator: ActionCreator): ActionFactory =
+    new ActionFactory(List(singleActionCreator))
 }
 

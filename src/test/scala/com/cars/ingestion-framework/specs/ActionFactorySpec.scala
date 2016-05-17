@@ -37,14 +37,13 @@ class ActionFactorySpec extends UnitSpec {
 
   val resourcesDir = "./src/test/resources/"
 
-  val actionFactory = new ActionFactoryForTest()
-
-  describe("ActionListFactory.create")  // ------------------------------------------------
+  describe("ActionListFactory.createSourceActions")  // ------------------------------------------------
   {
     it("should successfully parse a 1-source, 1-action config file") {
 
+      val actionFactory = new ActionFactoryForTest
       val configFile = resourcesDir + "testconfig-1source-1action.json"
-      val itemList: List[SourceAction] = actionFactory.create(configFile)
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(configFile)
       itemList.size should be (1)
       itemList.head.source should be (List("AField"))
       itemList.head.actions.size should be (1)
@@ -56,8 +55,9 @@ class ActionFactorySpec extends UnitSpec {
     }
 
     it("should successfully parse a 2-source, 1-action config file") {
+      val actionFactory = new ActionFactoryForTest
       val configFile = resourcesDir + "testconfig-2source-1action.json"
-      val itemList: List[SourceAction] = actionFactory.create(configFile)
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(configFile)
       itemList.size should be (1)
       itemList.head.source should be (List("AField", "BField"))
       itemList.head.actions.size should be (1)
@@ -69,8 +69,9 @@ class ActionFactorySpec extends UnitSpec {
     }
 
     it("should successfully parse a 2-source, 2-action config file") {
+      val actionFactory = new ActionFactoryForTest
       val configFile = resourcesDir + "testconfig-2source-2action.json"
-      val itemList: List[SourceAction] = actionFactory.create(configFile)
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(configFile)
       itemList.size should be (1)
       itemList.head.source should be (List("AField", "BField"))
       itemList.head.actions.size should be (2)
@@ -86,8 +87,9 @@ class ActionFactorySpec extends UnitSpec {
     }
 
     it("should successfully parse a 2-item config file") {
+      val actionFactory = new ActionFactoryForTest
       val configFile = resourcesDir + "testconfig-2item.json"
-      val itemList: List[SourceAction] = actionFactory.create(configFile)
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(configFile)
       itemList.size should be (2)
 
       // check first item (head)
@@ -110,17 +112,28 @@ class ActionFactorySpec extends UnitSpec {
         case _ => fail()
       }
     }
+
+    it("should successfully parse a file with custom and standard actions") {
+      //val actionFactory = new ActionFactory(List(new CustomActionCreator))
+      val actionFactory = new ActionFactoryForTest(List(new CustomActionCreator))
+      val configFile = resourcesDir + "testconfig-custom-and-standard.json"
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(configFile)
+      itemList.size should be (1)
+
+      // check first item (head)
+      itemList(0).source should be (List("AField", "BField"))
+      itemList(0).actions.size should be (2)
+      itemList(0).actions(0) match {
+        case a: Custom1 => ;
+        case _ => fail()
+      }
+      itemList(0).actions(1) match {
+        case a: Action1 => ;
+        case _ => fail()
+      }
+    }
   }
 
-  //describe("DataStore.set")  // ------------------------------------------------
-  //{
-  //  it("should store what is given") {
-  //    dataStore.getStore.size should be(0)
-  //    dataStore.store("key", "value")
-  //    dataStore.getStore.size should be(1)
-  //    dataStore.getStore.get("key") should be(Some("value"))
-  //  }
-  //}
 }
 
 

@@ -1,1 +1,1 @@
--J-XX:MetaspaceSize=2048M
+-J-XX:MaxPermSize=2048M

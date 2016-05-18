@@ -16,6 +16,10 @@ import scala.io.Source
 class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[ActionCreator]) 
   extends ActionCreator {
 
+  /** Alternative constructor to instantiate with just one custom creator
+    */
+  def this(singleActionCreator: ActionCreator) = this(List(singleActionCreator))
+
   /** Create the list of SourceAction objects based on the config file.
     */
   def createSourceActions(configFilePath: String): List[SourceAction] = {
@@ -84,14 +88,4 @@ class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[Actio
   }
 }
 
-/** Companion object for additional constructors.
-  * 
-  */
-object ActionFactory {
-
-  /** Helper constructor to instantiate with just one custom creator
-    */
-  def apply(singleActionCreator: ActionCreator): ActionFactory =
-    new ActionFactory(List(singleActionCreator))
-}
 

@@ -100,6 +100,35 @@ class ExampleAppSpec extends UnitSpec {
       enriched.head("EnhField3") should be ("3")
     }
 
+    it("should successfully process a custom action") {
+      val enriched: List[Map[String, String]] = ExampleApp.enrich(
+        sc, 
+        configFilePath = "./src/test/resources/testconfig-integration-custom.json", 
+        inputFilePath = "./src/test/resources/input-integration.json",
+        new ActionFactory(new CustomActionCreator) )
+    
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+      enriched.head("EnhField1") should be ("1")
+      enriched.head("EnhField2") should be ("2")
+      enriched.head("EnhField3") should be ("3")
+      enriched.head("customA") should be ("AAA")
+      enriched.head("customB") should be ("BBB")
+    }
+    
+    //it("should successfully process a different custom action") {
+    //  val enriched: List[Map[String, String]] = ExampleApp.enrich(
+    //    sc, 
+    //    configFilePath = "./src/test/resources/testconfig-integration-custom2.json", 
+    //    inputFilePath = "./src/test/resources/input-integration.json")
+    //
+    //  enriched.size should be (1) // always one because there's only one json input object
+    //  //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+    //  enriched.head.get("EnhField1") should be (Some("1"))
+    //  enriched.head.get("EnhField2") should be (None)
+    //  enriched.head.get("EnhField3") should be (None)
+    //}
+
   }
 }
 

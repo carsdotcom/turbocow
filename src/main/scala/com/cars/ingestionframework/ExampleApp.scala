@@ -30,11 +30,12 @@ object ExampleApp {
   def enrich(
     sc: SparkContext, 
     configFilePath: String, 
-    inputFilePath: String ):
+    inputFilePath: String,
+    actionFactory: ActionFactory = new ActionFactory ):
     List[Map[String, String]]= {
 
     // Parse the config.  Creates a list of SourceActions.
-    val actions: List[SourceAction] = (new ActionFactory).createSourceActions(configFilePath)
+    val actions: List[SourceAction] = actionFactory.createSourceActions(configFilePath)
     
     // (strip the newlines - TODO - what does real input look like?)
     val oneLineInput = scala.io.Source.fromFile(inputFilePath).getLines.mkString.filter( _ != '\n' )

@@ -22,11 +22,17 @@
                     }
 				},
                 {
-                    "actionType":"custom-add-enriched-field",
-                    "config": {
-                        "field": "customA",
-                        "value": "AAA"
-                    }
+                    "actionType":"custom-add-enriched-fields",
+                    "config": [
+                        {
+                            "key": "customA",
+                            "value": "AAA"
+                        },
+                        {
+                            "key": "customB",
+                            "value": "BBB"
+                        }
+                    ]
                 }
 			]
 		}

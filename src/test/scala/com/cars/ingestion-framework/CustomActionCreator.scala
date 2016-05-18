@@ -10,6 +10,8 @@ class CustomActionCreator extends ActionCreator {
 
     actionType match {
       case "custom-1" => Option(new Custom1)
+      case "custom-add-enriched-fields" => Option(new AddEnrichedFields(actionConfig))
+      //case "custom-remove-enriched-fields" => Option(new RemoveEnrichedField(actionConfig))
       case _ => None
     }
   }

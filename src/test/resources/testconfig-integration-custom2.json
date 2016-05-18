@@ -25,7 +25,6 @@
                     "actionType":"custom-remove-enriched-fields",
                     "config": {
                         "fields": [ 
-                            "EnhField1",
                             "EnhField2",
                             "EnhField3"
                         ]

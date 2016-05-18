@@ -14,5 +14,7 @@ project/project/target/
 
 # Other
 .DS_Store
-
-
+out/
+derby.log
+project/META-INF/
+src/main/scala/META-INF/

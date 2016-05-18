@@ -1,20 +1,21 @@
 package com.cars.ingestionframework.actions
 
 import com.cars.ingestionframework.Action
+import org.apache.spark.sql.hive.HiveContext
 import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 
 import scala.io.Source
 
-class Lookup(actionConfig: JValue) extends Action
+class Lookup(actionConfig: JValue, hiveContext: HiveContext) extends Action
 {
 
   // parse the input config:
   implicit val jsonFormats = org.json4s.DefaultFormats
 
-  val lookupFilePath = (actionConfig \ "lookupFilePath").extract[String]
-  val keyField = (actionConfig \ "keyField").extract[String]
+  val lookupTable = (actionConfig \ "lookupTable").extract[String]
+  val lookupField = (actionConfig \ "lookupField").extract[String]
   val fieldsToSelect: List[String] = 
     (actionConfig \ "fieldsToSelect").children.map{ _.extract[String] }
 
@@ -32,22 +33,28 @@ class Lookup(actionConfig: JValue) extends Action
 
       // search in the table for this key
       val RE = """hdfs://.*""".r
-      lookupFilePath match {
+      lookupTable match {
         case RE() => { // do hdfs lookup 
+
+          hiveContext
+            .sql("FROM "+lookupTable+" SELECT "+fieldsToSelect.mkString(","))
+            .where(lookupField+"="+(inputRecord \ sourceFields.head).extract[String])
+            .count()
+          //TODO - change status accepted or rejected
 
           List.empty[ Tuple2[String, String] ] // TODO - real implementation against the actual file
         }
         case _ => {
         
           // look up local file and parse as json.
-          val configAST = parse(Source.fromFile(lookupFilePath).getLines.mkString)
+          val configAST = parse(Source.fromFile(lookupTable).getLines.mkString)
 
           // get value of source field from the input JSON:
           val lookupKeyVal: String = (inputRecord \ sourceFields.head).extract[String]
           val dimRecord: Option[JValue] = 
-            configAST.children.find( record => (record \ keyField) == JString(lookupKeyVal) )
+            configAST.children.find( record => (record \ lookupField) == JString(lookupKeyVal) )
           if (dimRecord.isEmpty) {
-            throw new Exception(s"couldn't find dimension record in local file($lookupFilePath) for field($keyField) and lookupKeyVal($lookupKeyVal)")
+            throw new Exception(s"couldn't find dimension record in local file($lookupTable) for field($lookupField) and lookupKeyVal($lookupKeyVal)")
           }
           else { // ok, found it
             fieldsToSelect.map{ selectField => 

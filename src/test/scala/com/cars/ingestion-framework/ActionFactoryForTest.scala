@@ -1,5 +1,6 @@
 package com.cars.ingestionframework
 
+import org.apache.spark.sql.hive.HiveContext
 import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
@@ -8,10 +9,10 @@ import org.json4s.jackson.JsonMethods._
   */
 class ActionFactoryForTest extends ActionFactory {
 
-  override def createActionForType(actionType: String, actionConfig: JValue): Action = {
+  override def createActionForType(actionType: String, actionConfig: JValue, hiveContext: HiveContext): Action = {
 
     try {
-      super.createActionForType(actionType, actionConfig)
+      super.createActionForType(actionType, actionConfig,hiveContext)
     }
     catch {
       case e: Exception => actionType match {

@@ -12,6 +12,7 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % "1.6.1",
   "org.apache.spark" %% "spark-sql" % "1.6.0",
   "com.databricks" %% "spark-avro" % "0.1",
+  "org.apache.spark" %% "spark-hive" % "1.6.0",
 
   // java libs
   "joda-time" % "joda-time" % "2.7",

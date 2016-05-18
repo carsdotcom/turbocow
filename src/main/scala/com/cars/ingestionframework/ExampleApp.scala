@@ -1,24 +1,24 @@
 package com.cars.ingestionframework.exampleapp
 
+import java.lang.{Boolean, Double, Long}
+import java.util
+import java.util.Map.Entry
+import java.util.concurrent.TimeUnit
+
 import com.cars.ingestionframework._
 
 import scala.collection.immutable.HashMap
 import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 import org.json4s._
-import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 import Defs._
-import org.apache.avro.Schema
-import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.sql._
-import org.apache.spark.sql.types.{DataType, StringType, StructField, StructType}
+import org.apache.spark.sql.types._
 
-import scala.collection.mutable.ListBuffer
-import scala.collection.JavaConverters._
-import scala.io.Source
-import com.databricks.spark.avro._
+import scala.collection.mutable.ArrayBuffer
+import org.apache.spark.sql.hive.HiveContext
+import com.typesafe.config._
 
 
 // Example spark application that handles ingestion of impression data
@@ -30,14 +30,15 @@ object ExampleApp {
   def enrich(
     sc: SparkContext, 
     configFilePath: String, 
-    inputFilePath: String ):
+    inputFilePath: String, hiveContext: HiveContext ):
     List[Map[String, String]]= {
 
     // Parse the config.  Creates a list of SourceActions.
-    val actions: List[SourceAction] = new ActionFactory().create(configFilePath)
+    val actions: List[SourceAction] = new ActionFactory().create(configFilePath, hiveContext, sc)
     
     // (strip the newlines - TODO - what does real input look like?)
-    val oneLineInput = scala.io.Source.fromFile(inputFilePath).getLines.mkString.filter( _ != '\n' )
+    //val oneLineInput = scala.io.Source.fromFile(inputFilePath).getLines.mkString.filter( _ != '\n' )
+    val oneLineInput = sc.textFile(inputFilePath).collect().mkString("")
     
     // Get the input file 
     //val inputRDD = sc.textFile(inputFilePath) // TODO - restore
@@ -119,34 +120,38 @@ object ExampleApp {
   def main(args: Array[String]) = {
     
     // initialise spark context
-    val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
+    val conf = new SparkConf().setAppName("ExampleApp")
     val sc = new SparkContext(conf)
     val sqlContext = new SQLContext(sc)
+    val hiveContext = new org.apache.spark.sql.hive.HiveContext(sc)
 
-    val avroSchemaHDFSPath = "./src/test/resources/avroScehma.avsc" // AvroSceham HDFS path as third argument
-    val schemaParser = new Schema.Parser // create Instance Avro Schema Parser
-    val avroSchema = schemaParser.parse(avroSchemaHDFSPath).asInstanceOf[StructType] // Parse AvroSchema as Instance of StructType
+    val avroSchemaHDFSPath = "hdfs://ch1-hadoop-ns:8020/tmp/spark_jar/document.json" // AvroSceham HDFS path as third argument
+    val schema = getAvroSchema(avroSchemaHDFSPath,sc)
+
+    val structTypeSchema = StructType(schema(0).map(column => StructField(column,StringType,true))) // Parse AvroSchema as Instance of StructType
 
     try {
       val listOfEnriched: List[Map[String, String]] = enrich(
         sc, 
-        configFilePath = "./src/test/resources/testconfig-integration.json", 
-        inputFilePath = "./src/test/resources/input-integration.json")
+        configFilePath = args(1),
+        inputFilePath = args(0), hiveContext)
 
-        var RowsBuffer = new ListBuffer[Row]
+      var rowsBuffer = new ArrayBuffer[Row]
 
         //Loop through enriched record fields
-        for(i <- listOfEnriched) {
+      for(i <- listOfEnriched) {
             //convert all the fields' values to a sequence
-             RowsBuffer += Row.fromSeq(i.values.toSeq)
+             rowsBuffer += Row.fromSeq(i.values.toSeq)
         }
 
-      //Converts RowsBuffer to a List[Row]
-      //Converts all Scala List[Row] to util.List[Row] of Java and provide avroScehma from HDFS path
-      val DataFrame = sqlContext.createDataFrame(RowsBuffer.toList.asJava,avroSchema)
+      //Converts RowsBuffer to a RDD[Row]
+      val enrichedRows = sc.parallelize(rowsBuffer)
+
+      //create a dataframe of RDD[row] and Avro schema
+      val dataFrame = sqlContext.createDataFrame(enrichedRows,structTypeSchema)
 
       val EnrichedOutputHDFS = "./target/output"
-      DataFrame.write.format("com.databricks.spark.avro").save(EnrichedOutputHDFS)
+      dataFrame.write.format("com.databricks.spark.avro").save(EnrichedOutputHDFS)
 
       println("listOfEnriched = "+listOfEnriched)
 
@@ -158,22 +163,30 @@ object ExampleApp {
     
   }
 
-  /*def getAvroSchema(HDFSPath : String): Array[StructField] =
-  {
-    val x: Array[StructField] = new Array[StructField](1)
+  def getAvroSchema(HDFSPath : String, sc: SparkContext): Array[Array[String]] = {
 
-    return x
-  }*/
+    val jsonRDD = sc.textFile(HDFSPath)
+    val oneLineAvroSchema = jsonRDD.collect().mkString("")
+    val lineRDD = sc.parallelize(List(oneLineAvroSchema))
+    val parseJsonRDD = lineRDD.map(record => parse(record))
+    val fieldsList = parseJsonRDD.collect().map(eachline => {
 
-  /*def getDimensionsBroadcast(path : String): Broadcast[Map[String, (String, String, String)]] =
-  {
-    val result_rdd = sc.broadcast(sc.textFile(path).map(_.split(',')).map(y => (y(0), (y(1),y(2),y(3)))).collectAsMap().toMap)
-    return result_rdd
-  }*/
+      implicit val formats = org.json4s.DefaultFormats
+
+      //collect fields array from avro schema
+      val fieldsArray = (eachline \ "fields").children
+
+      //make array from all field names from avro schema
+      val b = fieldsArray.map(eachChild =>
+        (eachChild \ "name").extract[String])
+      b.toArray
+    })
+    fieldsList
+  }
 
 }
 
 // tech TODO:
 
-// 1 - how to write each enriched record to avro in spark context? (Nageswar)
+// 1 - how to write each enriched record to avro in spark context? (Nageswar) - Done
 // 2 - create ActionListFactory and interface

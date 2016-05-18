@@ -3,9 +3,10 @@ package com.cars.ingestionframework
 import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
-
 import org.scalatest.junit.JUnitRunner
 import com.cars.ingestionframework.actions._
+import com.cars.ingestionframework.exampleapp.ExampleAppSpec
+import org.apache.spark.sql.hive._
 
 import scala.io.Source
 
@@ -42,6 +43,7 @@ class LookupSpec extends UnitSpec {
   //////////////////////////////////////////////////////////////////////////////
 
   val resourcesDir = "./src/test/resources/"
+  val exampleAppSpecObj = new ExampleAppSpec()
 
   describe("Lookup constructor")  // ------------------------------------------------
   {
@@ -56,9 +58,9 @@ class LookupSpec extends UnitSpec {
       actionConfig should not be (JNothing)
 
       // create the action and test all fields after construction:
-      val action = new Lookup(actionConfig)
-      action.lookupFilePath should be ("./src/test/resources/testdimension-table-for-lookup.json")
-      action.keyField should be ("KEYFIELD")
+      val action = new Lookup(actionConfig,exampleAppSpecObj.hiveContext)
+      action.lookupTable should be ("./src/test/resources/testdimension-table-for-lookup.json")
+      action.lookupField should be ("KEYFIELD")
       action.fieldsToSelect should be (List("EnhField1", "EnhField2", "EnhField3"))
     }
 

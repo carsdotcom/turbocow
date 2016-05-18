@@ -3,10 +3,10 @@ package com.cars.ingestionframework.exampleapp
 import org.scalatest.junit.JUnitRunner
 import com.cars.ingestionframework._
 import com.cars.ingestionframework.actions._
-
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
+import org.apache.spark.sql.hive.HiveContext
 
 // Fix for Scalatest on Gradle:  (from http://stackoverflow.com/questions/18823855/cant-run-scalatest-with-gradle)
 // Alternately, try using https://github.com/maiflai/gradle-scalatest
@@ -15,8 +15,9 @@ class ExampleAppSpec extends UnitSpec {
 
   // initialise spark context
   //val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
-  val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[2]")
+  val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
   val sc = new SparkContext(conf)
+  val hiveContext = new HiveContext(sc)
       
   // before all tests have run
   override def beforeAll() = {
@@ -55,7 +56,7 @@ class ExampleAppSpec extends UnitSpec {
       val enriched: List[Map[String, String]] = ExampleApp.enrich(
         sc, 
         configFilePath = "./src/test/resources/testconfig-integration-simplecopy.json", 
-        inputFilePath = "./src/test/resources/input-integration.json")
+        inputFilePath = "./src/test/resources/input-integration.json", hiveContext)
   
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -69,7 +70,7 @@ class ExampleAppSpec extends UnitSpec {
       val enriched: List[Map[String, String]] = ExampleApp.enrich(
         sc, 
         configFilePath = s"./src/test/resources/testconfig-integration-replacenullwith${value.toString}.json", 
-        inputFilePath = "./src/test/resources/input-integration-replacenullwith.json")
+        inputFilePath = "./src/test/resources/input-integration-replacenullwith.json", hiveContext)
 
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -91,7 +92,7 @@ class ExampleAppSpec extends UnitSpec {
       val enriched: List[Map[String, String]] = ExampleApp.enrich(
         sc, 
         configFilePath = "./src/test/resources/testconfig-integration-lookup.json", 
-        inputFilePath = "./src/test/resources/input-integration.json")
+        inputFilePath = "./src/test/resources/input-integration.json", hiveContext)
   
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)

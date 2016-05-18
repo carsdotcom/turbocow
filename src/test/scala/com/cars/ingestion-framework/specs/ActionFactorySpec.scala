@@ -2,6 +2,7 @@ package com.cars.ingestionframework
 
 import org.scalatest.junit.JUnitRunner
 import com.cars.ingestionframework.actions._
+import com.cars.ingestionframework.exampleapp.ExampleAppSpec
 
 // Fix for Scalatest on Gradle:  (from http://stackoverflow.com/questions/18823855/cant-run-scalatest-with-gradle)
 // Alternately, try using https://github.com/maiflai/gradle-scalatest
@@ -38,13 +39,14 @@ class ActionFactorySpec extends UnitSpec {
   val resourcesDir = "./src/test/resources/"
 
   val actionFactory = new ActionFactoryForTest()
+  val exampleAppSpecObj = new ExampleAppSpec()
 
   describe("ActionListFactory.create")  // ------------------------------------------------
   {
     it("should successfully parse a 1-source, 1-action config file") {
 
       val configFile = resourcesDir + "testconfig-1source-1action.json"
-      val itemList: List[SourceAction] = actionFactory.create(configFile)
+      val itemList: List[SourceAction] = actionFactory.create(configFile, exampleAppSpecObj.hiveContext)
       itemList.size should be (1)
       itemList.head.source should be (List("AField"))
       itemList.head.actions.size should be (1)
@@ -57,7 +59,7 @@ class ActionFactorySpec extends UnitSpec {
 
     it("should successfully parse a 2-source, 1-action config file") {
       val configFile = resourcesDir + "testconfig-2source-1action.json"
-      val itemList: List[SourceAction] = actionFactory.create(configFile)
+      val itemList: List[SourceAction] = actionFactory.create(configFile,exampleAppSpecObj.hiveContext)
       itemList.size should be (1)
       itemList.head.source should be (List("AField", "BField"))
       itemList.head.actions.size should be (1)
@@ -70,7 +72,7 @@ class ActionFactorySpec extends UnitSpec {
 
     it("should successfully parse a 2-source, 2-action config file") {
       val configFile = resourcesDir + "testconfig-2source-2action.json"
-      val itemList: List[SourceAction] = actionFactory.create(configFile)
+      val itemList: List[SourceAction] = actionFactory.create(configFile,exampleAppSpecObj.hiveContext)
       itemList.size should be (1)
       itemList.head.source should be (List("AField", "BField"))
       itemList.head.actions.size should be (2)
@@ -87,7 +89,7 @@ class ActionFactorySpec extends UnitSpec {
 
     it("should successfully parse a 2-item config file") {
       val configFile = resourcesDir + "testconfig-2item.json"
-      val itemList: List[SourceAction] = actionFactory.create(configFile)
+      val itemList: List[SourceAction] = actionFactory.create(configFile,exampleAppSpecObj.hiveContext)
       itemList.size should be (2)
 
       // check first item (head)

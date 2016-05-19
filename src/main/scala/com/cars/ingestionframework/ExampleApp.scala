@@ -48,7 +48,7 @@ object ExampleApp {
         val oneLineInput = scala.io.Source.fromFile(inputFilePath).getLines.mkString.filter( _ != '\n' )
         sc.parallelize(List(oneLineInput))
       }
-    
+
     // use default formats for parsing
     implicit val jsonFormats = org.json4s.DefaultFormats
     

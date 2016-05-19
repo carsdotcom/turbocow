@@ -7,7 +7,7 @@
 				{
 					"actionType":"lookup",
                     "config": {
-                        "lookupTable": "./src/test/resources/testdimension-table-for-lookup.json",
+                        "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
                         "lookupField": "KEYFIELD",
                         "fieldsToSelect": [
                           "EnhField1",

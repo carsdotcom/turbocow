@@ -48,6 +48,7 @@ class LookupSpec extends UnitSpec {
   {
     it("should parse a file correctly") {
 
+      implicit val formats = org.json4s.DefaultFormats
       val configFile = resourcesDir + "testconfig-integration-lookup.json"
       val configAST = parse(Source.fromFile(configFile).getLines.mkString)
       val actionsList = ((configAST \ "items").children.head \ "actions")
@@ -58,7 +59,9 @@ class LookupSpec extends UnitSpec {
 
       // create the action and test all fields after construction:
       val action = new Lookup(actionConfig, None)
-      action.lookupTable should be ("./src/test/resources/testdimension-table-for-lookup.json")
+      action.lookupFile.extract[String] should be ("./src/test/resources/testdimension-table-for-lookup.json")
+      action.lookupDB should be (JNothing)
+      action.lookupTable should be (JNothing)
       action.lookupField should be ("KEYFIELD")
       action.fieldsToSelect should be (List("EnhField1", "EnhField2", "EnhField3"))
     }

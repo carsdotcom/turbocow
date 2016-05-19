@@ -8,7 +8,7 @@ import org.json4s.jackson.JsonMethods._
 
 import scala.io.Source
 
-class Lookup(actionConfig: JValue, hiveContext: HiveContext) extends Action
+class Lookup(actionConfig: JValue, hiveContext: Option[HiveContext]) extends Action
 {
 
   // parse the input config:
@@ -36,8 +36,9 @@ class Lookup(actionConfig: JValue, hiveContext: HiveContext) extends Action
       lookupTable match {
         case RE() => { // do hdfs lookup 
 
-          hiveContext
-            .sql("FROM "+lookupTable+" SELECT "+fieldsToSelect.mkString(","))
+          val hc = hiveContext.getOrElse(throw new Exception("A Hive Context is Required If doing lookup in HDFS"))
+
+          hc.sql("FROM "+lookupTable+" SELECT "+fieldsToSelect.mkString(","))
             .where(lookupField+"="+(inputRecord \ sourceFields.head).extract[String])
             .count()
           //TODO - change status accepted or rejected

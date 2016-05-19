@@ -29,16 +29,23 @@ object ExampleApp {
     */
   def enrich(
     sc: SparkContext, 
-    configFilePath: String, 
-    inputFilePath: String, hiveContext: HiveContext ):
+    config: String,
+    inputFilePath: String,
+    hiveContext : Option[HiveContext] = None,
+    actionFactory: ActionFactory = new ActionFactory ):
     List[Map[String, String]]= {
 
     // Parse the config.  Creates a list of SourceActions.
-    val actions: List[SourceAction] = new ActionFactory().create(configFilePath, hiveContext, sc)
-    
+    val actions: List[SourceAction] = actionFactory.createSourceActions(config, hiveContext)
+
     // (strip the newlines - TODO - what does real input look like?)
-    //val oneLineInput = scala.io.Source.fromFile(inputFilePath).getLines.mkString.filter( _ != '\n' )
-    val oneLineInput = sc.textFile(inputFilePath).collect().mkString("")
+    val oneLineInput =
+      if(inputFilePath.startsWith("hdfs://")) {
+        sc.textFile(inputFilePath).collect().mkString("")
+      }
+      else {
+          scala.io.Source.fromFile(inputFilePath).getLines.mkString.filter( _ != '\n' )
+      }
     
     // Get the input file 
     //val inputRDD = sc.textFile(inputFilePath) // TODO - restore
@@ -124,17 +131,19 @@ object ExampleApp {
     val sc = new SparkContext(conf)
     val sqlContext = new SQLContext(sc)
     val hiveContext = new org.apache.spark.sql.hive.HiveContext(sc)
-
-    val avroSchemaHDFSPath = "hdfs://ch1-hadoop-ns:8020/tmp/spark_jar/document.json" // AvroSceham HDFS path as third argument
+    val avroSchemaHDFSPath = args(2) // AvroSceham HDFS path as third argument
     val schema = getAvroSchema(avroSchemaHDFSPath,sc)
+    val configFilePath = args(1)
 
     val structTypeSchema = StructType(schema(0).map(column => StructField(column,StringType,true))) // Parse AvroSchema as Instance of StructType
 
     try {
+      val config = sc.textFile(configFilePath).collect().mkString("")
       val listOfEnriched: List[Map[String, String]] = enrich(
-        sc, 
-        configFilePath = args(1),
-        inputFilePath = args(0), hiveContext)
+        sc,
+        config,
+        inputFilePath = args(0),
+        hiveContext = Some(hiveContext))
 
       var rowsBuffer = new ArrayBuffer[Row]
 
@@ -154,18 +163,21 @@ object ExampleApp {
       dataFrame.write.format("com.databricks.spark.avro").save(EnrichedOutputHDFS)
 
       println("listOfEnriched = "+listOfEnriched)
-
     }
     finally {
       // terminate spark context
       sc.stop()
     }
-    
   }
 
-  def getAvroSchema(HDFSPath : String, sc: SparkContext): Array[Array[String]] = {
+  /**Process AvroScehema from HDFS
+ *
+    * @param hdfsPath
+    * @param sc SparkContext
+    */
+  def getAvroSchema(hdfsPath : String, sc: SparkContext): Array[Array[String]] = {
 
-    val jsonRDD = sc.textFile(HDFSPath)
+    val jsonRDD = sc.textFile(hdfsPath)
     val oneLineAvroSchema = jsonRDD.collect().mkString("")
     val lineRDD = sc.parallelize(List(oneLineAvroSchema))
     val parseJsonRDD = lineRDD.map(record => parse(record))
@@ -185,8 +197,3 @@ object ExampleApp {
   }
 
 }
-
-// tech TODO:
-
-// 1 - how to write each enriched record to avro in spark context? (Nageswar) - Done
-// 2 - create ActionListFactory and interface

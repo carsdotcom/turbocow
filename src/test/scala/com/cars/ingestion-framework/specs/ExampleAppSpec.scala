@@ -8,6 +8,8 @@ import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.hive.HiveContext
 
+import scala.io.Source
+
 // Fix for Scalatest on Gradle:  (from http://stackoverflow.com/questions/18823855/cant-run-scalatest-with-gradle)
 // Alternately, try using https://github.com/maiflai/gradle-scalatest
 //@org.junit.runner.RunWith(classOf[org.scalatest.junit.JUnitRunner])
@@ -17,8 +19,7 @@ class ExampleAppSpec extends UnitSpec {
   //val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
   val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
   val sc = new SparkContext(conf)
-  val hiveContext = new HiveContext(sc)
-      
+
   // before all tests have run
   override def beforeAll() = {
     super.beforeAll()
@@ -43,6 +44,8 @@ class ExampleAppSpec extends UnitSpec {
     sc.stop()
   }
 
+  def fileToString(filePath: String) = Source.fromFile(filePath).getLines.mkString
+
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
   // Tests start
@@ -55,8 +58,8 @@ class ExampleAppSpec extends UnitSpec {
     
       val enriched: List[Map[String, String]] = ExampleApp.enrich(
         sc, 
-        configFilePath = "./src/test/resources/testconfig-integration-simplecopy.json", 
-        inputFilePath = "./src/test/resources/input-integration.json", hiveContext)
+        config = fileToString("./src/test/resources/testconfig-integration-simplecopy.json"),
+        inputFilePath = "./src/test/resources/input-integration.json")
   
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -69,8 +72,8 @@ class ExampleAppSpec extends UnitSpec {
     def testReplaceNullWith(value: Int) = {
       val enriched: List[Map[String, String]] = ExampleApp.enrich(
         sc, 
-        configFilePath = s"./src/test/resources/testconfig-integration-replacenullwith${value.toString}.json", 
-        inputFilePath = "./src/test/resources/input-integration-replacenullwith.json", hiveContext)
+        config = fileToString(s"./src/test/resources/testconfig-integration-replacenullwith${value.toString}.json"),
+        inputFilePath = "./src/test/resources/input-integration-replacenullwith.json")
 
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -91,8 +94,8 @@ class ExampleAppSpec extends UnitSpec {
     it("should successfully process a lookup action") {
       val enriched: List[Map[String, String]] = ExampleApp.enrich(
         sc, 
-        configFilePath = "./src/test/resources/testconfig-integration-lookup.json", 
-        inputFilePath = "./src/test/resources/input-integration.json", hiveContext)
+        config = fileToString("./src/test/resources/testconfig-integration-lookup.json"),
+        inputFilePath = "./src/test/resources/input-integration.json")
   
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -100,6 +103,36 @@ class ExampleAppSpec extends UnitSpec {
       enriched.head("EnhField2") should be ("2")
       enriched.head("EnhField3") should be ("3")
     }
+
+    it("should successfully process a custom action") {
+      val enriched: List[Map[String, String]] = ExampleApp.enrich(
+        sc, 
+        config = fileToString("./src/test/resources/testconfig-integration-custom.json"),
+        inputFilePath = "./src/test/resources/input-integration.json",
+        None,
+        new ActionFactory(new CustomActionCreator) )
+    
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+      enriched.head("EnhField1") should be ("1")
+      enriched.head("EnhField2") should be ("2")
+      enriched.head("EnhField3") should be ("3")
+      enriched.head("customA") should be ("AAA")
+      enriched.head("customB") should be ("BBB")
+    }
+    
+    //it("should successfully process a different custom action") {
+    //  val enriched: List[Map[String, String]] = ExampleApp.enrich(
+    //    sc, 
+    //    configFilePath = "./src/test/resources/testconfig-integration-custom2.json", 
+    //    inputFilePath = "./src/test/resources/input-integration.json")
+    //
+    //  enriched.size should be (1) // always one because there's only one json input object
+    //  //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+    //  enriched.head.get("EnhField1") should be (Some("1"))
+    //  enriched.head.get("EnhField2") should be (None)
+    //  enriched.head.get("EnhField3") should be (None)
+    //}
 
   }
 }

@@ -10,26 +10,30 @@
                         "lookupTable": "./src/test/resources/testdimension-table-for-lookup.json",
                         "lookupField": "KEYFIELD",
                         "fieldsToSelect": [
-                          "EnhField1",
-                          "EnhField2",
-                          "EnhField3"
-                         ],
+                            "EnhField1",
+                            "EnhField2",
+                            "EnhField3"
+                        ],
                         "onPass": [
-                          {
-                            "status": "accepted"
-                          }
                         ],
                         "onFail": [
-                          {
-                            "status": "rejected"
-                          }
                         ],
                         "rejectIfFound": false
                     }
-				}
+				},
+                {
+                    "actionType":"custom-remove-enriched-fields",
+                    "config": {
+                        "fields": [ 
+                            "EnhField2",
+                            "EnhField3"
+                        ]
+                    }
+                }
 			]
 		}
 	]
 	
 }
+
 

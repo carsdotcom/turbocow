@@ -43,7 +43,6 @@ class LookupSpec extends UnitSpec {
   //////////////////////////////////////////////////////////////////////////////
 
   val resourcesDir = "./src/test/resources/"
-  val exampleAppSpecObj = new ExampleAppSpec()
 
   describe("Lookup constructor")  // ------------------------------------------------
   {
@@ -58,7 +57,7 @@ class LookupSpec extends UnitSpec {
       actionConfig should not be (JNothing)
 
       // create the action and test all fields after construction:
-      val action = new Lookup(actionConfig,exampleAppSpecObj.hiveContext)
+      val action = new Lookup(actionConfig,None)
       action.lookupTable should be ("./src/test/resources/testdimension-table-for-lookup.json")
       action.lookupField should be ("KEYFIELD")
       action.fieldsToSelect should be (List("EnhField1", "EnhField2", "EnhField3"))

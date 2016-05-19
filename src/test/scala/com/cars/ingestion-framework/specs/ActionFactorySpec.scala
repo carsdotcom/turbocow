@@ -1,8 +1,6 @@
 package com.cars.ingestionframework
 
-import org.scalatest.junit.JUnitRunner
-import com.cars.ingestionframework.actions._
-import com.cars.ingestionframework.exampleapp.ExampleAppSpec
+import scala.io.Source
 
 // Fix for Scalatest on Gradle:  (from http://stackoverflow.com/questions/18823855/cant-run-scalatest-with-gradle)
 // Alternately, try using https://github.com/maiflai/gradle-scalatest
@@ -37,16 +35,13 @@ class ActionFactorySpec extends UnitSpec {
   //////////////////////////////////////////////////////////////////////////////
 
   val resourcesDir = "./src/test/resources/"
-
-  val actionFactory = new ActionFactoryForTest()
-  val exampleAppSpecObj = new ExampleAppSpec()
-
-  describe("ActionListFactory.create")  // ------------------------------------------------
+  describe("ActionListFactory.createSourceActions")  // ------------------------------------------------
   {
     it("should successfully parse a 1-source, 1-action config file") {
 
-      val configFile = resourcesDir + "testconfig-1source-1action.json"
-      val itemList: List[SourceAction] = actionFactory.create(configFile, exampleAppSpecObj.hiveContext)
+      val actionFactory = new ActionFactoryForTest
+      val config = Source.fromFile(resourcesDir + "testconfig-1source-1action.json").getLines().mkString("")
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(config, None)
       itemList.size should be (1)
       itemList.head.source should be (List("AField"))
       itemList.head.actions.size should be (1)
@@ -58,8 +53,9 @@ class ActionFactorySpec extends UnitSpec {
     }
 
     it("should successfully parse a 2-source, 1-action config file") {
-      val configFile = resourcesDir + "testconfig-2source-1action.json"
-      val itemList: List[SourceAction] = actionFactory.create(configFile,exampleAppSpecObj.hiveContext)
+      val actionFactory = new ActionFactoryForTest
+      val config = Source.fromFile(resourcesDir + "testconfig-2source-1action.json").getLines().mkString("")
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(config, None)
       itemList.size should be (1)
       itemList.head.source should be (List("AField", "BField"))
       itemList.head.actions.size should be (1)
@@ -71,8 +67,9 @@ class ActionFactorySpec extends UnitSpec {
     }
 
     it("should successfully parse a 2-source, 2-action config file") {
-      val configFile = resourcesDir + "testconfig-2source-2action.json"
-      val itemList: List[SourceAction] = actionFactory.create(configFile,exampleAppSpecObj.hiveContext)
+      val actionFactory = new ActionFactoryForTest
+      val config = Source.fromFile(resourcesDir + "testconfig-2source-2action.json").getLines().mkString("")
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(config, None)
       itemList.size should be (1)
       itemList.head.source should be (List("AField", "BField"))
       itemList.head.actions.size should be (2)
@@ -88,8 +85,9 @@ class ActionFactorySpec extends UnitSpec {
     }
 
     it("should successfully parse a 2-item config file") {
-      val configFile = resourcesDir + "testconfig-2item.json"
-      val itemList: List[SourceAction] = actionFactory.create(configFile,exampleAppSpecObj.hiveContext)
+      val actionFactory = new ActionFactoryForTest
+      val config = Source.fromFile(resourcesDir + "testconfig-2item.json").getLines().mkString("")
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(config, None)
       itemList.size should be (2)
 
       // check first item (head)
@@ -112,17 +110,28 @@ class ActionFactorySpec extends UnitSpec {
         case _ => fail()
       }
     }
+
+    it("should successfully parse a file with custom and standard actions") {
+      //val actionFactory = new ActionFactory(List(new CustomActionCreator))
+      val actionFactory = new ActionFactoryForTest(List(new CustomActionCreator))
+      val config = Source.fromFile(resourcesDir + "testconfig-custom-and-standard.json").getLines().mkString("")
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(config, None)
+      itemList.size should be (1)
+
+      // check first item (head)
+      itemList(0).source should be (List("AField", "BField"))
+      itemList(0).actions.size should be (2)
+      itemList(0).actions(0) match {
+        case a: Custom1 => ;
+        case _ => fail()
+      }
+      itemList(0).actions(1) match {
+        case a: Action1 => ;
+        case _ => fail()
+      }
+    }
   }
 
-  //describe("DataStore.set")  // ------------------------------------------------
-  //{
-  //  it("should store what is given") {
-  //    dataStore.getStore.size should be(0)
-  //    dataStore.store("key", "value")
-  //    dataStore.getStore.size should be(1)
-  //    dataStore.getStore.get("key") should be(Some("value"))
-  //  }
-  //}
 }
 
 

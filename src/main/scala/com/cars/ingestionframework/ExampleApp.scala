@@ -45,7 +45,7 @@ object ExampleApp {
         sc.textFile(inputFilePath)
       }
       else {
-         val oneLineInput = scala.io.Source.fromFile(inputFilePath).getLines.mkString.filter( _ != '\n' )
+        val oneLineInput = scala.io.Source.fromFile(inputFilePath).getLines.mkString.filter( _ != '\n' )
         sc.parallelize(List(oneLineInput))
       }
     
@@ -124,41 +124,49 @@ object ExampleApp {
     */
   def main(args: Array[String]) = {
     
+    // parse arguments:
+    if(args.size < 3) throw new Exception("Must specify 3 arguments: inputFilePath, configFilePath, and avroSchemaHDFSPath")
+    val inputFilePath = args(0)
+    val configFilePath = args(1)
+    val avroSchemaHDFSPath = args(2)
+
     // initialise spark context
+    //val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
     val conf = new SparkConf().setAppName("ExampleApp")
     val sc = new SparkContext(conf)
-    val sqlContext = new SQLContext(sc)
-    val hiveContext = new org.apache.spark.sql.hive.HiveContext(sc)
-    val avroSchemaHDFSPath = args(2) // AvroSceham HDFS path as third argument
     val schema = getAvroSchema(avroSchemaHDFSPath,sc)
-    val configFilePath = args(1)
 
     val structTypeSchema = StructType(schema(0).map(column => StructField(column,StringType,true))) // Parse AvroSchema as Instance of StructType
 
     try {
+
+      val hiveContext = new org.apache.spark.sql.hive.HiveContext(sc)
+
       val config = sc.textFile(configFilePath).collect().mkString("")
       val listOfEnriched: List[Map[String, String]] = enrich(
         sc,
         config,
-        inputFilePath = args(0),
-        hiveContext = Some(hiveContext))
+        inputFilePath = inputFilePath,
+        hiveContext = Option(hiveContext),
+        new ActionFactory())
 
       var rowsBuffer = new ArrayBuffer[Row]
 
-        //Loop through enriched record fields
+      //Loop through enriched record fields
       for(i <- listOfEnriched) {
-            //convert all the fields' values to a sequence
-             rowsBuffer += Row.fromSeq(i.values.toSeq)
-        }
+        //convert all the fields' values to a sequence
+        rowsBuffer += Row.fromSeq(i.values.toSeq)
+      }
 
       //Converts RowsBuffer to a RDD[Row]
       val enrichedRows = sc.parallelize(rowsBuffer)
 
       //create a dataframe of RDD[row] and Avro schema
+      val sqlContext = new SQLContext(sc)
       val dataFrame = sqlContext.createDataFrame(enrichedRows,structTypeSchema)
 
-      val EnrichedOutputHDFS = "./target/output"
-      dataFrame.write.format("com.databricks.spark.avro").save(EnrichedOutputHDFS)
+      val enrichedOutputHDFS = "./target/output"
+      dataFrame.write.format("com.databricks.spark.avro").save(enrichedOutputHDFS)
 
       println("listOfEnriched = "+listOfEnriched)
     }

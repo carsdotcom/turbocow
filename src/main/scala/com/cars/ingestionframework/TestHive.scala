@@ -9,6 +9,7 @@ import org.apache.spark.{SparkConf, SparkContext}
   * 
   * @todo Add real test, remove this.
   */
+/*
 object TestHive extends Serializable {
 
   def main(args: Array[String]): Unit =
@@ -24,3 +25,4 @@ object TestHive extends Serializable {
   }
 
 }
+*/

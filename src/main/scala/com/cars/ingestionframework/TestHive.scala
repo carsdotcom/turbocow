@@ -6,6 +6,8 @@ import org.apache.spark.{SparkConf, SparkContext}
 
 /**
   * Created by nchaturvedula on 5/18/2016.
+  * 
+  * @todo Add real test, remove this.
   */
 object TestHive extends Serializable {
 

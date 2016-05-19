@@ -15,14 +15,8 @@
                           "EnhField3"
                          ],
                         "onPass": [
-                          {
-                            "status": "accepted"
-                          }
                         ],
                         "onFail": [
-                          {
-                            "status": "rejected"
-                          }
                         ],
                         "rejectIfFound": false
                     }

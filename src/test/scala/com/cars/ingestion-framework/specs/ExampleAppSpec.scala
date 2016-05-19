@@ -44,6 +44,8 @@ class ExampleAppSpec extends UnitSpec {
     sc.stop()
   }
 
+  /** Helper fn
+    */
   def fileToString(filePath: String) = Source.fromFile(filePath).getLines.mkString
 
   //////////////////////////////////////////////////////////////////////////////

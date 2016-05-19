@@ -7,9 +7,11 @@ import org.json4s.JValue
   */
 class CustomActionCreator extends ActionCreator {
 
-  override def createAction(actionType: String,
-                            actionConfig: JValue,
-                            hiveContext: Option[HiveContext]): Option[Action] = {
+  override def createAction(
+    actionType: String,
+    actionConfig: JValue,
+    hiveContext: Option[HiveContext]): 
+    Option[Action] = {
 
     actionType match {
       case "custom-1" => Option(new Custom1)

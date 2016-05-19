@@ -148,7 +148,7 @@ object ExampleApp {
         config,
         inputFilePath = inputFilePath,
         hiveContext = Option(hiveContext),
-        new ActionFactory())
+        new ActionFactory(new ExampleCustomActionCreator))
 
       var rowsBuffer = new ArrayBuffer[Row]
 

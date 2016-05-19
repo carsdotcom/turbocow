@@ -27,5 +27,5 @@ libraryDependencies ++= Seq(
 )
 
 // Print full stack traces in tests:
-//testOptions in Test += Tests.Argument("-oF")
+testOptions in Test += Tests.Argument("-oF")
 

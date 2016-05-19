@@ -14,10 +14,20 @@ class Lookup(actionConfig: JValue, hiveContext: Option[HiveContext]) extends Act
   // parse the input config:
   implicit val jsonFormats = org.json4s.DefaultFormats
 
-  val lookupTable = (actionConfig \ "lookupTable").extract[String]
+  val lookupFile = (actionConfig \ "lookupFile")
+  val lookupDB = (actionConfig \ "lookupDB")
+  val lookupTable = (actionConfig \ "lookupTable")
   val lookupField = (actionConfig \ "lookupField").extract[String]
   val fieldsToSelect: List[String] = 
     (actionConfig \ "fieldsToSelect").children.map{ _.extract[String] }
+  var fields = ""
+
+  if(fieldsToSelect.length > 1) {
+      fields = fieldsToSelect.mkString(",")
+    }
+  else if(fieldsToSelect.length == 1){
+    fields = fieldsToSelect(0)
+  }
 
   /** Simple Copy - simply copies the input(s) to the output.
     *
@@ -32,23 +42,23 @@ class Lookup(actionConfig: JValue, hiveContext: Option[HiveContext]) extends Act
     sourceFields.flatMap{ field => 
 
       // search in the table for this key
-      val RE = """hdfs://.*""".r
-      lookupTable match {
-        case RE() => { // do hdfs lookup 
+      lookupFile match {
+        case JNothing => { // do hdfs lookup
 
           val hc = hiveContext.getOrElse(throw new Exception("A Hive Context is Required If doing lookup in HDFS"))
 
-          hc.sql("FROM "+lookupTable+" SELECT "+fieldsToSelect.mkString(","))
+          val dataFrame = hc.sql("FROM "+lookupDB.extract[String]+"."+lookupTable.extract[String]+" SELECT "+fields)
             .where(lookupField+"="+(inputRecord \ sourceFields.head).extract[String])
-            .count()
-          //TODO - change status accepted or rejected
 
-          List.empty[ Tuple2[String, String] ] // TODO - real implementation against the actual file
+          val fieldValues = dataFrame.select(fields).rdd.map(eachRow => eachRow(0).asInstanceOf[String]).collect()
+
+          fieldsToSelect.zipWithIndex.map(tuple => (tuple._1, fieldValues(tuple._2)))
+          //TODO - change status accepted or rejected
         }
         case _ => {
         
           // look up local file and parse as json.
-          val configAST = parse(Source.fromFile(lookupTable).getLines.mkString)
+          val configAST = parse(Source.fromFile(lookupFile.extract[String]).getLines.mkString)
 
           // get value of source field from the input JSON:
           val lookupKeyVal: String = (inputRecord \ sourceFields.head).extract[String]

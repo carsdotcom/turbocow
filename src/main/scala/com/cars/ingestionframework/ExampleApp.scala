@@ -39,17 +39,15 @@ object ExampleApp {
     val actions: List[SourceAction] = actionFactory.createSourceActions(config, hiveContext)
 
     // (strip the newlines - TODO - what does real input look like?)
-    val oneLineInput =
+    // Get the input file
+    val inputRDD =
       if(inputFilePath.startsWith("hdfs://")) {
-        sc.textFile(inputFilePath).collect().mkString("")
+        sc.textFile(inputFilePath)
       }
       else {
-          scala.io.Source.fromFile(inputFilePath).getLines.mkString.filter( _ != '\n' )
+         val oneLineInput = scala.io.Source.fromFile(inputFilePath).getLines.mkString.filter( _ != '\n' )
+        sc.parallelize(List(oneLineInput))
       }
-    
-    // Get the input file 
-    //val inputRDD = sc.textFile(inputFilePath) // TODO - restore
-    val inputRDD = sc.parallelize(List(oneLineInput))
     
     // use default formats for parsing
     implicit val jsonFormats = org.json4s.DefaultFormats

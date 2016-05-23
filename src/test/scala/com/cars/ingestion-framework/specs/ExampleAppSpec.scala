@@ -6,6 +6,7 @@ import com.cars.ingestionframework.actions._
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.hive.HiveContext
 
 import scala.io.Source
@@ -17,7 +18,7 @@ class ExampleAppSpec extends UnitSpec {
 
   // initialise spark context
   //val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
-  val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
+  val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[2]")
   val sc = new SparkContext(conf)
 
   // before all tests have run
@@ -58,10 +59,10 @@ class ExampleAppSpec extends UnitSpec {
   {
     it("should successfully process simple-copy") {
     
-      val enriched: List[Map[String, String]] = ExampleApp.enrich(
+      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
         sc, 
         config = fileToString("./src/test/resources/testconfig-integration-simplecopy.json"),
-        inputFilePath = "./src/test/resources/input-integration.json")
+        inputDir = "./src/test/resources/input-integration.json").collect()
   
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -72,10 +73,10 @@ class ExampleAppSpec extends UnitSpec {
     /** Helper test function
       */
     def testReplaceNullWith(value: Int) = {
-      val enriched: List[Map[String, String]] = ExampleApp.enrich(
+      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
         sc, 
         config = fileToString(s"./src/test/resources/testconfig-integration-replacenullwith${value.toString}.json"),
-        inputFilePath = "./src/test/resources/input-integration-replacenullwith.json")
+        inputDir = "./src/test/resources/input-integration-replacenullwith.json").collect()
 
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -94,10 +95,10 @@ class ExampleAppSpec extends UnitSpec {
     }
 
     it("should successfully process a lookup action") {
-      val enriched: List[Map[String, String]] = ExampleApp.enrich(
+      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
         sc, 
         config = fileToString("./src/test/resources/testconfig-integration-lookup.json"),
-        inputFilePath = "./src/test/resources/input-integration.json")
+        inputDir = "./src/test/resources/input-integration.json").collect()
   
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -107,12 +108,12 @@ class ExampleAppSpec extends UnitSpec {
     }
 
     it("should successfully process a custom action") {
-      val enriched: List[Map[String, String]] = ExampleApp.enrich(
+      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
         sc, 
         config = fileToString("./src/test/resources/testconfig-integration-custom.json"),
-        inputFilePath = "./src/test/resources/input-integration.json",
+        inputDir = "./src/test/resources/input-integration.json",
         None,
-        new ActionFactory(new CustomActionCreator) )
+        new ActionFactory(new CustomActionCreator) ).collect()
     
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)

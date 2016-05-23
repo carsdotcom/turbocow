@@ -1,12 +1,1 @@
-{
-    "metaData": {
-        "AField": "A",
-        "BField": "B"
-    },
-    "activityMap": {
-        "CField": 10,
-        "DField": 11
-    }
-
-}
-
+{ "md": { "AField": "A", "BField": "B" }, "activityMap": { "CField": 10, "DField": 11 }}

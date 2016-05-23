@@ -4,9 +4,9 @@ import com.cars.ingestionframework.Action
 import org.json4s._
 
 
-class SimpleCopy extends Action
+class SimpleCopy extends Action with Serializable
 {
-  implicit val jsonFormats = org.json4s.DefaultFormats
+
 
   /** Simple Copy - simply copies the input(s) to the output.
     *
@@ -14,8 +14,10 @@ class SimpleCopy extends Action
   def perform(sourceFields: List[String], inputRecord: JValue, currentEnrichedMap: Map[String, String]): 
     Map[String, String] = {
 
+    implicit val jsonFormats = org.json4s.DefaultFormats
+
     // for each sourceField, get the data out of the inputRecord, and add it to map to return.
-    sourceFields.flatMap{ field => 
+    sourceFields.flatMap{ field =>
 
       // search in the source json for this field name.
       val found = (inputRecord \ field)

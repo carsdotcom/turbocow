@@ -6,13 +6,14 @@ import org.json4s._
 
 class ReplaceNullWith(replacement: Int) extends Action
 {
-  implicit val jsonFormats = org.json4s.DefaultFormats
 
   /** Simple Copy - simply copies the input(s) to the output.
     *
     */
   def perform(sourceFields: List[String], inputRecord: JValue, currentEnrichedMap: Map[String, String]): 
     Map[String, String] = {
+
+    implicit val jsonFormats = org.json4s.DefaultFormats
 
     // for each sourceField, get the data out of the inputRecord, and see if we need to replace it with a value
     sourceFields.flatMap{ field => 

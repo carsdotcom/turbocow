@@ -4,7 +4,7 @@ version := "0.1"
 
 scalaVersion := "2.10.6"
 
-val json4SVer = "3.2.11"
+val json4SVer = "3.3.0"
 
 libraryDependencies ++= Seq(
 

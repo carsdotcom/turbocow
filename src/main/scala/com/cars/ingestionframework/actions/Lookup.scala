@@ -10,32 +10,33 @@ import scala.io.Source
 
 class Lookup(actionConfig: JValue, hiveContext: Option[HiveContext]) extends Action
 {
+  def extractString(jvalue : JValue): String = {
+    implicit val jsonFormats = org.json4s.DefaultFormats
+    jvalue.extract[String]
+  }
 
-  // parse the input config:
-  implicit val jsonFormats = org.json4s.DefaultFormats
-
-  val lookupFile = (actionConfig \ "lookupFile")
-  val lookupDB = (actionConfig \ "lookupDB")
-  val lookupTable = (actionConfig \ "lookupTable")
-  val lookupField = (actionConfig \ "lookupField").extract[String]
-  val fieldsToSelect: List[String] = 
-    (actionConfig \ "fieldsToSelect").children.map{ _.extract[String] }
+  val lookupFile = actionConfig \ "lookupFile"
+  val lookupDB = actionConfig \ "lookupDB"
+  val lookupTable = actionConfig \ "lookupTable"
+  val lookupField = extractString(actionConfig \ "lookupField")
+  val fieldsToSelect: List[String] =
+    (actionConfig \ "fieldsToSelect").children.map{e => extractString(e) }
   var fields = ""
 
   if(fieldsToSelect.length > 1) {
-      fields = fieldsToSelect.mkString(",")
-    }
+    fields = fieldsToSelect.mkString(",")
+  }
   else if(fieldsToSelect.length == 1){
     fields = fieldsToSelect(0)
   }
-
   /** Simple Copy - simply copies the input(s) to the output.
     *
     */
   def perform(sourceFields: List[String], inputRecord: JValue, currentEnrichedMap: Map[String, String]): 
     Map[String, String] = {
+    implicit val jsonFormats = org.json4s.DefaultFormats
 
-    // The source field must have only one item in it. 
+    // The source field must have only one item in it.
     if(sourceFields.size != 1) return Map.empty[String, String] 
     // TODO - should error out if more than one field in source
 

@@ -32,15 +32,14 @@ class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[Actio
     val itemsList = (configAST \ "items").children
 
     // transform to a list of SourceActions:
-    itemsList.map{ item => 
-
+    itemsList.map{ item =>
       val sourceList = (item \ "source").children.map( _.values.toString)
 
       val actions = (item \ "actions").children.map{ jobj => 
 
         // Get the info for this action to send to the action creator.
         val actionType = (jobj \ "actionType").extract[String]
-        val actionConfig = (jobj \ "config" )
+        val actionConfig = jobj \ "config"
 
         // First, attempt to create an action using custom creators, if any:
         val customAction: Option[Action] = if (customActionCreators.nonEmpty) {

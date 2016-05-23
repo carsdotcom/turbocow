@@ -2,7 +2,7 @@ package com.cars.ingestionframework
 
 import org.json4s.JsonAST.JValue
 
-trait Action
+trait Action extends Serializable
 {
   /** Performs an action.  
     *

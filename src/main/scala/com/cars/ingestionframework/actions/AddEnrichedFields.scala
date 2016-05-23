@@ -4,10 +4,10 @@ import org.json4s._
 
 class AddEnrichedFields(actionConfig: JValue) extends Action
 {
-  implicit val jsonFormats = org.json4s.DefaultFormats
 
   // create list of key-value tuples from the config
-  val kvList = actionConfig.children.map{ jObj => 
+  val kvList = actionConfig.children.map{ jObj =>
+    implicit val formats = org.json4s.DefaultFormats
     ( (jObj \ "key").extract[String], (jObj \ "value").extract[String] )
   }
 

@@ -43,7 +43,7 @@ object ExampleApp {
     RDD[Map[String, String]]= {
 
     // Parse the config.  Creates a list of SourceActions.
-    val actions: List[SourceAction] = actionFactory.createSourceActions(config, hiveContext)
+    val actions: List[SourceAction] = actionFactory.createSourceActions(config)
 
     // Get the input file
     val inputJsonRDD = sc.textFile(inputDir)
@@ -60,6 +60,8 @@ object ExampleApp {
     val flattenedImpressionsRDD = allImpressionsRDD.map{ ast =>
       (ast \ "md") merge (ast \ "activityMap")
     }
+
+    val actionCtx = ActionContext(hiveContext)
 
     // for every impression, perform all actions from config file.
     flattenedImpressionsRDD.map{ ast =>
@@ -87,7 +89,7 @@ object ExampleApp {
 
         if(sourceAction.nonEmpty) {
           // Found it. Call performActions.
-          val mapAddition = sourceAction.get.perform(sourceAction.get.source, ast, enrichedMap)
+          val mapAddition = sourceAction.get.perform(sourceAction.get.source, ast, enrichedMap, actionCtx)
           // TODO - pass in list (get list from source in config)
 
           // Then merge in the results.

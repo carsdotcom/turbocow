@@ -12,9 +12,9 @@ class ActionFactoryForTest(customActionFactories: List[ActionCreator] = List.emp
   extends ActionFactory(customActionFactories)
 {
 
-  override def createAction(actionType: String, actionConfig: JValue, hiveContext: Option[HiveContext]): Option[Action] = {
+  override def createAction(actionType: String, actionConfig: JValue): Option[Action] = {
 
-    val action = super.createAction(actionType, actionConfig, hiveContext)
+    val action = super.createAction(actionType, actionConfig)
 
     if (action.isEmpty) actionType match {
       case "Action1" => Option(new Action1)

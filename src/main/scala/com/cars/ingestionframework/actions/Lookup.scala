@@ -1,6 +1,7 @@
 package com.cars.ingestionframework.actions
 
 import com.cars.ingestionframework.Action
+import com.cars.ingestionframework.ActionContext
 import org.apache.spark.sql.hive.HiveContext
 import org.json4s._
 import org.json4s.JsonDSL._
@@ -8,7 +9,7 @@ import org.json4s.jackson.JsonMethods._
 
 import scala.io.Source
 
-class Lookup(actionConfig: JValue, hiveContext: Option[HiveContext]) extends Action
+class Lookup(actionConfig: JValue) extends Action
 {
   def extractString(jvalue : JValue): String = {
     implicit val jsonFormats = org.json4s.DefaultFormats
@@ -32,8 +33,13 @@ class Lookup(actionConfig: JValue, hiveContext: Option[HiveContext]) extends Act
   /** Simple Copy - simply copies the input(s) to the output.
     *
     */
-  def perform(sourceFields: List[String], inputRecord: JValue, currentEnrichedMap: Map[String, String]): 
+  def perform(
+    sourceFields: List[String], 
+    inputRecord: JValue, 
+    currentEnrichedMap: Map[String, String],
+    context: ActionContext): 
     Map[String, String] = {
+
     implicit val jsonFormats = org.json4s.DefaultFormats
 
     // The source field must have only one item in it.
@@ -46,7 +52,7 @@ class Lookup(actionConfig: JValue, hiveContext: Option[HiveContext]) extends Act
       lookupFile match {
         case JNothing => { // do hdfs lookup
 
-          val hc = hiveContext.getOrElse(throw new Exception("A Hive Context is Required If doing lookup in HDFS"))
+          val hc = context.hc.getOrElse(throw new Exception("A Hive Context is Required If doing lookup in HDFS"))
 
           val dataFrame = hc.sql("FROM "+lookupDB.extract[String]+"."+lookupTable.extract[String]+" SELECT "+fields)
             .where(lookupField+"="+(inputRecord \ sourceFields.head).extract[String])

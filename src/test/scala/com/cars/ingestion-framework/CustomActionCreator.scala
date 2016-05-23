@@ -1,6 +1,5 @@
 package com.cars.ingestionframework
 
-import org.apache.spark.sql.hive.HiveContext
 import org.json4s.JValue
 
 /** ActionFactoryMock - enables creation of test actions
@@ -9,8 +8,7 @@ class CustomActionCreator extends ActionCreator {
 
   override def createAction(
     actionType: String,
-    actionConfig: JValue,
-    hiveContext: Option[HiveContext]): 
+    actionConfig: JValue): 
     Option[Action] = {
 
     actionType match {

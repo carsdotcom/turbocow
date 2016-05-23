@@ -1,6 +1,5 @@
 package com.cars.ingestionframework.exampleapp
 
-import org.apache.spark.sql.hive.HiveContext
 import org.json4s.JValue
 
 import com.cars.ingestionframework.ActionCreator
@@ -13,8 +12,7 @@ class ExampleCustomActionCreator extends ActionCreator {
 
   override def createAction(
     actionType: String,
-    actionConfig: JValue,
-    hiveContext: Option[HiveContext]): 
+    actionConfig: JValue): 
     Option[Action] = {
 
     actionType match {

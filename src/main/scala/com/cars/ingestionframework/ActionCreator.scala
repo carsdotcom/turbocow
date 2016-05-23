@@ -1,6 +1,5 @@
 package com.cars.ingestionframework
 
-import org.apache.spark.sql.hive.HiveContext
 import org.json4s.JValue
 
 /** ActionCreator - creates all of the SourceActions based on the config file.
@@ -15,7 +14,7 @@ trait ActionCreator {
     * @return Some[Action] if able to handle this actionType; None if this 
     *         actionType is unknown to this creator.
     */
-  def createAction(actionType: String, actionConfig: JValue, hiveContext: Option[HiveContext]): Option[Action]
+  def createAction(actionType: String, actionConfig: JValue): Option[Action]
 
 }
 

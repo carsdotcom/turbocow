@@ -41,7 +41,7 @@ class ActionFactorySpec extends UnitSpec {
 
       val actionFactory = new ActionFactoryForTest
       val config = Source.fromFile(resourcesDir + "testconfig-1source-1action.json").getLines().mkString("")
-      val itemList: List[SourceAction] = actionFactory.createSourceActions(config, None)
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(config)
       itemList.size should be (1)
       itemList.head.source should be (List("AField"))
       itemList.head.actions.size should be (1)
@@ -55,7 +55,7 @@ class ActionFactorySpec extends UnitSpec {
     it("should successfully parse a 2-source, 1-action config file") {
       val actionFactory = new ActionFactoryForTest
       val config = Source.fromFile(resourcesDir + "testconfig-2source-1action.json").getLines().mkString("")
-      val itemList: List[SourceAction] = actionFactory.createSourceActions(config, None)
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(config)
       itemList.size should be (1)
       itemList.head.source should be (List("AField", "BField"))
       itemList.head.actions.size should be (1)
@@ -69,7 +69,7 @@ class ActionFactorySpec extends UnitSpec {
     it("should successfully parse a 2-source, 2-action config file") {
       val actionFactory = new ActionFactoryForTest
       val config = Source.fromFile(resourcesDir + "testconfig-2source-2action.json").getLines().mkString("")
-      val itemList: List[SourceAction] = actionFactory.createSourceActions(config, None)
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(config)
       itemList.size should be (1)
       itemList.head.source should be (List("AField", "BField"))
       itemList.head.actions.size should be (2)
@@ -87,7 +87,7 @@ class ActionFactorySpec extends UnitSpec {
     it("should successfully parse a 2-item config file") {
       val actionFactory = new ActionFactoryForTest
       val config = Source.fromFile(resourcesDir + "testconfig-2item.json").getLines().mkString("")
-      val itemList: List[SourceAction] = actionFactory.createSourceActions(config, None)
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(config)
       itemList.size should be (2)
 
       // check first item (head)
@@ -115,7 +115,7 @@ class ActionFactorySpec extends UnitSpec {
       //val actionFactory = new ActionFactory(List(new CustomActionCreator))
       val actionFactory = new ActionFactoryForTest(List(new CustomActionCreator))
       val config = Source.fromFile(resourcesDir + "testconfig-custom-and-standard.json").getLines().mkString("")
-      val itemList: List[SourceAction] = actionFactory.createSourceActions(config, None)
+      val itemList: List[SourceAction] = actionFactory.createSourceActions(config)
       itemList.size should be (1)
 
       // check first item (head)

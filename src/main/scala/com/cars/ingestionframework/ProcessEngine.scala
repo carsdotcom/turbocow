@@ -22,5 +22,7 @@ import com.typesafe.config._
 
 class ProcessEngine {
 
+  // todo - move enrich() here, refactor?
+
 }
 

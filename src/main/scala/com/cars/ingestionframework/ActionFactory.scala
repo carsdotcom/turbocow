@@ -1,7 +1,6 @@
 package com.cars.ingestionframework
 
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.hive.HiveContext
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
@@ -22,7 +21,7 @@ class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[Actio
   /** Create the list of SourceAction objects based on the config file.
     */
 
-  def createSourceActions(configJson: String, hiveContext: Option[HiveContext]): List[SourceAction] = {
+  def createSourceActions(configJson: String): List[SourceAction] = {
 
     implicit val jsonFormats = org.json4s.DefaultFormats
 
@@ -46,7 +45,7 @@ class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[Actio
           var action: Option[Action] = None
           val creatorIter = customActionCreators.iterator
           while (creatorIter.hasNext && action.isEmpty) {
-            action = creatorIter.next.createAction(actionType, actionConfig , hiveContext)
+            action = creatorIter.next.createAction(actionType, actionConfig)
           }
           action
         }
@@ -58,7 +57,7 @@ class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[Actio
         // If a custom action was created, then use that, otherwise 
         // try the standard actions:
         customAction.getOrElse{ 
-          createAction(actionType, actionConfig, hiveContext).getOrElse(throw new Exception(s"Couldn't create action.  Unrecogonized actionType: "+actionType))
+          createAction(actionType, actionConfig).getOrElse(throw new Exception(s"Couldn't create action.  Unrecogonized actionType: "+actionType))
         }
       }
 
@@ -71,7 +70,7 @@ class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[Actio
     * Called from create(), above.
     * All standard actions supported in the framework should be created here.
     */
-  override def createAction(actionType: String, actionConfig: JValue , hiveContext: Option[HiveContext]):
+  override def createAction(actionType: String, actionConfig: JValue):
     Option[Action] = {
   
     // regexes:
@@ -79,7 +78,7 @@ class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[Actio
   
     actionType match {
       case "simple-copy" => Option(new actions.SimpleCopy)
-      case "lookup" => Option(new actions.Lookup(actionConfig, hiveContext))
+      case "lookup" => Option(new actions.Lookup(actionConfig))
       case replaceNullWithRE(number) => Option(new actions.ReplaceNullWith(number.toInt))
       case _ => None
     }

@@ -11,7 +11,11 @@ import org.json4s._
 //
 //  /** Perform the action
 //    */
-//  def perform(sourceFields: List[String], inputRecord: JValue, currentEnrichedMap: Map[String, String]): 
+//  def perform(
+//    sourceFields: List[String], 
+//    inputRecord: JValue, 
+//    currentEnrichedMap: Map[String, String],
+//    context: ActionContext): 
 //    Map[String, String] = {
 //
 //    // Add the kvList to the enriched data

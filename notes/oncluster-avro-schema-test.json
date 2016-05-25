@@ -4,7 +4,7 @@
   "name": "Impression",
   "fields": [
     {
-      "name": "special_offers_id",
+      "name": "affiliate_pty_id",
       "type": "string"
     },
     {
@@ -13,10 +13,6 @@
     },
     {
       "name": "EnrichedField2",
-      "type": "string"
-    },
-    {
-      "name": "local_offer_group_id",
       "type": "string"
     }
   ]

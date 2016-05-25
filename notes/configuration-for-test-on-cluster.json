@@ -1,11 +1,8 @@
-// This is test schema to be run on the nonprod cluster.
-// It should use every type of action in the framework.
-
 {
   "activityType": "impressions",
   "items": [
     {
-      "source": ["special_offers_id"],
+      "source": ["affiliate_pty_id"],
       "actions": [
 
         {
@@ -32,15 +29,17 @@
 
         {
           "actionType":"lookup",
+
           "config":{
             "lookupDB": "dw_dev",
-            "lookupTable": "local_offer_group",
+            "lookupTable": "local_offer",
             "lookupField": "ods_local_offer_id",
             "fieldsToSelect": [
-              "local_offer_group_id"
+              "local_offer_opt_in_ind"
             ]
           }
         }
+
       ]
     }
   ]

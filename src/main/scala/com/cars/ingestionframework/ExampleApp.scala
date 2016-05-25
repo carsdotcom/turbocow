@@ -63,6 +63,28 @@ object ExampleApp {
 
     val actionCtx = ActionContext(hiveContext)
 
+    // TODOTODO temp for debugging
+    //{
+    //  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Starting test")
+    //  var enrichedMap: Map[String, String] = new HashMap[String, String]
+    //
+    //  val ast = parse(sc.textFile("hdfs://ch1-hadoop-ns:8020/user/dw_etl/test/testData/2016-03-04/als-impression-raw.1457106576328").collect.head.mkString)
+    //  val flattenedAst = (ast \ "md") merge (ast \ "activityMap")
+    //
+    //  actions.head.actions(3).perform(
+    //    List("affiliate_pty_id"),
+    //    flattenedAst, 
+    //    enrichedMap, 
+    //    ActionContext(hiveContext))
+    //
+    //  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Test done")
+    //  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Test done")
+    //  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Test done")
+    //  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Test done")
+    //  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Test done")
+    //  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Test done")
+    //}
+
     // for every impression, perform all actions from config file.
     flattenedImpressionsRDD.map{ ast =>
 
@@ -89,6 +111,7 @@ object ExampleApp {
 
         if(sourceAction.nonEmpty) {
           // Found it. Call performActions.
+          println("PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPerform")
           val mapAddition = sourceAction.get.perform(sourceAction.get.source, ast, enrichedMap, actionCtx)
           // TODO - pass in list (get list from source in config)
 
@@ -134,7 +157,7 @@ object ExampleApp {
     val sc = new SparkContext(conf)
     val schema = getAvroSchema(avroSchemaHDFSPath,sc)
 
-    val structTypeSchema = StructType(schema(0).map(column => StructField(column,StringType,true))) // Parse AvroSchema as Instance of StructType
+    val structTypeSchema = StructType(schema(0).map(column => StructField(column, StringType, true))) // Parse AvroSchema as Instance of StructType
 
     try {
 
@@ -155,6 +178,8 @@ object ExampleApp {
         hiveContext = Option(hiveContext),
         new ActionFactory(new ExampleCustomActionCreator))
 
+      // todo check that enrichedRDD has same 'schema' as avro schema
+
       //Loop through enriched record fields
       val rowRDD = enrichedRDD.map( i =>
         //convert all the fields' values to a sequence
@@ -164,6 +189,10 @@ object ExampleApp {
       //create a dataframe of RDD[row] and Avro schema
       val sqlContext = new SQLContext(sc)
       val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema)
+
+      println("================================= dataFrame = ")
+      dataFrame.printSchema
+      dataFrame.show
 
       dataFrame.write.format("com.databricks.spark.avro").save(enrichedOutputHDFS)
 

@@ -49,41 +49,35 @@ object ExampleApp {
     val inputJsonRDD = sc.textFile(inputDir)
 
     // parse the input json data
-    val allImpressionsRDD = inputJsonRDD.map( jsonString => {
+    val flattenedImpressionsRDD = inputJsonRDD.map( jsonString => {
       // use default formats for parsing
       implicit val jsonFormats = org.json4s.DefaultFormats
-      println("##############################json:" + jsonString)
-      parse(jsonString)
-    })
-
-    // merge them so activityMap & metaData are together
-    val flattenedImpressionsRDD = allImpressionsRDD.map{ ast =>
+      val ast = parse(jsonString)
+      // 'flatten' the json so activityMap & metaData's members are together at the
+      // same level:
       (ast \ "md") merge (ast \ "activityMap")
-    }
+    })
 
     val actionCtx = ActionContext(hiveContext)
 
-    // TODOTODO temp for debugging
-    //{
-    //  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Starting test")
-    //  var enrichedMap: Map[String, String] = new HashMap[String, String]
+    // create lookup table Dataframe for reference
+    //val query = s"""select * FROM dw_dev.local_offer"""
+    //val query = s"""select ods_local_offer_id, local_offer_opt_in_ind FROM dw_dev.local_offer"""
+    //val lookupDF = hiveContext.get.sql(query)
+    //println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 1 lookupDF="+lookupDF)
+    //println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 2 lookupDF.show=")
+    //lookupDF.show
+    //println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 2.1 lookupDF.show done")
     //
-    //  val ast = parse(sc.textFile("hdfs://ch1-hadoop-ns:8020/user/dw_etl/test/testData/2016-03-04/als-impression-raw.1457106576328").collect.head.mkString)
-    //  val flattenedAst = (ast \ "md") merge (ast \ "activityMap")
-    //
-    //  actions.head.actions(3).perform(
-    //    List("affiliate_pty_id"),
-    //    flattenedAst, 
-    //    enrichedMap, 
-    //    ActionContext(hiveContext))
-    //
-    //  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Test done")
-    //  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Test done")
-    //  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Test done")
-    //  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Test done")
-    //  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Test done")
-    //  println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Test done")
+    //;{
+    //  val query = s"""select * FROM dw_dev.local_offer"""
+    //  val df = hiveContext.get.sql(query).where(s"""local_offer_id='2018434' """)
+    //  println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 3 df="+df)
+    //  println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 4 df.show=")
+    //  df.show
+    //  println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 4.1 df.show done")
     //}
+    //val lookupBroadcast = sc.broadcast(lookupDF)
 
     // for every impression, perform all actions from config file.
     flattenedImpressionsRDD.map{ ast =>
@@ -190,13 +184,7 @@ object ExampleApp {
       val sqlContext = new SQLContext(sc)
       val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema)
 
-      println("================================= dataFrame = ")
-      dataFrame.printSchema
-      dataFrame.show
-
       dataFrame.write.format("com.databricks.spark.avro").save(enrichedOutputHDFS)
-
-      println("listOfEnriched = "+enrichedRDD)
     }
     finally {
       // terminate spark context

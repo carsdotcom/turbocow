@@ -1,18 +1,20 @@
 name := "ingestionframework"
 
-version := "0.1"
+version := "0.2"
 
-scalaVersion := "2.10.6"
+scalaVersion := "2.10.6" // this is because of spark
 
-val json4SVer = "3.3.0"
+val json4SVer = "3.2.10" // don't use >= 3.3 due to conflicts
+val sparkVer = "1.5.0" // NOTE this is due to cloudera (CDH 5.5.1)
+//val sparkVer = "1.6.1" // for testing
 
 libraryDependencies ++= Seq(
 
    // spark
-  "org.apache.spark" %% "spark-core" % "1.6.1",
-  "org.apache.spark" %% "spark-sql" % "1.6.0",
+  "org.apache.spark" %% "spark-core" % sparkVer,
+  "org.apache.spark" %% "spark-sql" % sparkVer,
+  "org.apache.spark" %% "spark-hive" % sparkVer,
   "com.databricks" %% "spark-avro" % "0.1",
-  "org.apache.spark" %% "spark-hive" % "1.6.0",
 
   // java libs
   "joda-time" % "joda-time" % "2.7",

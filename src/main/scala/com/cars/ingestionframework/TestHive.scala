@@ -7,11 +7,12 @@ import org.apache.spark.{SparkConf, SparkContext}
 /**
   * Created by nchaturvedula on 5/18/2016.
   * 
-  * @todo Add real test, remove this.
+  * @todo Add real test, remove this.  (How to on local???)
   */
 object TestHive extends Serializable {
 
-  def main(args: Array[String]): Unit =
+  // (enable by removing the X)
+  def mainX(args: Array[String]): Unit =
   {
     val sparkConf = new SparkConf().setAppName("Test Hive").setMaster("yarn-client")
     val sc = new SparkContext(sparkConf)

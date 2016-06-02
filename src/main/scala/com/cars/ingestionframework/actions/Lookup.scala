@@ -2,7 +2,6 @@ package com.cars.ingestionframework.actions
 
 import com.cars.ingestionframework.Action
 import com.cars.ingestionframework.ActionContext
-import org.apache.spark.sql.hive.HiveContext
 import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.JsonAST.JNothing
@@ -16,6 +15,10 @@ class Lookup(actionConfig: JValue) extends Action
   def extractString(jvalue : JValue): String = {
     implicit val jsonFormats = org.json4s.DefaultFormats
     jvalue.extract[String]
+  }
+  def extractLong(jvalue : JValue): Long = {
+    implicit val jsonFormats = org.json4s.DefaultFormats
+    jvalue.extract[Long]
   }
 
   val lookupFile = (actionConfig \ "lookupFile").toOption
@@ -56,21 +59,37 @@ class Lookup(actionConfig: JValue) extends Action
 
       // search in the table for this key
       lookupFile match {
-        //case None => { // do hdfs lookup
-        //
-        //  val lookupVal = extractString(inputRecord \ sourceFields.head)
-        //
-        //  lookupDB.getOrElse{ throw new Exception("TODO - reject this because lookupDB not found in config") }
-        //  val lookupDBStr = lookupDB.get.extract[String]
-        //
-        //  lookupTable.getOrElse{ throw new Exception("TODO - reject this because lookupTable not found in config") }
-        //  val lookupTableStr = lookupTable.get.extract[String]
-        //
-        //  //val fieldValues = lookupDF.get.select(fields).rdd.map(eachRow => eachRow(0).asInstanceOf[String]).collect()
-        //
-        //  fieldsToSelect.zipWithIndex.map(tuple => (tuple._1, fieldValues(tuple._2)))
-        //  //TODO - change status accepted or rejected
-        //}
+        case None => { // do hdfs "lookup"
+        
+          val caches = context.tableCaches
+          if (caches.isEmpty) {
+            // return empty map - can't look up into nonexistent tables!  (todo - reject or throw?)
+            Map.empty[String, String]
+          }
+          else {  // cache is not empty
+
+            lookupDB.getOrElse{ throw new Exception("TODO - reject this because lookupDB not found in config") }
+            lookupTable.getOrElse{ throw new Exception("TODO - reject this because lookupTable not found in config") }
+
+            val lookupDBAndTable = s"${extractString(lookupDB.get)}.${extractString(lookupTable.get)}"
+            val tableCacheOpt = caches.get(lookupDBAndTable)
+            tableCacheOpt.getOrElse{ throw new Exception("couldn't find cached lookup table for: "+lookupDBAndTable) }
+                                   
+            // get the table cache and do lookup
+            val tc = tableCacheOpt.get
+            // todo what if not there, todo check the enriched record first
+            fieldsToSelect.map{ field => 
+              val resultOpt = tc.lookup(
+                lookupField, 
+                extractString(inputRecord \ sourceFields.head).toLong, // TODOTODO this is forced to a fixed type... how to resolve?
+                field)
+              if (resultOpt.isEmpty) Map.empty[String, String]
+              else Map(field -> resultOpt.get)
+            }.reduce( _ ++ _ ) // reduce all maps into one
+          }
+
+          //TODO - change status accepted or rejected
+        }
         case _ => { // local file lookup
         
           // look up local file and parse as json.

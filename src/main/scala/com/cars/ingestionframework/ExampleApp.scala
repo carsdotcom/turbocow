@@ -26,24 +26,39 @@ import org.apache.spark.rdd.RDD
 // Example spark application that handles ingestion of impression data
 object ExampleApp {
 
+  /** Check an assumption and throw if false
+    */
+  def check(boolCheck: Boolean, errorMessage: String = "<no message>" ) = {
+    if( ! boolCheck ) throw new RuntimeException("ERROR - Check failed:  "+errorMessage)
+  }
+  def checkEqual(left: String, right: String, errorMessage: String = "<no message>" ) = {
+    if( left != right ) throw new RuntimeException(s"ERROR - Check failed:  left($left) not equal to right($right):  $errorMessage")
+  }
+
   /** Run the enrichment process
     *
     * @param sc
     * @param config
     * @param inputDir should be local file or HDFS Directory
+    * @param tableCaches the table caches, if any  (defaults to None)
+    *        (key is the "database.table" name)
     * @param hiveContext
     * @param actionFactory
     */
   def enrich(
-              sc: SparkContext,
-              config: String,
-              inputDir: String,
-              hiveContext : Option[HiveContext] = None,
-              actionFactory: ActionFactory = new ActionFactory ):
+    sc: SparkContext,
+    config: String,
+    inputDir: String,
+    tableCaches: Map[String, TableCache] = Map.empty[String, TableCache],
+    hiveContext : Option[HiveContext] = None,
+    actionFactory: ActionFactory = new ActionFactory ):
     RDD[Map[String, String]]= {
 
     // Parse the config.  Creates a list of SourceActions.
     val actions: List[SourceAction] = actionFactory.createSourceActions(config)
+
+    // Create database clients to use.
+    //val dbClients: Map[String, Some[Any] ] = DBHelper.createDBClients(actions)
 
     // Get the input file
     val inputJsonRDD = sc.textFile(inputDir)
@@ -58,26 +73,8 @@ object ExampleApp {
       (ast \ "md") merge (ast \ "activityMap")
     })
 
-    val actionCtx = ActionContext(hiveContext)
-
-    // create lookup table Dataframe for reference
-    //val query = s"""select * FROM dw_dev.local_offer"""
-    //val query = s"""select ods_local_offer_id, local_offer_opt_in_ind FROM dw_dev.local_offer"""
-    //val lookupDF = hiveContext.get.sql(query)
-    //println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 1 lookupDF="+lookupDF)
-    //println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 2 lookupDF.show=")
-    //lookupDF.show
-    //println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 2.1 lookupDF.show done")
-    //
-    //;{
-    //  val query = s"""select * FROM dw_dev.local_offer"""
-    //  val df = hiveContext.get.sql(query).where(s"""local_offer_id='2018434' """)
-    //  println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 3 df="+df)
-    //  println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 4 df.show=")
-    //  df.show
-    //  println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ 4.1 df.show done")
-    //}
-    //val lookupBroadcast = sc.broadcast(lookupDF)
+    // Create the ActionContext and broadcast it.
+    val actionContext = sc.broadcast(ActionContext(tableCaches))
 
     // for every impression, perform all actions from config file.
     flattenedImpressionsRDD.map{ ast =>
@@ -106,7 +103,7 @@ object ExampleApp {
         if(sourceAction.nonEmpty) {
           // Found it. Call performActions.
           println("PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPerform")
-          val mapAddition = sourceAction.get.perform(sourceAction.get.source, ast, enrichedMap, actionCtx)
+          val mapAddition = sourceAction.get.perform(sourceAction.get.source, ast, enrichedMap, actionContext.value)
           // TODO - pass in list (get list from source in config)
 
           // Then merge in the results.
@@ -165,14 +162,50 @@ object ExampleApp {
       println("config json = "+config)
       println("===========================================================")
 
+      val db = "dw_dev"
+      val affiliateTable = "affiliate"
+      val dbAndTable = s"$db.$affiliateTable"
+      // TODO look into all of the lookup actions and create appropriate caches
+      val caches: Map[String, TableCache] = Map(dbAndTable-> HiveTableCache(
+        hiveContext,
+        db, 
+        tableName = "affiliate", 
+        keyField = "ods_affiliate_id",
+        fieldsToSelect = List("affiliate_id"))
+      )
+
+      //SELECT ods_affiliate_id, affiliate_id from affiliate
+      // gives: 
+      // ods aff id(int)  aff id (str)
+      // 9301129          9301129O
+      // 7145092          7145092O   
+      // 8944533          8944533O
+      // note:
+      // `affiliate_id` varchar(11), 
+      // `ods_affiliate_id` int, 
+
       val enrichedRDD: RDD[Map[String, String]] = enrich(
         sc,
         config,
         inputDir = inputFilePath,
+        tableCaches = caches,
         hiveContext = Option(hiveContext),
-        new ActionFactory(new ExampleCustomActionCreator))
+        actionFactory = new ActionFactory(new ExampleCustomActionCreator))
+
+      /*
+      // TODO TEMP FOR TEST
+      enrichedRDD.collect.foreach{ map => 
+        println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+        map.foreach{ case(field, value) => 
+          println(s"($field -> $value)")
+        }
+        println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+      }
+      */
 
       // todo check that enrichedRDD has same 'schema' as avro schema
+
+      // TODO Add generic output function.  Add wrapper and provide sensible defaults.
 
       //Loop through enriched record fields
       val rowRDD = enrichedRDD.map( i =>

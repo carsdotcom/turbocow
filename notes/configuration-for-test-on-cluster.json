@@ -2,7 +2,7 @@
   "activityType": "impressions",
   "items": [
     {
-      "source": ["affiliate_pty_id"],
+      "source": ["front_door_affiliate_pty_id"],
       "actions": [
 
         {
@@ -32,10 +32,10 @@
 
           "config":{
             "lookupDB": "dw_dev",
-            "lookupTable": "local_offer",
-            "lookupField": "ods_local_offer_id",
+            "lookupTable": "affiliate",
+            "lookupField": "ods_affiliate_id",
             "fieldsToSelect": [
-              "local_offer_opt_in_ind"
+              "affiliate_id"
             ]
           }
         }

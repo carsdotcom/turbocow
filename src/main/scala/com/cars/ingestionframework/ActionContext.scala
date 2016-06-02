@@ -1,8 +1,10 @@
 package com.cars.ingestionframework
 
-import org.apache.spark.sql.hive.HiveContext
-
+/** Class holding anything that needs to be broadcast to be used by actions
+  * or inside other RDD functions.
+  * 
+  */
 case class ActionContext(
-  hc: Option[HiveContext]
+  tableCaches: Map[String, TableCache]
 )
 

@@ -4,15 +4,16 @@ version := "0.1"
 
 scalaVersion := "2.10.6"
 
-val json4SVer = "3.3.0"
+val json4SVer = "3.2.10"
+val sparkVer = "1.6.1"
 
 libraryDependencies ++= Seq(
 
    // spark
-  "org.apache.spark" %% "spark-core" % "1.6.1",
-  "org.apache.spark" %% "spark-sql" % "1.6.0",
+  "org.apache.spark" %% "spark-core" % sparkVer,
+  "org.apache.spark" %% "spark-sql" % sparkVer,
+  "org.apache.spark" %% "spark-hive" % sparkVer,
   "com.databricks" %% "spark-avro" % "0.1",
-  "org.apache.spark" %% "spark-hive" % "1.6.0",
 
   // java libs
   "joda-time" % "joda-time" % "2.7",

@@ -14,10 +14,6 @@
     {
       "name": "EnrichedField2",
       "type": "string"
-    },
-    {
-      "name": "local_offer_opt_in_ind",
-      "type": "string"
     }
   ]
 }

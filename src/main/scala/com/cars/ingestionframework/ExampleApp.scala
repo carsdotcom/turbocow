@@ -52,7 +52,6 @@ object ExampleApp {
     val allImpressionsRDD = inputJsonRDD.map( jsonString => {
       // use default formats for parsing
       implicit val jsonFormats = org.json4s.DefaultFormats
-      println("##############################json:" + jsonString)
       parse(jsonString)
     })
 
@@ -196,7 +195,7 @@ object ExampleApp {
 
       dataFrame.write.format("com.databricks.spark.avro").save(enrichedOutputHDFS)
 
-      println("listOfEnriched = "+enrichedRDD)
+      println("%%%%%%%%%%%%%%%%%%%% enrichedOutputHDFS = "+enrichedOutputHDFS)
     }
     finally {
       // terminate spark context

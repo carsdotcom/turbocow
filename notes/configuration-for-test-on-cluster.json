@@ -25,21 +25,7 @@
 
         {
           "actionType":"replace-null-with-0"
-        },
-
-        {
-          "actionType":"lookup",
-
-          "config":{
-            "lookupDB": "dw_dev",
-            "lookupTable": "local_offer",
-            "lookupField": "ods_local_offer_id",
-            "fieldsToSelect": [
-              "local_offer_opt_in_ind"
-            ]
-          }
         }
-
       ]
     }
   ]

@@ -21,6 +21,7 @@ import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.sql.hive.HiveContext
 import com.typesafe.config._
 import org.apache.spark.rdd.RDD
+import scala.collection.mutable.ListBuffer
 
 
 // Example spark application that handles ingestion of impression data
@@ -180,10 +181,10 @@ object ExampleApp {
       // todo check that enrichedRDD has same 'schema' as avro schema
 
       //Loop through enriched record fields
-      val rowRDD = enrichedRDD.map( i =>
-        //convert all the fields' values to a sequence
-         Row.fromSeq(i.values.toSeq)
-      )
+      val rowRDD = enrichedRDD.map { i =>
+        val av = schema.head.map(column => i.get(column).getOrElse(null)).toList
+        Row.fromSeq(av)
+      }
 
       //create a dataframe of RDD[row] and Avro schema
       val sqlContext = new SQLContext(sc)

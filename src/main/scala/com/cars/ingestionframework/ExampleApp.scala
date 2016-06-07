@@ -2,10 +2,11 @@ package com.cars.ingestionframework.exampleapp
 
 import java.io.Serializable
 import java.lang.{Boolean, Double, Long}
+import java.text.SimpleDateFormat
 import java.util
 import java.util.Map.Entry
-import java.util.concurrent.TimeUnit
-
+import java.util.Calendar
+import java.text.SimpleDateFormat
 import com.cars.ingestionframework._
 
 import scala.collection.immutable.HashMap
@@ -21,6 +22,7 @@ import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.sql.hive.HiveContext
 import com.typesafe.config._
 import org.apache.spark.rdd.RDD
+
 import scala.collection.mutable.ListBuffer
 
 
@@ -194,7 +196,9 @@ object ExampleApp {
       dataFrame.printSchema
       dataFrame.show
 
-      dataFrame.write.format("com.databricks.spark.avro").save(enrichedOutputHDFS)
+      val format = new SimpleDateFormat("y-MM-dd")
+      val dateArray = format.format(Calendar.getInstance().getTime()).split("-")
+      dataFrame.write.format("com.databricks.spark.avro").save(enrichedOutputHDFS+"/year="+dateArray(0)+"/month="+dateArray(1)+"/day="+dateArray(2))
 
       println("%%%%%%%%%%%%%%%%%%%% enrichedOutputHDFS = "+enrichedOutputHDFS)
     }

@@ -190,7 +190,7 @@ object ExampleApp {
 
       //create a dataframe of RDD[row] and Avro schema
       val sqlContext = new SQLContext(sc)
-      val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema)
+      val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema).repartition(10)
 
       println("================================= dataFrame = ")
       dataFrame.printSchema

@@ -2,10 +2,11 @@ package com.cars.ingestionframework.exampleapp
 
 import java.io.Serializable
 import java.lang.{Boolean, Double, Long}
+import java.text.SimpleDateFormat
 import java.util
 import java.util.Map.Entry
-import java.util.concurrent.TimeUnit
-
+import java.util.Calendar
+import java.text.SimpleDateFormat
 import com.cars.ingestionframework._
 import com.cars.ingestionframework.actions._
 
@@ -22,6 +23,8 @@ import scala.collection.mutable.ArrayBuffer
 import org.apache.spark.sql.hive.HiveContext
 import com.typesafe.config._
 import org.apache.spark.rdd.RDD
+
+import scala.collection.mutable.ListBuffer
 
 
 // Example spark application that handles ingestion of impression data
@@ -253,7 +256,7 @@ object ExampleApp {
       println("config json = "+pretty(render(parse(config))))
       println("===========================================================")
 
-      //SELECT ods_affiliate_id, affiliate_id from affiliate
+      //SELECT ods_affiliate_id, affiliate_id from affiliate (SAVE for now)
       // gives: 
       // ods aff id(int)  aff id (str)
       // 9301129          9301129O
@@ -275,16 +278,24 @@ object ExampleApp {
       // TODO Add generic output function.  Add wrapper and provide sensible defaults.
 
       //Loop through enriched record fields
-      val rowRDD = enrichedRDD.map( i =>
-        //convert all the fields' values to a sequence
-         Row.fromSeq(i.values.toSeq)
-      )
+      val rowRDD = enrichedRDD.map { i =>
+        val av = schema.head.map(column => i.get(column).getOrElse(null)).toList
+        Row.fromSeq(av)
+      }
 
       //create a dataframe of RDD[row] and Avro schema
       val sqlContext = new SQLContext(sc)
-      val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema)
+      val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema).repartition(10)
 
-      dataFrame.write.format("com.databricks.spark.avro").save(enrichedOutputHDFS)
+      println("================================= dataFrame = ")
+      dataFrame.printSchema
+      dataFrame.show
+
+      val format = new SimpleDateFormat("y-MM-dd")
+      val dateArray = format.format(Calendar.getInstance().getTime()).split("-")
+      dataFrame.write.format("com.databricks.spark.avro").save(enrichedOutputHDFS+"/year="+dateArray(0)+"/month="+dateArray(1)+"/day="+dateArray(2))
+
+      println("%%%%%%%%%%%%%%%%%%%% enrichedOutputHDFS = "+enrichedOutputHDFS)
     }
     finally {
       // terminate spark context

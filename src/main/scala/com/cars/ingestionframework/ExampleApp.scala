@@ -7,6 +7,7 @@ import java.util.Map.Entry
 import java.util.concurrent.TimeUnit
 
 import com.cars.ingestionframework._
+import com.cars.ingestionframework.actions._
 
 import scala.collection.immutable.HashMap
 import org.apache.spark.SparkContext
@@ -28,11 +29,100 @@ object ExampleApp {
 
   /** Check an assumption and throw if false
     */
-  def check(boolCheck: Boolean, errorMessage: String = "<no message>" ) = {
-    if( ! boolCheck ) throw new RuntimeException("ERROR - Check failed:  "+errorMessage)
+  def checkFunction(boolCheck: Boolean, errorMessage: String = "<no message>", throwOnFail: Boolean = true ): Boolean = {
+    val msg = "ERROR - Check failed:  "+errorMessage
+    if( ! boolCheck ) {
+      if (throwOnFail) throw new RuntimeException(msg)
+      else println(msg)
+    }
+    true
   }
-  def checkEqual(left: String, right: String, errorMessage: String = "<no message>" ) = {
-    if( left != right ) throw new RuntimeException(s"ERROR - Check failed:  left($left) not equal to right($right):  $errorMessage")
+  def checkEqualFunction(left: String, right: String, errorMessage: String = "<no message>", throwOnFail: Boolean = true ): Boolean = {
+    val msg = s"ERROR - Check failed:  left($left) not equal to right($right):  $errorMessage"
+    if( left != right )  {
+      if (throwOnFail) throw new RuntimeException(msg)
+      else println(msg)
+    }
+    true
+  }
+
+  def checkThrow(boolCheck: Boolean, errorMessage: String = "<no message>" ) = 
+    checkFunction(boolCheck, errorMessage, throwOnFail = true)
+
+  def checkEqualThrow(left: String, right: String, errorMessage: String = "<no message>" ) = 
+    checkEqualFunction(left, right, errorMessage, throwOnFail = true)
+
+  def checkPrint(boolCheck: Boolean, errorMessage: String = "<no message>" ) =
+    checkFunction(boolCheck, errorMessage, throwOnFail = false)
+
+  def checkEqualPrint(left: String, right: String, errorMessage: String = "<no message>" ) = 
+    checkEqualFunction(left, right, errorMessage, throwOnFail = false)
+
+  /** Scan a list of SourceActions and return a map of dbAndTable to list of 
+    * all Lookup actions on that table.
+    * 
+    * @param  sourceActions to search through for Lookup actions
+    * @return map of dbAndTable name to list of Lookup actions that utilize that 
+    *                table
+    */
+  def getAllLookupActions(sourceActions: List[SourceAction]): 
+    Map[String, List[Lookup]] = {
+  
+    val tableLookup = sourceActions.flatMap{ sa => 
+    
+      sa.actions.flatMap{ 
+    
+        case lookup: Lookup => lookup.lookupFile match { 
+          case s: Some[String] => None // for now (Todo implement caching for local files too)
+          case None => {
+            Some( 
+              lookup.dbAndTable, 
+              lookup
+            )
+          }
+        }
+        case _ => None
+      }
+    }.groupBy(_._1).mapValues(_.map(_._2))
+
+    tableLookup
+  }
+
+  /** Create local caches of all of the tables in the action list.
+    * 
+    */
+  def cacheTables(
+    sourceActions: List[SourceAction], 
+    hiveContext: Option[HiveContext]): 
+    Map[String, TableCache] = {
+
+    val allLookups: Map[String, List[Lookup]] = getAllLookupActions(sourceActions)
+
+    // transform the lookups list into a TableCache.
+    allLookups.map{ case(tableAndName, lookupList) =>
+
+      val refLookup = lookupList.head
+
+      // the list of ALL fields to get from the table
+      val allFieldsToSelect = lookupList.flatMap{ _.allFields }.distinct
+
+      // the list of all fields to use as 'indexing' keys
+      val allIndexFields = lookupList.map{ _.lookupField }.distinct
+
+      // Make sure all the DBs and Tables match:
+      lookupList.foreach{ lookup => if (lookup.dbAndTable != refLookup.dbAndTable) throw new Exception(s"the database and table did not match: refLookup.lookupDB(${refLookup.lookupDB}), refLookup.lookupTable(${refLookup.lookupTable}), refLookup.dbAndTable(${refLookup.dbAndTable}), lookup.lookupDB(${lookup.lookupDB}), lookup.lookupTable(${lookup.lookupTable}), lookup.dbAndTable(${lookup.dbAndTable})")}
+
+      // return a name->TableCache pair)
+      (tableAndName, 
+        HiveTableCache(
+          hiveContext,
+          refLookup.lookupDB, 
+          tableName = refLookup.lookupTable, 
+          keyFields = allIndexFields,
+          fieldsToSelect = allFieldsToSelect
+        )
+      )
+    }
   }
 
   /** Run the enrichment process
@@ -49,13 +139,15 @@ object ExampleApp {
     sc: SparkContext,
     config: String,
     inputDir: String,
-    tableCaches: Map[String, TableCache] = Map.empty[String, TableCache],
     hiveContext : Option[HiveContext] = None,
     actionFactory: ActionFactory = new ActionFactory ):
     RDD[Map[String, String]]= {
 
     // Parse the config.  Creates a list of SourceActions.
     val actions: List[SourceAction] = actionFactory.createSourceActions(config)
+
+    // Cache all the tables as specified in the actions.
+    val tableCaches: Map[String, TableCache] = cacheTables(actions, hiveContext)
 
     // Create database clients to use.
     //val dbClients: Map[String, Some[Any] ] = DBHelper.createDBClients(actions)
@@ -143,7 +235,6 @@ object ExampleApp {
     val enrichedOutputHDFS = args(3)
 
     // initialise spark context
-    //val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
     val conf = new SparkConf().setAppName("ExampleApp")
     val sc = new SparkContext(conf)
     val schema = getAvroSchema(avroSchemaHDFSPath,sc)
@@ -159,20 +250,8 @@ object ExampleApp {
       println("===========================================================")
       println("===========================================================")
       println("===========================================================")
-      println("config json = "+config)
+      println("config json = "+pretty(render(parse(config))))
       println("===========================================================")
-
-      val db = "dw_dev"
-      val affiliateTable = "affiliate"
-      val dbAndTable = s"$db.$affiliateTable"
-      // TODO look into all of the lookup actions and create appropriate caches
-      val caches: Map[String, TableCache] = Map(dbAndTable-> HiveTableCache(
-        hiveContext,
-        db, 
-        tableName = "affiliate", 
-        keyField = "ods_affiliate_id",
-        fieldsToSelect = List("affiliate_id"))
-      )
 
       //SELECT ods_affiliate_id, affiliate_id from affiliate
       // gives: 
@@ -188,20 +267,8 @@ object ExampleApp {
         sc,
         config,
         inputDir = inputFilePath,
-        tableCaches = caches,
         hiveContext = Option(hiveContext),
         actionFactory = new ActionFactory(new ExampleCustomActionCreator))
-
-      /*
-      // TODO TEMP FOR TEST
-      enrichedRDD.collect.foreach{ map => 
-        println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-        map.foreach{ case(field, value) => 
-          println(s"($field -> $value)")
-        }
-        println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
-      }
-      */
 
       // todo check that enrichedRDD has same 'schema' as avro schema
 

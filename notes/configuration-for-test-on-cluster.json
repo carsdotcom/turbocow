@@ -24,10 +24,6 @@
         },
 
         {
-          "actionType":"replace-null-with-0"
-        },
-
-        {
           "actionType":"lookup",
 
           "config":{
@@ -42,6 +38,76 @@
 
       ]
     }
+
+    ,{
+      "source": ["web_page_type_id"],
+      "actions": [
+   
+        {
+          "actionType":"custom-add-enriched-fields",
+          "config": [
+            { 
+              "key": "EnrichedField10",
+              "value": "10"
+            },
+            { 
+              "key": "EnrichedField20",
+              "value": "20"
+            }
+          ]
+        },
+
+        {
+          "actionType":"simple-copy"
+        },
+   
+        {
+          "actionType":"lookup",
+   
+          "config":{
+            "lookupDB": "dw_dev",
+            "lookupTable": "web_page_type",
+            "lookupField": "web_page_type_id",
+            "fieldsToSelect": [
+              "web_page_type_name",
+              "web_page_type_desc"
+            ]
+          }
+        }
+      ]
+    }
+
+    ,{
+      "source": ["front_door_affiliate_pty_id"],
+      "actions": [
+    
+        {
+          "actionType":"custom-add-enriched-fields",
+          "config": [
+            { 
+              "key": "EnrichedField100",
+              "value": "100"
+            }
+          ]
+        },
+    
+        {
+          "actionType":"lookup",
+
+          "config":{
+            "lookupDB": "dw_dev",
+            "lookupTable": "affiliate",
+            "lookupField": "ods_affiliate_id",
+            "fieldsToSelect": [
+              "branding_name", 
+              "official_name"
+            ]
+          }
+        }
+    
+      ]
+    }
+
   ]
 }
 

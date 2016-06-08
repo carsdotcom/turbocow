@@ -20,7 +20,6 @@ derby.log
 project/META-INF/
 src/main/scala/META-INF/
 
-# hive
 metastore_db/
 
 # dia

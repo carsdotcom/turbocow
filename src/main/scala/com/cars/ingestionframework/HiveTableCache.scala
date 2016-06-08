@@ -9,8 +9,7 @@ import org.apache.spark.sql.Row
   * 
   */
 class HiveTableCache(
-  keyField: String,
-  tableMap: Map[Any, Row] )
+  tableMap: Map[String, Map[Any, Row]] )
   extends TableCache {
 
   // check the table.  This is normally not how to construct this.  Use the 
@@ -28,7 +27,10 @@ class HiveTableCache(
 
     //if(lookupField != keyField) throw new Exception(s"lookupField($lookupField) is not equal to keyField($keyField)")
 
-    val rowOpt = tableMap.get(lookupValue)
+    // todo log this error instead?  Below, on error, we just return None
+    val map = tableMap.getOrElse(lookupField, throw new Exception(s"""couldn't find HiveTableCache indexed on field: "$lookupField)"""))
+
+    val rowOpt = map.get(lookupValue)
     //println("RRRRRRRRRRRRRRRR lookupValue = "+lookupValue)
     //tableMap.foreach{ case (k, v) => println(s"RRRRRR key($k), value($v)") }
     //println("RRRRRRRRRRRRRRRR rowOpt = "+rowOpt)
@@ -51,38 +53,54 @@ object HiveTableCache
   /** Alternate constructor
     */
   def apply(
-    hiveContext: HiveContext,
-    databaseName: String,
-    tableName: String,
-    keyField: String,
+    hiveContext: Option[HiveContext],
+    databaseName: Option[String],
+    tableName: Option[String],
+    keyFields: List[String],
     fieldsToSelect: List[String]
   ): HiveTableCache = {
 
     // check all the input
-    if (hiveContext == null) throw new Exception("hiveContext was null!")
+    hiveContext.getOrElse(throw new Exception("hiveContext was null!"))
     ValidString(databaseName).getOrElse(throw new Exception("databaseName was not a valid string!"))
     ValidString(tableName).getOrElse(throw new Exception("tableName was not a valid string!"))
-    ValidString(keyField).getOrElse(throw new Exception("keyField was not a valid string!"))
+    keyFields.foreach{ kf => ValidString(kf).getOrElse(throw new Exception("a keyField was not a valid string!: "+keyFields)) }
     fieldsToSelect.headOption.getOrElse(throw new Exception("fieldsToSelect must not be empty!"))
+    fieldsToSelect.foreach{ f => ValidString(f).getOrElse(throw new Exception("a fieldToSelect was not a valid string!: "+fieldsToSelect)) }
 
-    val tableMap: Map[Any, Row] = {
-      // create the dataframe.
-      val fields = keyField + "," + fieldsToSelect.mkString(",")
-      val df = hiveContext.sql(s"""
-        SELECT $fields
-          FROM ${databaseName}.${tableName}
-      """)
-      //println("SSSSSSSSSSSSSSSSSSS showing df:")
-      //df.show
-      //println("SSSSSSSSSSSSSSSSSSS showed df.")
+    // create the dataframe.
+    val fields = (keyFields ++ fieldsToSelect).distinct.mkString(",")
+    val query = s"""
+      SELECT $fields
+        FROM ${databaseName.get}.${tableName.get}
+    """
+    val df = hiveContext.get.sql(query)
+    //println("SSSSSSSSSSSSSSSSSSS showing df:")
+    //df.show
+    //println("SSSSSSSSSSSSSSSSSSS showed df.")
 
-      // collect and convert the returned array to a map
-      df.collect.map{ row =>
-        (row.getAs[Any](keyField) -> row)
-      }.toMap
-    }
+    // first collect
+    val allRows = df.collect
 
-    new HiveTableCache(keyField, tableMap)
+    // then get a reference map which we will refer to later
+    val refMap: Map[Any, Row] = allRows.map{ row =>
+      (row.getAs[Any](keyFields.head) -> row)
+    }.toMap
+
+    // create the other maps, using the reference map (use tail - skipping the head)
+    val otherMaps: Map[String, Map[Any, Row]] = keyFields.tail.flatMap{ keyField => 
+      Some(
+        keyField, 
+        refMap.map{ case (refKey, refRow) => 
+          (refRow.getAs[Any](keyField) -> refRow)
+        }
+      )
+    }.toMap
+
+    // return otherMaps with the addition of the refmap
+    val tableMap = otherMaps + (keyFields.head-> refMap)
+
+    new HiveTableCache(tableMap)
   }
 }
 

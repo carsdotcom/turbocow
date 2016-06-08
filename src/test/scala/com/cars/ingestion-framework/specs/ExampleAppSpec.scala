@@ -138,6 +138,58 @@ class ExampleAppSpec extends UnitSpec {
     //}
 
   }
+
+  describe("getAllLookupActions") {
+    it("should create a map with all the lookup actions separated into a list") {
+
+      // create sourceactions list:
+      val testLookups = List(
+        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA", List("enrichedField0")),
+        new Lookup(None, Some("db"), Some("tableB"), "lookupFieldB", List("enrichedField1")),
+        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA", List("enrichedField1")),
+        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA2", List("enrichedField2")),
+        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA", List("enrichedField3"))
+      )
+      val sourceActions = List(
+        SourceAction(
+          source = List("inputField0"), 
+          actions = List(
+            testLookups(0),
+            testLookups(1)
+          )
+        ),
+        SourceAction(
+          source = List("inputField1"), 
+          actions = List(
+            testLookups(2),
+            testLookups(3),
+            testLookups(4)
+          )
+        ) 
+      )
+
+      val gotLookups: Map[String, List[Lookup]] = ExampleApp.getAllLookupActions(sourceActions)
+
+      gotLookups.size should be (2)
+      gotLookups.foreach{ case(tableName, lookupList) =>
+
+        tableName match {
+          case "db.tableA" => {
+            lookupList.size should be (4)
+            lookupList(0) should be (testLookups(0))
+            lookupList(1) should be (testLookups(2))
+            lookupList(2) should be (testLookups(3))
+            lookupList(3) should be (testLookups(4))
+          }
+          case "db.tableB" => {
+            lookupList.size should be (1)
+            lookupList.head should be (testLookups(1))
+          }
+          case _ => fail
+        }
+      }
+    }
+  }
 }
 
   

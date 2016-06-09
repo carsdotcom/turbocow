@@ -25,8 +25,6 @@ class HiveTableCache(
     select: String // field to select
   ): Option[String] = {
 
-    //if(lookupField != keyField) throw new Exception(s"lookupField($lookupField) is not equal to keyField($keyField)")
-
     // todo log this error instead?  Below, on error, we just return None
     val map = tableMap.getOrElse(lookupField, throw new Exception(s"""couldn't find HiveTableCache indexed on field: "$lookupField)"""))
 

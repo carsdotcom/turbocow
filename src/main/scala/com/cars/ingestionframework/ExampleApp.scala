@@ -11,6 +11,7 @@ import com.cars.ingestionframework._
 import com.cars.ingestionframework.actions._
 
 import scala.collection.immutable.HashMap
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkConf
 import org.json4s._
@@ -61,6 +62,20 @@ object ExampleApp {
   def checkEqualPrint(left: String, right: String, errorMessage: String = "<no message>" ) = 
     checkEqualFunction(left, right, errorMessage, throwOnFail = false)
 
+  def checkEqualPrintOpt(left: Option[String], right: Option[String], errorMessage: String = "<no message>" ) = {
+    if ( (left.isEmpty || right.isEmpty) ) {
+
+      val sb = new StringBuilder
+      sb.append(s"ERROR - Check failed in checkEqualPrint:  ")
+      if(left.isEmpty) sb.append("left is None; ")
+      if(right.isEmpty) sb.append("right is None.  ")
+      sb.append("\n  Stacktrace:  \n" + new Throwable().getStackTrace().take(5).mkString("    ", "\n    ", ""))
+      println(sb.toString)
+    }
+    else
+      checkEqualFunction(left.get, right.get, errorMessage, throwOnFail = false)
+  }
+
   /** Scan a list of SourceActions and return a map of dbAndTable to list of 
     * all Lookup actions on that table.
     * 
@@ -71,7 +86,7 @@ object ExampleApp {
   def getAllLookupActions(sourceActions: List[SourceAction]): 
     Map[String, List[Lookup]] = {
   
-    val tableLookup = sourceActions.flatMap{ sa => 
+    val lookupsPerTable = sourceActions.flatMap{ sa => 
     
       sa.actions.flatMap{ 
     
@@ -88,7 +103,7 @@ object ExampleApp {
       }
     }.groupBy(_._1).mapValues(_.map(_._2))
 
-    tableLookup
+    lookupsPerTable
   }
 
   /** Create local caches of all of the tables in the action list.
@@ -102,7 +117,7 @@ object ExampleApp {
     val allLookups: Map[String, List[Lookup]] = getAllLookupActions(sourceActions)
 
     // transform the lookups list into a TableCache.
-    allLookups.map{ case(tableAndName, lookupList) =>
+    val tcMap = allLookups.map{ case(tableAndName, lookupList) =>
 
       val refLookup = lookupList.head
 
@@ -126,6 +141,7 @@ object ExampleApp {
         )
       )
     }
+    tcMap
   }
 
   /** Run the enrichment process
@@ -147,13 +163,12 @@ object ExampleApp {
     RDD[Map[String, String]]= {
 
     // Parse the config.  Creates a list of SourceActions.
-    val actions: List[SourceAction] = actionFactory.createSourceActions(config)
+    val driverSourceActions = actionFactory.createSourceActions(config)
+    val sourceActions: Broadcast[List[SourceAction]] = sc.broadcast(driverSourceActions)
+    //println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA sourceActions = "+sourceActions)
 
-    // Cache all the tables as specified in the actions.
-    val tableCaches: Map[String, TableCache] = cacheTables(actions, hiveContext)
-
-    // Create database clients to use.
-    //val dbClients: Map[String, Some[Any] ] = DBHelper.createDBClients(actions)
+    // Cache all the tables as specified in the sourceActions.
+    val tableCaches: Map[String, TableCache] = cacheTables(driverSourceActions, hiveContext)
 
     // Get the input file
     val inputJsonRDD = sc.textFile(inputDir)
@@ -178,45 +193,9 @@ object ExampleApp {
       // enrichment actions.  Later it will be converted to Avro format and saved.
       var enrichedMap: Map[String, String] = new HashMap[String, String]
 
-      // extract all the fields: (TODO write helper for this)
-      val fields = ast match {
-        case j: JObject => j.values
-        case _ => throw new Exception("couldn't find values in record: "+ast); // todo - reject this
-      }
-
-      /** Process a field - called below, uses wrapped function vars.
-        * This was necessary because of the match on (key, null) below (for "fields");
-        * so this code is not duplicated.
-        */
-      def processField(key: String):
-        StringMap = {
-
-        // Search in the configuration to find the SourceAction for this field.
-        val sourceAction = actions.filter( _.source.contains(key) ).headOption
-        // (TODO check with Ramesh to see if the input source fields are always unique in config file)
-
-        if(sourceAction.nonEmpty) {
-          // Found it. Call performActions.
-          println("PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPerform")
-          val mapAddition = sourceAction.get.perform(sourceAction.get.source, ast, enrichedMap, actionContext.value)
-          // TODO - pass in list (get list from source in config)
-
-          // Then merge in the results.
-          mapAddition
-        }
-        else {
-          // TODO - handle the case where there is no configuration for this field.
-          // Right now it is a no-op (the field is filtered).  However, this
-          // could default to 'simple-copy' behavior (or something else) for
-          // ease of use.
-          Map.empty[String, String] // don't add anything
-        }
-      }
-
-      // for every field in this impression data:
-      fields.foreach{
-        case (key: String, value: Any) => enrichedMap = enrichedMap ++ processField(key)
-        case (key: String, null) => enrichedMap = enrichedMap ++ processField(key)
+      // For every action in the list
+      sourceActions.value.foreach{ action =>
+        enrichedMap = enrichedMap ++ action.perform(action.source, ast, enrichedMap, actionContext.value)
       }
 
       // (For now, just return the enriched data)

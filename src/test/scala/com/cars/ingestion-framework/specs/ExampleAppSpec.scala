@@ -137,6 +137,23 @@ class ExampleAppSpec extends UnitSpec {
     //  enriched.head.get("EnhField3") should be (None)
     //}
 
+    it("should process two items with the same source fields") {
+      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
+        sc, 
+        config = fileToString("./src/test/resources/testconfig-2-items-same-source.json"),
+        inputDir = "./src/test/resources/input-integration.json",
+        None,
+        new ActionFactory(new CustomActionCreator) ).collect()
+    
+      enriched.size should be (1) // always one because there's only one json input object
+      enriched.head("enrichedA") should be ("AAA")
+      enriched.head("enrichedB") should be ("BBB")
+      enriched.head("enrichedC") should be ("CCC")
+      enriched.head("enrichedD") should be ("DDD")
+      enriched.head("enrichedE") should be ("EEE")
+      enriched.head("enrichedF") should be ("FFF")
+    }
+
   }
 
   describe("getAllLookupActions") {

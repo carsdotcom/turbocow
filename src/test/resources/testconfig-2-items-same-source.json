@@ -1,0 +1,61 @@
+{
+	"activityType": "impressions",
+	"items": [
+		{
+			"source": [ "AField" ], 
+			"actions":[
+                {
+                    "actionType":"custom-add-enriched-fields",
+                    "config": [
+                        {
+                            "key": "enrichedA",
+                            "value": "AAA"
+                        },
+                        {
+                            "key": "enrichedB",
+                            "value": "BBB"
+                        }
+                    ]
+                }
+			]
+		},
+        {
+            "source": [ "BField" ], 
+            "actions":[
+                {
+                    "actionType":"custom-add-enriched-fields",
+                    "config": [
+                        {
+                            "key": "enrichedC",
+                            "value": "CCC"
+                        },
+                        {
+                            "key": "enrichedD",
+                            "value": "DDD"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "source": [ "AField" ], 
+            "actions":[
+                {
+                    "actionType":"custom-add-enriched-fields",
+                    "config": [
+                        {
+                            "key": "enrichedE",
+                            "value": "EEE"
+                        },
+                        {
+                            "key": "enrichedF",
+                            "value": "FFF"
+                        }
+                    ]
+                }
+            ]
+        }
+	]
+	
+}
+

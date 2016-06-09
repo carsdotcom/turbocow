@@ -13,11 +13,19 @@ import scala.io.Source
   */      
 object JsonUtil {
 
+  /** Extract a specific type from a JValue.  
+    * 
+    */
   def extract[TYPE](jvalue : JValue)(implicit m: Manifest[TYPE]): TYPE = {
     implicit val jsonFormats = org.json4s.DefaultFormats
     jvalue.extract[TYPE]
   }
 
+  /** Return an Option as a result of an extraction.
+    * If a JValue is JNothing (or JNull), returns None.
+    * If the JValue is (any other JValue), extracts the TYPE and 
+    * returns a Some.
+    */
   def extractOption[TYPE](jvalue: JValue)(implicit m: Manifest[TYPE]): Option[TYPE] = {
     jvalue.toOption match { 
       case None => None
@@ -25,6 +33,8 @@ object JsonUtil {
     }
   }
 
+  /** Aliases for some common extraction types.
+    */
   def extractString(jvalue : JValue): String = extract[String](jvalue)
   def extractLong(jvalue : JValue): Long = extract[Long](jvalue)
 

@@ -1,0 +1,14 @@
+{
+	"activityType": "impressions",
+	"items": [
+		{
+			"source": [ "AField", "CField" ], 
+			"actions":[{
+					"actionType":"simple-copy"
+				}
+			]
+		}
+	]
+	
+}
+

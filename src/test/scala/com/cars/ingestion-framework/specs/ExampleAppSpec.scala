@@ -61,9 +61,47 @@ class ExampleAppSpec extends UnitSpec {
     
       val enriched: Array[Map[String, String]] = ExampleApp.enrich(
         sc, 
-        config = fileToString("./src/test/resources/testconfig-integration-simplecopy.json"),
+        config = fileToString("./src/test/resources/testconfig-integration-copy-withoutconfig.json"),
         inputDir = "./src/test/resources/input-integration.json").collect()
   
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+      enriched.head("AField") should be ("A")
+      enriched.head("CField") should be ("10")
+    }
+
+    it("should successfully process simple-copy with config segment with mutiple sources") {
+
+      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
+        sc,
+        config = fileToString("./src/test/resources/testconfig-integration-copy-withconfig-multisources.json"),
+        inputDir = "./src/test/resources/input-integration.json").collect()
+
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+      enriched.head("AField") should be ("A")
+      enriched.head("CField") should be ("10")
+    }
+
+    it("should successfully process simple-copy with config segment with single source ") {
+
+      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
+        sc,
+        config = fileToString("./src/test/resources/testconfig-integration-copy-withconfig-singlesource.json"),
+        inputDir = "./src/test/resources/input-integration.json").collect()
+
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+      enriched.head("time_stamp") should be ("A")
+    }
+
+    it("should successfully process simple-copy with config segment-multisources and having Null") {
+
+      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
+        sc,
+        config = fileToString("./src/test/resources/testconfig-integration-copy-withconfig-null.json"),
+        inputDir = "./src/test/resources/input-integration.json").collect()
+
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
       enriched.head("AField") should be ("A")

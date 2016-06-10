@@ -2,13 +2,16 @@ package com.cars.ingestionframework.actions
 
 import com.cars.ingestionframework.Action
 import com.cars.ingestionframework.ActionContext
+import com.cars.ingestionframework.JsonUtil
 import org.json4s._
 
 
-class SimpleCopy extends Action with Serializable
+class SimpleCopy(actionConfig : JValue) extends Action with Serializable
 {
+  //implicit val jsonFormats = org.json4s.DefaultFormats
+  println("^^^^^^^^^^^^^^^^^^^^^^^^^^^"+(actionConfig))
 
-
+  val newName = JsonUtil.extractOption[String](actionConfig \ "newName")
   /** Simple Copy - simply copies the input(s) to the output.
     *
     */
@@ -25,7 +28,7 @@ class SimpleCopy extends Action with Serializable
     sourceFields.flatMap{ field =>
 
       // search in the source json for this field name.
-      val found = (inputRecord \ field)
+      val found = inputRecord \ field
 
       if(found == JNothing) {
         // Returning None in a flatMap adds nothing to the resulting collection:
@@ -33,9 +36,17 @@ class SimpleCopy extends Action with Serializable
       }
       else {
         // Add this tuple to the resulting list (which is converted to a map later)
-        Some((field, found.extract[String]))
-      }
-      
+        if(newName.isDefined && sourceFields.length > 1) {
+            throw new Exception("The config for '"+field+"' require only one source field. Recevied: "+sourceFields.length)
+          }
+        else if(newName.isDefined && sourceFields.length == 1) {
+          Some((newName.get, found.extract[String]))
+        }
+        else{
+          Some((field, found.extract[String]))
+          }
+        }
+
     }.toMap
   }
   

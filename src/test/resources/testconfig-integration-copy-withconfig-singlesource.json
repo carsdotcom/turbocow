@@ -1,0 +1,17 @@
+{
+	"activityType": "impressions",
+	"items": [
+		{
+			"source": [ "AField" ],
+			"actions":[{
+					"actionType":"simple-copy",
+					"config":{
+						"newName":"time_stamp"
+					}
+				}
+			]
+		}
+	]
+	
+}
+

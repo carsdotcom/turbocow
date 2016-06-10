@@ -3,12 +3,13 @@
 	"items": [
 		{
 			"source": [ "AField", "CField" ], 
-			"actions":[
-				{
-					"actionType":"simple-copy"
+			"actions":[{
+					"actionType":"simple-copy",
+					"config":{
+						"newName":"time_stamp"
+					}
 				}
 			]
-
 		}
 	]
 	

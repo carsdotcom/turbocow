@@ -2,9 +2,9 @@
 	"activityType": "impressions",
 	"items": [
 		{
-			"source": [ "AField", "CField" ], 
+			"source": [ "AField", "CField" ],
 			"actions":[{
-					"actionType":"simple-copy",
+					"actionType":"copy",
 					"config":{
 						"newName":"time_stamp"
 					}

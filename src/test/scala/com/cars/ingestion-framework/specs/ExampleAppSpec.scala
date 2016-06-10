@@ -72,15 +72,19 @@ class ExampleAppSpec extends UnitSpec {
 
     it("should successfully process simple-copy with config segment with mutiple sources") {
 
-      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
-        sc,
-        config = fileToString("./src/test/resources/testconfig-integration-copy-withconfig-multisources.json"),
-        inputDir = "./src/test/resources/input-integration.json").collect()
+      try {
+        val enriched: Array[Map[String, String]] = ExampleApp.enrich(
+          sc,
+          config = fileToString("./src/test/resources/testconfig-integration-copy-withconfig-multisources.json"),
+          inputDir = "./src/test/resources/input-integration.json").collect()
 
-      enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head("AField") should be ("A")
-      enriched.head("CField") should be ("10")
+        enriched.size should be(1) // always one because there's only one json input object
+        //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+        enriched.head("time_stamp") should be("10")
+      }
+      catch{
+        case e => println("Exception Caught: "+e.getMessage)
+      }
     }
 
     it("should successfully process simple-copy with config segment with single source ") {
@@ -97,7 +101,8 @@ class ExampleAppSpec extends UnitSpec {
 
     it("should successfully process simple-copy with config segment-multisources and having Null") {
 
-      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
+      try {
+        val enriched: Array[Map[String, String]] = ExampleApp.enrich(
         sc,
         config = fileToString("./src/test/resources/testconfig-integration-copy-withconfig-null.json"),
         inputDir = "./src/test/resources/input-integration.json").collect()
@@ -106,6 +111,28 @@ class ExampleAppSpec extends UnitSpec {
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
       enriched.head("AField") should be ("A")
       enriched.head("CField") should be ("10")
+      }
+      catch{
+        case e => println("Exception Caught: "+e.getMessage)
+      }
+    }
+
+    it("should successfully process simple-copy with config segment-multisources and given Nothing") {
+
+      try{
+        val enriched: Array[Map[String, String]] = ExampleApp.enrich(
+          sc,
+          config = fileToString("./src/test/resources/testconfig-integration-copy-withconfig-nothing.json"),
+          inputDir = "./src/test/resources/input-integration.json").collect()
+
+        enriched.size should be (1) // always one because there's only one json input object
+        //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+        enriched.head("AField") should be ("A")
+        enriched.head("CField") should be ("10")
+      }
+      catch{
+        case e => println("Exception Caught: "+e.getMessage)
+      }
     }
 
     /** Helper test function

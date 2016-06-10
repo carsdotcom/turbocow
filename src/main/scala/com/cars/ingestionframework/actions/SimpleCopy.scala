@@ -6,12 +6,9 @@ import com.cars.ingestionframework.JsonUtil
 import org.json4s._
 
 
-class SimpleCopy(actionConfig : JValue) extends Action with Serializable
+class SimpleCopy extends Action with Serializable
 {
-  //implicit val jsonFormats = org.json4s.DefaultFormats
-  println("^^^^^^^^^^^^^^^^^^^^^^^^^^^"+(actionConfig))
 
-  val newName = JsonUtil.extractOption[String](actionConfig \ "newName")
   /** Simple Copy - simply copies the input(s) to the output.
     *
     */
@@ -36,17 +33,8 @@ class SimpleCopy(actionConfig : JValue) extends Action with Serializable
       }
       else {
         // Add this tuple to the resulting list (which is converted to a map later)
-        if(newName.isDefined && sourceFields.length > 1) {
-            throw new Exception("The config for '"+field+"' require only one source field. Recevied: "+sourceFields.length)
-          }
-        else if(newName.isDefined && sourceFields.length == 1) {
-          Some((newName.get, found.extract[String]))
-        }
-        else{
           Some((field, found.extract[String]))
-          }
         }
-
     }.toMap
   }
   

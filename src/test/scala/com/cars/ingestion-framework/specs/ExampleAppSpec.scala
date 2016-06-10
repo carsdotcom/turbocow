@@ -61,7 +61,7 @@ class ExampleAppSpec extends UnitSpec {
     
       val enriched: Array[Map[String, String]] = ExampleApp.enrich(
         sc, 
-        config = fileToString("./src/test/resources/testconfig-integration-copy-withoutconfig.json"),
+        config = fileToString("./src/test/resources/testconfig-integration-simplecopy.json"),
         inputDir = "./src/test/resources/input-integration.json").collect()
   
       enriched.size should be (1) // always one because there's only one json input object
@@ -75,15 +75,16 @@ class ExampleAppSpec extends UnitSpec {
       try {
         val enriched: Array[Map[String, String]] = ExampleApp.enrich(
           sc,
-          config = fileToString("./src/test/resources/testconfig-integration-copy-withconfig-multisources.json"),
+          config ="""{"activityType": "impressions",	"items": [{"source": [ "AField", "CField" ],"actions":[{"actionType":"copy","config":{"newName":"time_stamp"}}]}]}""" ,
           inputDir = "./src/test/resources/input-integration.json").collect()
 
+        fail()
         enriched.size should be(1) // always one because there's only one json input object
         //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
         enriched.head("time_stamp") should be("10")
       }
       catch{
-        case e => println("Exception Caught: "+e.getMessage)
+        case e =>
       }
     }
 
@@ -91,7 +92,7 @@ class ExampleAppSpec extends UnitSpec {
 
       val enriched: Array[Map[String, String]] = ExampleApp.enrich(
         sc,
-        config = fileToString("./src/test/resources/testconfig-integration-copy-withconfig-singlesource.json"),
+        config = """{"activityType": "impressions",	"items": [{	"source": [ "AField" ],"actions":[{	"actionType":"copy","config":{"newName":"time_stamp"}}]}]}""",
         inputDir = "./src/test/resources/input-integration.json").collect()
 
       enriched.size should be (1) // always one because there's only one json input object
@@ -103,17 +104,18 @@ class ExampleAppSpec extends UnitSpec {
 
       try {
         val enriched: Array[Map[String, String]] = ExampleApp.enrich(
-        sc,
-        config = fileToString("./src/test/resources/testconfig-integration-copy-withconfig-null.json"),
-        inputDir = "./src/test/resources/input-integration.json").collect()
+          sc,
+          config = """{"activityType": "impressions",	"items": [{	"source": [ "AField", "CField" ], "actions":[{"actionType":"copy","config":{"newName": null}}]}]}""",
+          inputDir = "./src/test/resources/input-integration.json").collect()
 
-      enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head("AField") should be ("A")
-      enriched.head("CField") should be ("10")
+        fail()
+        enriched.size should be (1) // always one because there's only one json input object
+        //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+        enriched.head("AField") should be ("A")
+        enriched.head("CField") should be ("10")
       }
       catch{
-        case e => println("Exception Caught: "+e.getMessage)
+        case e =>
       }
     }
 
@@ -122,16 +124,17 @@ class ExampleAppSpec extends UnitSpec {
       try{
         val enriched: Array[Map[String, String]] = ExampleApp.enrich(
           sc,
-          config = fileToString("./src/test/resources/testconfig-integration-copy-withconfig-nothing.json"),
+          config = """{"activityType": "impressions",	"items": [{"source": [ "AField", "CField"],"actions":[{"actionType":"copy"}]}]}""",
           inputDir = "./src/test/resources/input-integration.json").collect()
 
+        fail()
         enriched.size should be (1) // always one because there's only one json input object
         //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
         enriched.head("AField") should be ("A")
         enriched.head("CField") should be ("10")
       }
       catch{
-        case e => println("Exception Caught: "+e.getMessage)
+        case e =>
       }
     }
 

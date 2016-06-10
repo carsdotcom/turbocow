@@ -6,8 +6,12 @@ import org.json4s.JsonAST.JNothing
 
 /**
   * Created by nchaturvedula on 6/10/2016.
+  * This class copies an input field into enriched
+  * by updating the keyname to @newName value mentioned
+  * in the configuration JSON
   */
-class Copy(actionConfig : JValue) extends Action {
+class Copy(actionConfig : JValue) extends Action
+{
 
   val newName = JsonUtil.extractOption[String](actionConfig \ "newName")
 
@@ -15,16 +19,18 @@ class Copy(actionConfig : JValue) extends Action {
     *
     */
   def perform(
-               sourceFields: List[String],
-               inputRecord: JValue,
-               currentEnrichedMap: Map[String, String],
-               context: ActionContext):
-  Map[String, String] = {
+    sourceFields: List[String],
+    inputRecord: JValue,
+    currentEnrichedMap: Map[String, String],
+    context: ActionContext):
+    Map[String, String] = {
 
     implicit val jsonFormats = org.json4s.DefaultFormats
 
-    // for each sourceField, get the data out of the inputRecord, and add it to map to return.
-    sourceFields.flatMap { field =>
+    if(sourceFields.length == 1) {
+
+      // for one sourceField, get the data out of the inputRecord, and add it to map to return.
+      val field = sourceFields.head
 
       // search in the source json for this field name.
       val found = inputRecord \ field
@@ -35,16 +41,16 @@ class Copy(actionConfig : JValue) extends Action {
       }
       else {
         if(newName.isEmpty) {
-            throw new Exception("The 'newName' in 'copy' config for '"+field+"' should be defined and not null in JSON Configuration")
-          }
-        else if(newName.isDefined && sourceFields.length > 1) {
-          throw new Exception("The 'copy' config for '"+field+"' require only one source field. Received: "+sourceFields.length)
+          throw new Exception("For 'copy' actions, the 'newName' field is required in the action's 'config' object.")
         }
         else {
           Some((newName.get, found.extract[String]))
         }
-
       }
     }
+    else{
+      throw new Exception("The 'copy' action type does not allow multiple source fields. Please use one 'copy' action per each source field.")
+    }
+
   }.toMap
 }

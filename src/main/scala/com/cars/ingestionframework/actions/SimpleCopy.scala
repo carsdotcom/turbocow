@@ -35,7 +35,6 @@ class SimpleCopy extends Action with Serializable
         // Add this tuple to the resulting list (which is converted to a map later)
         Some((field, found.extract[String]))
       }
-
     }.toMap
   }
   

@@ -51,6 +51,5 @@ class Copy(actionConfig : JValue) extends Action
     else{
       throw new Exception("The 'copy' action type does not allow multiple source fields. Please use one 'copy' action per each source field.")
     }
-
   }.toMap
 }

@@ -97,9 +97,6 @@ class ExampleAppSpec extends UnitSpec {
           inputDir = "./src/test/resources/input-integration.json").collect()
 
         fail()
-        enriched.size should be(1) // always one because there's only one json input object
-        //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-        enriched.head("time_stamp") should be("10")
       }
       catch{
         case e =>
@@ -145,8 +142,7 @@ class ExampleAppSpec extends UnitSpec {
                      |   "items":[
                      |      {
                      |         "source":[
-                     |            "AField",
-                     |            "CField"
+                     |            "AField"
                      |         ],
                      |         "actions":[
                      |            {
@@ -162,10 +158,6 @@ class ExampleAppSpec extends UnitSpec {
           inputDir = "./src/test/resources/input-integration.json").collect()
 
         fail()
-        enriched.size should be (1) // always one because there's only one json input object
-        //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-        enriched.head("AField") should be ("A")
-        enriched.head("CField") should be ("10")
       }
       catch{
         case e =>
@@ -174,14 +166,15 @@ class ExampleAppSpec extends UnitSpec {
 
     it("should successfully process simple-copy with config segment-multisources and given Nothing") {
 
-      try{
+      try {
         val enriched: Array[Map[String, String]] = ExampleApp.enrich(
           sc,
-          config = """{
+          config =
+            """{
                      |  "activityType" : "impressions",
                      |  "items" : [
                      |    {
-                     |        "source" : [ "AField", "CField" ],
+                     |        "source" : [ "AField" ],
                      |        "actions" : [
                      |        {
                      |            "actionType" : "copy"
@@ -193,11 +186,7 @@ class ExampleAppSpec extends UnitSpec {
           inputDir = "./src/test/resources/input-integration.json").collect()
 
         fail()
-        enriched.size should be (1) // always one because there's only one json input object
-        //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-        enriched.head("AField") should be ("A")
-        enriched.head("CField") should be ("10")
-      }
+        }
       catch{
         case e =>
       }

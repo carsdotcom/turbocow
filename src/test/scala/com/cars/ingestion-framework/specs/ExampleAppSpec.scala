@@ -75,7 +75,25 @@ class ExampleAppSpec extends UnitSpec {
       try {
         val enriched: Array[Map[String, String]] = ExampleApp.enrich(
           sc,
-          config ="""{"activityType": "impressions",	"items": [{"source": [ "AField", "CField" ],"actions":[{"actionType":"copy","config":{"newName":"time_stamp"}}]}]}""" ,
+          config ="""{
+                    |   "activityType":"impressions",
+                    |   "items":[
+                    |      {
+                    |         "source":[
+                    |            "AField",
+                    |            "CField"
+                    |         ],
+                    |         "actions":[
+                    |            {
+                    |               "actionType":"copy",
+                    |               "config":{
+                    |                  "newName":"time_stamp"
+                    |               }
+                    |            }
+                    |         ]
+                    |      }
+                    |   ]
+                    |}""".stripMargin,
           inputDir = "./src/test/resources/input-integration.json").collect()
 
         fail()
@@ -92,7 +110,24 @@ class ExampleAppSpec extends UnitSpec {
 
       val enriched: Array[Map[String, String]] = ExampleApp.enrich(
         sc,
-        config = """{"activityType": "impressions",	"items": [{	"source": [ "AField" ],"actions":[{	"actionType":"copy","config":{"newName":"time_stamp"}}]}]}""",
+        config = """{
+                   |   "activityType":"impressions",
+                   |   "items":[
+                   |      {
+                   |         "source":[
+                   |            "AField"
+                   |         ],
+                   |         "actions":[
+                   |            {
+                   |               "actionType":"copy",
+                   |               "config":{
+                   |                  "newName":"time_stamp"
+                   |               }
+                   |            }
+                   |         ]
+                   |      }
+                   |   ]
+                   |}""".stripMargin,
         inputDir = "./src/test/resources/input-integration.json").collect()
 
       enriched.size should be (1) // always one because there's only one json input object
@@ -105,7 +140,25 @@ class ExampleAppSpec extends UnitSpec {
       try {
         val enriched: Array[Map[String, String]] = ExampleApp.enrich(
           sc,
-          config = """{"activityType": "impressions",	"items": [{	"source": [ "AField", "CField" ], "actions":[{"actionType":"copy","config":{"newName": null}}]}]}""",
+          config = """{
+                     |   "activityType":"impressions",
+                     |   "items":[
+                     |      {
+                     |         "source":[
+                     |            "AField",
+                     |            "CField"
+                     |         ],
+                     |         "actions":[
+                     |            {
+                     |               "actionType":"copy",
+                     |               "config":{
+                     |                  "newName":null
+                     |               }
+                     |            }
+                     |         ]
+                     |      }
+                     |   ]
+                     |}""".stripMargin,
           inputDir = "./src/test/resources/input-integration.json").collect()
 
         fail()
@@ -124,7 +177,19 @@ class ExampleAppSpec extends UnitSpec {
       try{
         val enriched: Array[Map[String, String]] = ExampleApp.enrich(
           sc,
-          config = """{"activityType": "impressions",	"items": [{"source": [ "AField", "CField"],"actions":[{"actionType":"copy"}]}]}""",
+          config = """{
+                     |  "activityType" : "impressions",
+                     |  "items" : [
+                     |    {
+                     |        "source" : [ "AField", "CField" ],
+                     |        "actions" : [
+                     |        {
+                     |            "actionType" : "copy"
+                     |        }
+                     |      ]
+                     |    }
+                     |  ]
+                     |}""".stripMargin,
           inputDir = "./src/test/resources/input-integration.json").collect()
 
         fail()

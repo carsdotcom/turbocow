@@ -30,10 +30,10 @@ class Copy(actionConfig : JValue) extends Action
     if(sourceFields.length == 1) {
 
       // for one sourceField, get the data out of the inputRecord, and add it to map to return.
-      val field = sourceFields.head
+      val sourceField = sourceFields.head
 
       // search in the source json for this field name.
-      val found = inputRecord \ field
+      val found = inputRecord \ sourceField
 
       if (found == JNothing) {
         // Returning None in a flatMap adds nothing to the resulting collection:

@@ -70,7 +70,7 @@ class ExampleAppSpec extends UnitSpec {
       enriched.head("CField") should be ("10")
     }
 
-    it("should successfully process simple-copy with config segment with mutiple sources") {
+    it("should throw exception if 'copy' action has multiple sources") {
 
       try {
         val enriched: Array[Map[String, String]] = ExampleApp.enrich(
@@ -103,7 +103,7 @@ class ExampleAppSpec extends UnitSpec {
       }
     }
 
-    it("should successfully process simple-copy with config segment with single source ") {
+    it("should successfully process 'copy' with config segment with single source ") {
 
       val enriched: Array[Map[String, String]] = ExampleApp.enrich(
         sc,
@@ -132,7 +132,7 @@ class ExampleAppSpec extends UnitSpec {
       enriched.head("time_stamp") should be ("A")
     }
 
-    it("should successfully process simple-copy with config segment-multisources and having Null") {
+    it("should throw exception if 'copy' action has a null newName") {
 
       try {
         val enriched: Array[Map[String, String]] = ExampleApp.enrich(
@@ -164,7 +164,7 @@ class ExampleAppSpec extends UnitSpec {
       }
     }
 
-    it("should successfully process simple-copy with config segment-multisources and given Nothing") {
+    it(" should throw an exception if 'copy' action does not have config object") {
 
       try {
         val enriched: Array[Map[String, String]] = ExampleApp.enrich(

@@ -5,7 +5,6 @@ import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 import org.scalatest.junit.JUnitRunner
 import com.cars.turbocow.actions._
-import com.cars.turbocow.exampleapp.ExampleAppSpec
 import org.apache.spark.sql.hive._
 
 import scala.io.Source

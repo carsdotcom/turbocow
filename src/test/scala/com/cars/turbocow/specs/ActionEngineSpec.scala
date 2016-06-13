@@ -1,4 +1,4 @@
-package com.cars.turbocow.exampleapp
+package com.cars.turbocow
 
 import org.scalatest.junit.JUnitRunner
 import com.cars.turbocow._
@@ -14,11 +14,11 @@ import scala.io.Source
 // Fix for Scalatest on Gradle:  (from http://stackoverflow.com/questions/18823855/cant-run-scalatest-with-gradle)
 // Alternately, try using https://github.com/maiflai/gradle-scalatest
 //@org.junit.runner.RunWith(classOf[org.scalatest.junit.JUnitRunner])
-class ExampleAppSpec extends UnitSpec {
+class TurboCowSpec extends UnitSpec {
 
   // initialise spark context
-  //val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[1]")
-  val conf = new SparkConf().setAppName("ExampleApp").setMaster("local[2]")
+  //val conf = new SparkConf().setAppName("TurboCowSpec").setMaster("local[1]")
+  val conf = new SparkConf().setAppName("TurboCowSpec").setMaster("local[2]")
   val sc = new SparkContext(conf)
 
   // before all tests have run

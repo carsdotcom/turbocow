@@ -77,10 +77,11 @@ class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[Actio
     val replaceNullWithRE = """replace-null-with-([0-9]+)""".r
   
     actionType match {
-      case "simple-copy" => Option(new actions.SimpleCopy)
       case "copy" => Option(new actions.Copy(actionConfig))
+      case "add-enriched-fields" => Option(new AddEnrichedFields(actionConfig))
       case "lookup" => Option(new actions.Lookup(actionConfig))
       case replaceNullWithRE(number) => Option(new actions.ReplaceNullWith(number.toInt))
+      case "simple-copy" => Option(new actions.SimpleCopy)
       case _ => None
     }
   }

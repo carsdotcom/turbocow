@@ -3,12 +3,10 @@
 	"items": [
 		{
 			"source": [ "AField", "CField" ], 
-			"actions":[
-				{
+			"actions":[{
 					"actionType":"simple-copy"
 				}
 			]
-
 		}
 	]
 	

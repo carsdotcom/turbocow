@@ -59,10 +59,10 @@ class ExampleAppSpec extends UnitSpec {
   {
     it("should successfully process simple-copy") {
     
-      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
-        sc, 
-        config = fileToString("./src/test/resources/testconfig-integration-simplecopy.json"),
-        inputDir = "./src/test/resources/input-integration.json").collect()
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration.json",
+        fileToString("./src/test/resources/testconfig-integration-simplecopy.json"),
+        sc).collect()
   
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -73,10 +73,10 @@ class ExampleAppSpec extends UnitSpec {
     /** Helper test function
       */
     def testReplaceNullWith(value: Int) = {
-      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
-        sc, 
-        config = fileToString(s"./src/test/resources/testconfig-integration-replacenullwith${value.toString}.json"),
-        inputDir = "./src/test/resources/input-integration-replacenullwith.json").collect()
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration-replacenullwith.json",
+        fileToString(s"./src/test/resources/testconfig-integration-replacenullwith${value.toString}.json"),
+        sc).collect()
 
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -95,10 +95,10 @@ class ExampleAppSpec extends UnitSpec {
     }
 
     it("should successfully process a lookup action") {
-      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
-        sc, 
-        config = fileToString("./src/test/resources/testconfig-integration-lookup.json"),
-        inputDir = "./src/test/resources/input-integration.json").collect()
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration.json",
+        fileToString("./src/test/resources/testconfig-integration-lookup.json"),
+        sc).collect()
   
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -108,10 +108,10 @@ class ExampleAppSpec extends UnitSpec {
     }
 
     it("should successfully process a custom action") {
-      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration.json",
+        fileToString("./src/test/resources/testconfig-integration-custom.json"),
         sc, 
-        config = fileToString("./src/test/resources/testconfig-integration-custom.json"),
-        inputDir = "./src/test/resources/input-integration.json",
         None,
         new ActionFactory(new CustomActionCreator) ).collect()
     
@@ -125,7 +125,7 @@ class ExampleAppSpec extends UnitSpec {
     }
     
     //it("should successfully process a different custom action") {
-    //  val enriched: List[Map[String, String]] = ExampleApp.enrich(
+    //  val enriched: List[Map[String, String]] = ActionEngine.process(
     //    sc, 
     //    configFilePath = "./src/test/resources/testconfig-integration-custom2.json", 
     //    inputFilePath = "./src/test/resources/input-integration.json")
@@ -138,10 +138,10 @@ class ExampleAppSpec extends UnitSpec {
     //}
 
     it("should process two items with the same source fields") {
-      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration.json",
+        fileToString("./src/test/resources/testconfig-2-items-same-source.json"),
         sc, 
-        config = fileToString("./src/test/resources/testconfig-2-items-same-source.json"),
-        inputDir = "./src/test/resources/input-integration.json",
         None,
         new ActionFactory(new CustomActionCreator) ).collect()
     
@@ -185,7 +185,7 @@ class ExampleAppSpec extends UnitSpec {
         ) 
       )
 
-      val gotLookups: Map[String, List[Lookup]] = ExampleApp.getAllLookupActions(sourceActions)
+      val gotLookups: Map[String, List[Lookup]] = ActionEngine.getAllLookupActions(sourceActions)
 
       gotLookups.size should be (2)
       gotLookups.foreach{ case(tableName, lookupList) =>

@@ -70,6 +70,128 @@ class ExampleAppSpec extends UnitSpec {
       enriched.head("CField") should be ("10")
     }
 
+    it("should throw exception if 'copy' action has multiple sources") {
+
+      try {
+        val enriched: Array[Map[String, String]] = ExampleApp.enrich(
+          sc,
+          config ="""{
+                    |   "activityType":"impressions",
+                    |   "items":[
+                    |      {
+                    |         "source":[
+                    |            "AField",
+                    |            "CField"
+                    |         ],
+                    |         "actions":[
+                    |            {
+                    |               "actionType":"copy",
+                    |               "config":{
+                    |                  "newName":"time_stamp"
+                    |               }
+                    |            }
+                    |         ]
+                    |      }
+                    |   ]
+                    |}""".stripMargin,
+          inputDir = "./src/test/resources/input-integration.json").collect()
+
+        fail()
+      }
+      catch{
+        case e =>
+      }
+    }
+
+    it("should successfully process 'copy' with config segment with single source ") {
+
+      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
+        sc,
+        config = """{
+                   |   "activityType":"impressions",
+                   |   "items":[
+                   |      {
+                   |         "source":[
+                   |            "AField"
+                   |         ],
+                   |         "actions":[
+                   |            {
+                   |               "actionType":"copy",
+                   |               "config":{
+                   |                  "newName":"time_stamp"
+                   |               }
+                   |            }
+                   |         ]
+                   |      }
+                   |   ]
+                   |}""".stripMargin,
+        inputDir = "./src/test/resources/input-integration.json").collect()
+
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+      enriched.head("time_stamp") should be ("A")
+    }
+
+    it("should throw exception if 'copy' action has a null newName") {
+
+      try {
+        val enriched: Array[Map[String, String]] = ExampleApp.enrich(
+          sc,
+          config = """{
+                     |   "activityType":"impressions",
+                     |   "items":[
+                     |      {
+                     |         "source":[
+                     |            "AField"
+                     |         ],
+                     |         "actions":[
+                     |            {
+                     |               "actionType":"copy",
+                     |               "config":{
+                     |                  "newName":null
+                     |               }
+                     |            }
+                     |         ]
+                     |      }
+                     |   ]
+                     |}""".stripMargin,
+          inputDir = "./src/test/resources/input-integration.json").collect()
+
+        fail()
+      }
+      catch{
+        case e =>
+      }
+    }
+
+    it(" should throw an exception if 'copy' action does not have config object") {
+
+      try {
+        val enriched: Array[Map[String, String]] = ExampleApp.enrich(
+          sc,
+          config =
+            """{
+                     |  "activityType" : "impressions",
+                     |  "items" : [
+                     |    {
+                     |        "source" : [ "AField" ],
+                     |        "actions" : [
+                     |        {
+                     |            "actionType" : "copy"
+                     |        }
+                     |      ]
+                     |    }
+                     |  ]
+                     |}""".stripMargin,
+          inputDir = "./src/test/resources/input-integration.json").collect()
+
+        fail()
+        }
+      catch{
+        case e =>
+      }
+    }
+
     /** Helper test function
       */
     def testReplaceNullWith(value: Int) = {

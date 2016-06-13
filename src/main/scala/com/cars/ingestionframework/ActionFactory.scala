@@ -78,6 +78,7 @@ class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[Actio
   
     actionType match {
       case "simple-copy" => Option(new actions.SimpleCopy)
+      case "copy" => Option(new actions.Copy(actionConfig))
       case "lookup" => Option(new actions.Lookup(actionConfig))
       case replaceNullWithRE(number) => Option(new actions.ReplaceNullWith(number.toInt))
       case _ => None

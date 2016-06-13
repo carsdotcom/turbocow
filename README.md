@@ -1,8 +1,10 @@
-# Ingestion Framework
+# TurboCow
 
-Library of reusable modules for Spark that can process common types of incoming data.
+This is a library to help with common data validation and enrichment activities in Spark.
 
 ## Actions
+
+TODO
 
 ### Lookup
 

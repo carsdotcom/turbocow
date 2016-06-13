@@ -1,6 +1,6 @@
-name := "ingestionframework"
+name := "turbocow"
 
-version := "0.2"
+version := "0.3"
 
 scalaVersion := "2.10.6" // this is because of spark
 

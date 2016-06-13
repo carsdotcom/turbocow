@@ -73,9 +73,9 @@ class ExampleAppSpec extends UnitSpec {
     it("should throw exception if 'copy' action has multiple sources") {
 
       try {
-        val enriched: Array[Map[String, String]] = ExampleApp.enrich(
-          sc,
-          config ="""{
+        val enriched: Array[Map[String, String]] = ActionEngine.process(
+          "./src/test/resources/input-integration.json",
+          """{
                     |   "activityType":"impressions",
                     |   "items":[
                     |      {
@@ -94,20 +94,20 @@ class ExampleAppSpec extends UnitSpec {
                     |      }
                     |   ]
                     |}""".stripMargin,
-          inputDir = "./src/test/resources/input-integration.json").collect()
+          sc).collect()
 
         fail()
       }
       catch{
-        case e =>
+        case e: Throwable =>
       }
     }
 
     it("should successfully process 'copy' with config segment with single source ") {
 
-      val enriched: Array[Map[String, String]] = ExampleApp.enrich(
-        sc,
-        config = """{
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration.json",
+        """{
                    |   "activityType":"impressions",
                    |   "items":[
                    |      {
@@ -125,7 +125,7 @@ class ExampleAppSpec extends UnitSpec {
                    |      }
                    |   ]
                    |}""".stripMargin,
-        inputDir = "./src/test/resources/input-integration.json").collect()
+        sc).collect()
 
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -135,9 +135,9 @@ class ExampleAppSpec extends UnitSpec {
     it("should throw exception if 'copy' action has a null newName") {
 
       try {
-        val enriched: Array[Map[String, String]] = ExampleApp.enrich(
-          sc,
-          config = """{
+        val enriched: Array[Map[String, String]] = ActionEngine.process(
+          "./src/test/resources/input-integration.json",
+          """{
                      |   "activityType":"impressions",
                      |   "items":[
                      |      {
@@ -155,22 +155,21 @@ class ExampleAppSpec extends UnitSpec {
                      |      }
                      |   ]
                      |}""".stripMargin,
-          inputDir = "./src/test/resources/input-integration.json").collect()
+          sc).collect()
 
         fail()
       }
       catch{
-        case e =>
+        case e: Throwable =>
       }
     }
 
     it(" should throw an exception if 'copy' action does not have config object") {
 
       try {
-        val enriched: Array[Map[String, String]] = ExampleApp.enrich(
-          sc,
-          config =
-            """{
+        val enriched: Array[Map[String, String]] = ActionEngine.process(
+          "./src/test/resources/input-integration.json",
+          """{
                      |  "activityType" : "impressions",
                      |  "items" : [
                      |    {
@@ -183,12 +182,12 @@ class ExampleAppSpec extends UnitSpec {
                      |    }
                      |  ]
                      |}""".stripMargin,
-          inputDir = "./src/test/resources/input-integration.json").collect()
+          sc).collect()
 
         fail()
         }
       catch{
-        case e =>
+        case e: Throwable =>
       }
     }
 

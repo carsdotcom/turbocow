@@ -1,7 +1,8 @@
 package com.cars.turbocow
 
-import org.json4s._
-
+//import org.json4s._
+//import com.cars.turbocow.PerformResult
+//
 //class RemoveEnrichedFields(actionConfig: JValue) extends Action
 //{
 //  implicit val jsonFormats = org.json4s.DefaultFormats
@@ -16,7 +17,7 @@ import org.json4s._
 //    inputRecord: JValue, 
 //    currentEnrichedMap: Map[String, String],
 //    context: ActionContext): 
-//    Map[String, String] = {
+//    PerformResult = {
 //
 //    // Add the kvList to the enriched data
 //    fieldsToRemove.map{ field => 

@@ -12,7 +12,11 @@ class ActionFactoryForTest(customActionFactories: List[ActionCreator] = List.emp
   extends ActionFactory(customActionFactories)
 {
 
-  override def createAction(actionType: String, actionConfig: JValue): Option[Action] = {
+  override def createAction(
+    actionType: String, 
+    actionConfig: JValue, 
+    rejectionReason: Option[RejectionReason] = None): 
+    Option[Action] = {
 
     val action = super.createAction(actionType, actionConfig)
 

@@ -7,8 +7,9 @@ import org.json4s.JValue
 class CustomActionCreator extends ActionCreator {
 
   override def createAction(
-    actionType: String,
-    actionConfig: JValue): 
+    actionType: String, 
+    actionConfig: JValue, 
+    rejectionReason: Option[RejectionReason] = None): 
     Option[Action] = {
 
     actionType match {
@@ -18,6 +19,7 @@ class CustomActionCreator extends ActionCreator {
       case _ => None
     }
   }
+
 }
 
 

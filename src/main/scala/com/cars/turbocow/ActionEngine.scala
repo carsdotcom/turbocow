@@ -79,7 +79,8 @@ object ActionEngine
 
       // For every action in the list
       sourceActions.value.foreach{ action =>
-        enrichedMap = enrichedMap ++ action.perform(action.source, ast, enrichedMap, actionContext.value)
+        val result = action.perform(action.source, ast, enrichedMap, actionContext.value)
+        enrichedMap = enrichedMap ++ result.enrichedUpdates
       }
 
       // (For now, just return the enriched data)

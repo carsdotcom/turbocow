@@ -11,9 +11,9 @@ class Action1 extends Action
     inputRecord: JValue, 
     currentEnrichedMap: Map[String, String],
     context: ActionContext): 
-    Map[String, String] = {
+    PerformResult = {
 
-    Map.empty[String, String]
+    PerformResult()
   }
 }
 

@@ -18,10 +18,10 @@ class AddEnrichedFields(actionConfig: JValue) extends Action
     inputRecord: JValue, 
     currentEnrichedMap: Map[String, String],
     context: ActionContext): 
-    Map[String, String] = {
+    PerformResult = {
 
     // Add the kvList to the enriched data
-    kvList.toMap
+    PerformResult(kvList.toMap)
   }
 }
 

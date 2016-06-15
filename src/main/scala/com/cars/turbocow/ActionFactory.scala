@@ -11,7 +11,7 @@ import org.json4s.jackson.JsonMethods._
   *        actions.  Note that you can override the creation of standard framework 
   *        actions by indicating 
   */
-class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[ActionCreator]) 
+class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[ActionCreator]) 
   extends ActionCreator {
 
   /** Alternative constructor to instantiate with just one custom creator
@@ -34,34 +34,45 @@ class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[Actio
     itemsList.map{ item =>
       val sourceList = (item \ "source").children.map( _.values.toString)
 
-      val actions = (item \ "actions").children.map{ jobj => 
-
-        // Get the info for this action to send to the action creator.
-        val actionType = (jobj \ "actionType").extract[String]
-        val actionConfig = jobj \ "config"
-
-        // First, attempt to create an action using custom creators, if any:
-        val customAction: Option[Action] = if (customActionCreators.nonEmpty) {
-          var action: Option[Action] = None
-          val creatorIter = customActionCreators.iterator
-          while (creatorIter.hasNext && action.isEmpty) {
-            action = creatorIter.next.createAction(actionType, actionConfig)
-          }
-          action
-        }
-        else { 
-          println("No custom action creators available.")
-          None
-        }
-
-        // If a custom action was created, then use that, otherwise 
-        // try the standard actions:
-        customAction.getOrElse{ 
-          createAction(actionType, actionConfig).getOrElse(throw new Exception(s"Couldn't create action.  Unrecogonized actionType: "+actionType))
-        }
-      }
+      val actions = createActionList(item \ "actions")
 
       SourceAction( sourceList, actions )
+    }
+  }
+
+  /** Process a JValue that is a JArray of Actions
+    * 
+    */
+  def createActionList(
+    actionsList: JValue, 
+    rejectionReason: Option[RejectionReason] = None): 
+    List[Action] = {
+
+    actionsList.children.map{ jval: JValue => 
+
+      // Get the info for this action to send to the action creator.
+      val actionType = JsonUtil.extractString(jval \ "actionType")
+      val actionConfig = jval \ "config"
+
+      // First, attempt to create an action using custom creators, if any:
+      val customAction: Option[Action] = if (customActionCreators.nonEmpty) {
+        var action: Option[Action] = None
+        val creatorIter = customActionCreators.iterator
+        while (creatorIter.hasNext && action.isEmpty) {
+          action = creatorIter.next.createAction(actionType, actionConfig)
+        }
+        action
+      }
+      else { 
+        println("No custom action creators available.")
+        None
+      }
+
+      // If a custom action was created, then use that, otherwise 
+      // try the standard actions:
+      customAction.getOrElse{ 
+        createAction(actionType, actionConfig, rejectionReason).getOrElse(throw new Exception(s"Couldn't create action.  Unrecogonized actionType: "+actionType))
+      }
     }
   }
 
@@ -70,7 +81,10 @@ class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[Actio
     * Called from create(), above.
     * All standard actions supported in the framework should be created here.
     */
-  override def createAction(actionType: String, actionConfig: JValue):
+  override def createAction(
+    actionType: String, 
+    actionConfig: JValue, 
+    rejectionReason: Option[RejectionReason] = None):
     Option[Action] = {
   
     // regexes:
@@ -79,12 +93,14 @@ class ActionFactory(customActionCreators: List[ActionCreator] = List.empty[Actio
     actionType match {
       case "copy" => Option(new actions.Copy(actionConfig))
       case "add-enriched-fields" => Option(new AddEnrichedFields(actionConfig))
-      case "lookup" => Option(new actions.Lookup(actionConfig))
+      case "lookup" => Option(actions.Lookup(actionConfig, Option(this)))
+      case "reject" => Option(new actions.Reject(actionConfig, rejectionReason))
       case replaceNullWithRE(number) => Option(new actions.ReplaceNullWith(number.toInt))
       case "simple-copy" => Option(new actions.SimpleCopy)
       case _ => None
     }
   }
+
 }
 
 

@@ -24,8 +24,9 @@ libraryDependencies ++= Seq(
   "org.json4s" %%  "json4s-ext" % json4SVer,
   
   // For testing:
-  "org.scalactic" %% "scalactic" % "2.2.6",
-  "org.scalatest" %% "scalatest" % "2.2.6" % "test"
+  //"org.scalactic" %% "scalactic" % "2.2.6" % "test",
+  "org.scalatest" %% "scalatest" % "2.2.6" % "test",
+  "org.mockito" % "mockito-all" % "1.10.19" % "test"
 )
 
 // Print full stack traces in tests:

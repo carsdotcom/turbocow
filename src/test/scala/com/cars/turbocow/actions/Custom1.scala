@@ -11,10 +11,10 @@ class Custom1 extends Action
     inputRecord: JValue, 
     currentEnrichedMap: Map[String, String],
     context: ActionContext): 
-    Map[String, String] = {
+    PerformResult = {
 
     // Just add this to the enriched data - doesn't matter
-    Map("CUSTOM1-KEY"->"CUSTOM1-VALUE")
+    PerformResult(Map("CUSTOM1-KEY"->"CUSTOM1-VALUE"))
   }
 }
 

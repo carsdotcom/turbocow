@@ -1,6 +1,7 @@
 package com.cars.turbocow.actions
 
 import com.cars.turbocow.{Action, ActionContext, JsonUtil}
+import com.cars.turbocow.PerformResult
 import org.json4s.JValue
 import org.json4s.JsonAST.JNothing
 
@@ -23,33 +24,37 @@ class Copy(actionConfig : JValue) extends Action
     inputRecord: JValue,
     currentEnrichedMap: Map[String, String],
     context: ActionContext):
-    Map[String, String] = {
+    PerformResult = {
 
     implicit val jsonFormats = org.json4s.DefaultFormats
 
-    if(sourceFields.length == 1) {
+    val enriched = {
+      if(sourceFields.length == 1) {
 
-      // for one sourceField, get the data out of the inputRecord, and add it to map to return.
-      val sourceField = sourceFields.head
+        // for one sourceField, get the data out of the inputRecord, and add it to map to return.
+        val sourceField = sourceFields.head
 
-      // search in the source json for this field name.
-      val found = inputRecord \ sourceField
+        // search in the source json for this field name.
+        val found = inputRecord \ sourceField
 
-      if (found == JNothing) {
-        // Returning None in a flatMap adds nothing to the resulting collection:
-        None
-      }
-      else {
-        if(newName.isEmpty) {
-          throw new Exception("For 'copy' actions, the 'newName' field is required in the action's 'config' object.")
+        if (found == JNothing) {
+          // Returning None in a flatMap adds nothing to the resulting collection:
+          None
         }
         else {
-          Some((newName.get, found.extract[String]))
+          if(newName.isEmpty) {
+            throw new Exception("For 'copy' actions, the 'newName' field is required in the action's 'config' object.")
+          }
+          else {
+            Some((newName.get, found.extract[String]))
+          }
         }
       }
-    }
-    else{
-      throw new Exception("The 'copy' action type does not allow multiple source fields. Please use one 'copy' action per each source field.")
-    }
-  }.toMap
+      else{
+        throw new Exception("The 'copy' action type does not allow multiple source fields. Please use one 'copy' action per each source field.")
+      }
+    }.toMap
+
+    PerformResult(enriched)
+  }
 }

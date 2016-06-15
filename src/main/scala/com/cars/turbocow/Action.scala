@@ -20,6 +20,14 @@ trait Action extends Serializable
     inputRecord: JValue, 
     currentEnrichedMap: Map[String, String],
     context: ActionContext): 
-    Map[String, String] 
+    PerformResult
 }
+
+/** This is what is returned from perform()
+  */
+case class PerformResult(
+  enrichedUpdates: Map[String, String] = Map.empty[String, String],
+  rejectionReason: Option[String] = None
+)
+
 

@@ -14,7 +14,11 @@ trait ActionCreator {
     * @return Some[Action] if able to handle this actionType; None if this 
     *         actionType is unknown to this creator.
     */
-  def createAction(actionType: String, actionConfig: JValue): Option[Action]
+  def createAction(
+    actionType: String, 
+    actionConfig: JValue, 
+    rejectionReason: Option[RejectionReason] = None): 
+    Option[Action]
 
 }
 

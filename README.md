@@ -2,6 +2,17 @@
 
 This is a library to help with common data validation and enrichment activities in Spark.
 
+## Setup
+
+To use this library in your SBT project, add the following line to your build.sbt:
+```
+"com.cars.bigdata" %% "turbocow" % "{VERSION}" 
+```
+... where {VERSION} is the version you wish to use.  See tags in this project to determine which one you want.  (git tag -n)
+
+There is example code in the ExampleApp.scala file in this project, that you can use as a template to get started.
+
+
 ## Actions
 
 TODO
@@ -24,4 +35,22 @@ Reject can have an optional config where a rejection reason can be specified in 
         "reason": "some reason text"
       }
     }
+```
+
+### Publishing
+
+1. Compile & test locally
+1. Run integration tests (or manual tests on cluster)
+1. Test
+1. When you're sure it's ready, apply a tag.  (currently in the 0.X series)
+1. Create the jar and pom files via 'sbt publish-local'.
+1. Publish to artifactory via:
+
+```
+SCALAVER=2.10
+VER=0.3
+# pom:
+curl -v -H "X-JFrog-Art-Api: $ARTIFACTORY_KEY" -T ./turbocow_$SCALAVER-$VER.pom "https://repository.cars.com/artifactory/cars-data-local/com/cars/bigdata/turbocow_2.10/0.3/turbocow_$SCALAVER-$VER.pom"
+# jar:
+curl -v -H "X-JFrog-Art-Api: $ARTIFACTORY_KEY" -T ./turbocow_$SCALAVER-$VER.jar "https://repository.cars.com/artifactory/cars-data-local/com/cars/bigdata/turbocow_2.10/0.3/turbocow_$SCALAVER-$VER.jar"
 ```

@@ -4,7 +4,6 @@ import com.cars.turbocow.Action
 import com.cars.turbocow.ActionContext
 import com.cars.turbocow.JsonUtil
 import com.cars.turbocow.PerformResult
-import com.cars.turbocow.RejectionReason
 import com.cars.turbocow.ValidString
 import org.json4s._
 import org.json4s.JsonDSL._

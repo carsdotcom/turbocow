@@ -435,7 +435,10 @@ class ActionEngineSpec
     //                   ],
     //                   "onFail": [
     //                      {
-    //                        "actionType": "reject"
+    //                        "actionType": "reject",
+    //                        "config": {
+    //                          "reasonFrom": "lookup"
+    //                        }
     //                      }
     //                   ]
     //                 }
@@ -460,7 +463,7 @@ class ActionEngineSpec
     //  recordMap.get("CField") should be (Some("10"))
     //  recordMap.get("DField") should be (Some("11"))
     //}
-
+    //
     //it("should add nothing to the enriched record if lookup fails and no onFail is specified") {
     //  val enriched: Array[Map[String, String]] = ActionEngine.process(
     //    "./src/test/resources/input-integration-AA.json", // 'AA' in AField

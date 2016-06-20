@@ -9,7 +9,6 @@ import org.json4s.JsonAST.JNothing
 import org.json4s.jackson.JsonMethods._
 import com.cars.turbocow.ActionFactory
 import com.cars.turbocow.PerformResult
-import com.cars.turbocow.RejectionReason
 
 import Lookup._
 
@@ -141,8 +140,6 @@ class Lookup(
             // Set the failure reason in the scratchpad for pickup later and 
             // possible rejection.
             val rejectReason = s"""Invalid $lookupField: '${lookupValue.getOrElse("")}'"""
-            //context.scratchPad.pushFailure(rejectReason)
-            //context.rejectionReasons.add(rejectReason)
             context.scratchPad.setResult("lookup", rejectReason)
 
             if (onFail.actions.isEmpty) {
@@ -188,7 +185,6 @@ object Lookup
     sourceFields: List[String]): 
     Lookup = {
 
-    val rejectionReason = RejectionReason()
     new Lookup(
       lookupFile = JsonUtil.extractOption[String](actionConfig \ "lookupFile"),
       lookupDB = JsonUtil.extractOption[String](actionConfig \ "lookupDB"),

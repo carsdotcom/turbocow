@@ -1,7 +1,6 @@
 package com.cars.turbocow
 
 import org.scalatest.junit.JUnitRunner
-import com.cars.turbocow._
 import com.cars.turbocow.actions._
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
@@ -13,16 +12,14 @@ import scala.io.Source
 import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
 
-// Fix for Scalatest on Gradle:  (from http://stackoverflow.com/questions/18823855/cant-run-scalatest-with-gradle)
-// Alternately, try using https://github.com/maiflai/gradle-scalatest
-//@org.junit.runner.RunWith(classOf[org.scalatest.junit.JUnitRunner])
-class TurboCowSpec 
+class ActionEngineSpec 
   extends UnitSpec 
-  with MockitoSugar {
+  //with MockitoSugar 
+{
 
   // initialise spark context
-  //val conf = new SparkConf().setAppName("TurboCowSpec").setMaster("local[1]")
-  val conf = new SparkConf().setAppName("TurboCowSpec").setMaster("local[2]")
+  //val conf = new SparkConf().setAppName("ActionEngineSpec").setMaster("local[1]")
+  val conf = new SparkConf().setAppName("ActionEngineSpec").setMaster("local[2]")
   val sc = new SparkContext(conf)
 
   // before all tests have run
@@ -288,11 +285,6 @@ class TurboCowSpec
                          "EnhField1",
                          "EnhField2",
                          "EnhField3"
-                       ],
-                       "onFail": [
-                          {
-                            "actionType": "reject"
-                          }
                        ]
                      }
                    }
@@ -329,9 +321,12 @@ class TurboCowSpec
                          "EnhField3"
                        ],
                        "onFail": [
-                          {
-                            "actionType": "reject"
-                          }
+                         { 
+                           "actionType": "reject",
+                           "config": {
+                             "reasonFrom": "lookup"
+                           }
+                         }
                        ]
                      }
                    }
@@ -340,10 +335,10 @@ class TurboCowSpec
              ]
            }""",
         sc).collect()
-  
+    
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-
+    
       // test the record
       val recordMap = enriched.head
       recordMap.size should be (1)
@@ -355,66 +350,66 @@ class TurboCowSpec
 
   describe("reject action") {
 
-    it("should collect the rejection reasons if more than one action calls reject") {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
-        """{
-             "activityType": "impressions",
-             "items": [
-               {
-                 "source": [ "AField" ], 
-                 "actions":[
-                   {
-                     "actionType":"lookup",
-                     "config": {
-                       "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-                       "lookupField": "KEYFIELD",
-                       "fieldsToSelect": [
-                         "EnhField1",
-                         "EnhField2"
-                       ],
-                       "onFail": [
-                          {
-                            "actionType": "reject"
-                          }
-                       ]
-                     }
-                   },
-                   {
-                     "actionType":"lookup",
-                     "config": {
-                       "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-                       "lookupField": "KEYFIELD",
-                       "fieldsToSelect": [
-                         "EnhField3"
-                       ],
-                       "onFail": [
-                          {
-                            "actionType": "reject",
-                            "config": {
-                              "reason": "some reason text"
-                            }
-                          }
-                       ]
-                     }
-                   }
-                 ]
-               }
-             ]
-           }""".stripMargin,
-        sc).collect()
-    
-      enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-    
-      // test the record
-      val recordMap = enriched.head
-      recordMap.size should be (1)
-      val reasonOpt = recordMap.get("reasonForReject")
-      reasonOpt.isEmpty should be (false)
-      reasonOpt.get should be ("Invalid KEYFIELD: 'AA'; some reason text")
-    }
-
+    //it("should collect the rejection reasons if more than one action calls reject") {
+    //  val enriched: Array[Map[String, String]] = ActionEngine.process(
+    //    "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+    //    """{
+    //         "activityType": "impressions",
+    //         "items": [
+    //           {
+    //             "source": [ "AField" ], 
+    //             "actions":[
+    //               {
+    //                 "actionType":"lookup",
+    //                 "config": {
+    //                   "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
+    //                   "lookupField": "KEYFIELD",
+    //                   "fieldsToSelect": [
+    //                     "EnhField1",
+    //                     "EnhField2"
+    //                   ],
+    //                   "onFail": [
+    //                      {
+    //                        "actionType": "reject"
+    //                      }
+    //                   ]
+    //                 }
+    //               },
+    //               {
+    //                 "actionType":"lookup",
+    //                 "config": {
+    //                   "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
+    //                   "lookupField": "KEYFIELD",
+    //                   "fieldsToSelect": [
+    //                     "EnhField3"
+    //                   ],
+    //                   "onFail": [
+    //                      {
+    //                        "actionType": "reject",
+    //                        "config": {
+    //                          "reason": "some reason text"
+    //                        }
+    //                      }
+    //                   ]
+    //                 }
+    //               }
+    //             ]
+    //           }
+    //         ]
+    //       }""".stripMargin,
+    //    sc).collect()
+    //
+    //  enriched.size should be (1) // always one because there's only one json input object
+    //  //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+    //
+    //  // test the record
+    //  val recordMap = enriched.head
+    //  recordMap.size should be (1)
+    //  val reasonOpt = recordMap.get("reasonForReject")
+    //  reasonOpt.isEmpty should be (false)
+    //  reasonOpt.get should be ("Invalid KEYFIELD: 'AA'; some reason text")
+    //}
+    //
     //it("should output the entire input record if at least one action calls reject") {
     //  val enriched: Array[Map[String, String]] = ActionEngine.process(
     //    "./src/test/resources/input-integration-AA.json", // 'AA' in AField

@@ -81,7 +81,7 @@ class LookupSpec extends UnitSpec {
       actionConfig should not be (JNothing)
 
       // create the action and test all fields after construction:
-      val action = Lookup(actionConfig, None)
+      val action = Lookup(actionConfig, None, List.empty[String])
       action.lookupFile.get should be ("./src/test/resources/testdimension-table-for-lookup.json")
       action.lookupDB should be (None)
       action.lookupTable should be (None)

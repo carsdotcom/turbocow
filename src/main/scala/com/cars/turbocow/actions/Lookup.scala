@@ -21,9 +21,8 @@ class Lookup(
   val lookupTable: Option[String],
   val lookupField: String,
   val fieldsToSelect: List[String],
-  val onPass: List[Action] = List.empty[Action],
-  val onFail: List[Action] = List.empty[Action],
-  val rejectionReason: RejectionReason = RejectionReason()
+  val onPass: SubActionList = new SubActionList,
+  val onFail: SubActionList = new SubActionList
 ) extends Action {
 
   override def toString() = {
@@ -138,25 +137,35 @@ class Lookup(
             else configAST.children.find( record => (record \ lookupField) == JString(lookupValue.get) )
 
           if (dimRecord.isEmpty) { // failed
-            // Set the rejection reason.
-            rejectionReason.reason = 
-              s"""Invalid $lookupField: '${lookupValue.getOrElse("")}'"""
 
-            if (onFail.isEmpty) {
+            // Set the failure reason in the scratchpad for pickup later and 
+            // possible rejection.
+            val rejectReason = s"""Invalid $lookupField: '${lookupValue.getOrElse("")}'"""
+            //context.scratchPad.pushFailure(rejectReason)
+            //context.rejectionReasons.add(rejectReason)
+            context.scratchPad.setResult("lookup", rejectReason)
+
+            if (onFail.actions.isEmpty) {
               // return an empty list of tuples (that will be converted to an empty map later)
               List.empty[Tuple2[String, String]]
             }
             else { // have onFail actions.  Run them all.
-              onFail.map{ action => 
+              // todo add this to SubActionList?
+              onFail.actions.map{ action => 
                 action.perform(sourceFields, inputRecord, currentEnrichedMap, context).enrichedUpdates.toList
               }.foldLeft( List.empty[Tuple2[String, String]] )( _ ++ _ )
             }
           }
           else { // ok, found it
+
+            context.scratchPad.setResult("lookup", s"""Field '$lookupField' exists in table '$dbAndTable':  '${lookupValue.getOrElse("")}'""")
+
             fieldsToSelect.map{ selectField => 
               val fieldVal = (dimRecord.get \ selectField).extract[String]
               (selectField, fieldVal)
             }
+
+            // todotodo run onPass actions
           }
         }
       }
@@ -173,7 +182,10 @@ object Lookup
 
   /** Alternate constructor to parse the Json config.
     */
-  def apply(actionConfig: JValue, actionFactory: Option[ActionFactory] ): 
+  def apply(
+    actionConfig: JValue, 
+    actionFactory: Option[ActionFactory], 
+    sourceFields: List[String]): 
     Lookup = {
 
     val rejectionReason = RejectionReason()
@@ -184,28 +196,10 @@ object Lookup
       lookupField = JsonUtil.extractString(actionConfig \ "lookupField"),
       fieldsToSelect = 
         (actionConfig \ "fieldsToSelect").children.map{e => JsonUtil.extractString(e) },
-      onPass = createSubActionList(actionConfig \ "onPass", actionFactory, Option(rejectionReason)),
-      onFail = createSubActionList(actionConfig \ "onFail", actionFactory, Option(rejectionReason)),
-      rejectionReason
+      onPass = new SubActionList(actionConfig \ "onPass", actionFactory, sourceFields),
+      onFail = new SubActionList(actionConfig \ "onFail", actionFactory, sourceFields)
     )
   }
 
-  /** create actions list for sub actions.
-    * Must have an actionFactory if parsing onPass/onFail.  NOTE: In most cases you will want need that!  
-    * Only pass in None if you are running a test.
-    */
-  def createSubActionList(
-    listOfActions: JValue, 
-    actionFactory: Option[ActionFactory], 
-    rejectionReason: Option[RejectionReason] = None): 
-    List[Action] = {
-
-    val opOpt = listOfActions.toOption
-    if (opOpt.isEmpty) List.empty[Action]
-    else { 
-      if (actionFactory.isEmpty) throw new Exception("Must include an ActionFactory to Lookup constructor when using onPass/onFail.")
-      else actionFactory.get.createActionList(opOpt.get, rejectionReason)
-    }
-  }
 }
 

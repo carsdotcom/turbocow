@@ -26,8 +26,7 @@ trait Action extends Serializable
 /** This is what is returned from perform()
   */
 case class PerformResult(
-  enrichedUpdates: Map[String, String] = Map.empty[String, String],
-  rejectionReason: Option[String] = None
+  enrichedUpdates: Map[String, String] = Map.empty[String, String]
 )
 
 

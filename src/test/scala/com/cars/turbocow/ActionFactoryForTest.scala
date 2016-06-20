@@ -14,11 +14,11 @@ class ActionFactoryForTest(customActionFactories: List[ActionCreator] = List.emp
 
   override def createAction(
     actionType: String, 
-    actionConfig: JValue, 
-    rejectionReason: Option[RejectionReason] = None): 
+    actionConfig: JValue,
+    sourceFields: List[String]): 
     Option[Action] = {
 
-    val action = super.createAction(actionType, actionConfig)
+    val action = super.createAction(actionType, actionConfig, sourceFields)
 
     if (action.isEmpty) actionType match {
       case "Action1" => Option(new Action1)

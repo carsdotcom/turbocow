@@ -16,8 +16,8 @@ trait ActionCreator {
     */
   def createAction(
     actionType: String, 
-    actionConfig: JValue, 
-    rejectionReason: Option[RejectionReason] = None): 
+    actionConfig: JValue,
+    sourceFields: List[String]): 
     Option[Action]
 
 }

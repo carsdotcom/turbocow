@@ -11,10 +11,14 @@ import org.json4s.JsonAST.JNothing
   * by updating the keyname to @newName value mentioned
   * in the configuration JSON
   */
-class Copy(actionConfig : JValue) extends Action
+class Copy(actionConfig : JValue, sourceFields: List[String]) extends Action
 {
 
   val newName = JsonUtil.extractOption[String](actionConfig \ "newName")
+  newName.getOrElse{ throw new Exception("For 'copy' actions, the 'newName' field is required in the action's 'config' object.") }
+
+  if (sourceFields.length > 1) 
+    throw new Exception("The 'copy' action type does not allow multiple source fields. Please use one 'copy' action per each source field.")
 
   /** Copy - copies the input(s) to the output by the updating with @newName.
     *
@@ -29,29 +33,19 @@ class Copy(actionConfig : JValue) extends Action
     implicit val jsonFormats = org.json4s.DefaultFormats
 
     val enriched = {
-      if(sourceFields.length == 1) {
 
-        // for one sourceField, get the data out of the inputRecord, and add it to map to return.
-        val sourceField = sourceFields.head
+      // for one sourceField, get the data out of the inputRecord, and add it to map to return.
+      val sourceField = sourceFields.head
 
-        // search in the source json for this field name.
-        val found = inputRecord \ sourceField
+      // search in the source json for this field name.
+      val found = inputRecord \ sourceField
 
-        if (found == JNothing) {
-          // Returning None in a flatMap adds nothing to the resulting collection:
-          None
-        }
-        else {
-          if(newName.isEmpty) {
-            throw new Exception("For 'copy' actions, the 'newName' field is required in the action's 'config' object.")
-          }
-          else {
-            Some((newName.get, found.extract[String]))
-          }
-        }
+      if (found == JNothing) {
+        // Returning None in a flatMap adds nothing to the resulting collection:
+        None
       }
-      else{
-        throw new Exception("The 'copy' action type does not allow multiple source fields. Please use one 'copy' action per each source field.")
+      else {
+        Some((newName.get, found.extract[String]))
       }
     }.toMap
 

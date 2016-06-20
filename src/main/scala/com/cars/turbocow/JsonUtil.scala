@@ -33,6 +33,20 @@ object JsonUtil {
     }
   }
 
+  /** Extract a boolean from a JValue.  If it is JNothing/JNull, you must provide
+    * a default value.  If you do not provide a default value, and the value is 
+    * empty or not a bool, this throws.
+    */
+  def extractOptionalBool(jvalue: JValue, default: Boolean): Boolean = {
+    jvalue.toOption match { 
+      case None => default
+      case some => { 
+        val boolOpt = extractOption[Boolean](some.get)
+        boolOpt.getOrElse(default)
+      }
+    }
+  }
+
   /** Aliases for some common extraction types.
     */
   def extractString(jvalue : JValue): String = extract[String](jvalue)

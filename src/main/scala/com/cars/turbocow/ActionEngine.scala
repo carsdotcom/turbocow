@@ -52,8 +52,9 @@ object ActionEngine
     val sourceActions: Broadcast[List[SourceAction]] = sc.broadcast(driverSourceActions)
     //println("sourceActions = "+sourceActions)
 
-    // Cache all the tables as specified in the sourceActions.
-    val tableCaches: Map[String, TableCache] = cacheTables(driverSourceActions, hiveContext)
+    // Cache all the tables as specified in the sourceActions, then broadcast
+    val tableCachesDriver: Map[String, TableCache] = cacheTables(driverSourceActions, hiveContext)
+    val tableCaches = sc.broadcast(tableCachesDriver)
 
     // Get the input file
     val inputJsonRDD = sc.textFile(inputDir)
@@ -63,15 +64,14 @@ object ActionEngine
       val ast = parse(jsonString)
       // 'flatten' the json so activityMap & metaData's members are together at the
       // same level:
-      // todo make this configurable in the JSON.
+      // todo (open) make this configurable in the JSON.
       (ast \ "md") merge (ast \ "activityMap")
     })
 
-    // Create the ActionContext and broadcast it.
-    val actionContext = sc.broadcast(ActionContext(tableCaches))
-
     // for every impression, perform all actions from config file.
     flattenedImpressionsRDD.map{ ast =>
+
+      val actionContext = ActionContext(tableCaches.value)
 
       // This is the output map, to be filled with the results of validation &
       // enrichment actions.  Later it will be converted to Avro format and saved.
@@ -79,8 +79,14 @@ object ActionEngine
 
       // For every action in the list
       sourceActions.value.foreach{ action =>
-        val result = action.perform(action.source, ast, enrichedMap, actionContext.value)
+        val result = action.perform(action.source, ast, enrichedMap, actionContext)
         enrichedMap = enrichedMap ++ result.enrichedUpdates
+      }
+
+      // We are rejecting this record
+      if (actionContext.rejectionReasons.nonEmpty) {
+        // add any rejection reasons to the enriched record
+        enrichedMap = enrichedMap + ("reasonForReject"-> actionContext.rejectionReasons.toString)
       }
 
       // (For now, just return the enriched data)

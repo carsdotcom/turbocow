@@ -350,66 +350,70 @@ class ActionEngineSpec
 
   describe("reject action") {
 
-    //it("should collect the rejection reasons if more than one action calls reject") {
-    //  val enriched: Array[Map[String, String]] = ActionEngine.process(
-    //    "./src/test/resources/input-integration-AA.json", // 'AA' in AField
-    //    """{
-    //         "activityType": "impressions",
-    //         "items": [
-    //           {
-    //             "source": [ "AField" ], 
-    //             "actions":[
-    //               {
-    //                 "actionType":"lookup",
-    //                 "config": {
-    //                   "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-    //                   "lookupField": "KEYFIELD",
-    //                   "fieldsToSelect": [
-    //                     "EnhField1",
-    //                     "EnhField2"
-    //                   ],
-    //                   "onFail": [
-    //                      {
-    //                        "actionType": "reject"
-    //                      }
-    //                   ]
-    //                 }
-    //               },
-    //               {
-    //                 "actionType":"lookup",
-    //                 "config": {
-    //                   "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-    //                   "lookupField": "KEYFIELD",
-    //                   "fieldsToSelect": [
-    //                     "EnhField3"
-    //                   ],
-    //                   "onFail": [
-    //                      {
-    //                        "actionType": "reject",
-    //                        "config": {
-    //                          "reason": "some reason text"
-    //                        }
-    //                      }
-    //                   ]
-    //                 }
-    //               }
-    //             ]
-    //           }
-    //         ]
-    //       }""".stripMargin,
-    //    sc).collect()
-    //
-    //  enriched.size should be (1) // always one because there's only one json input object
-    //  //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-    //
-    //  // test the record
-    //  val recordMap = enriched.head
-    //  recordMap.size should be (1)
-    //  val reasonOpt = recordMap.get("reasonForReject")
-    //  reasonOpt.isEmpty should be (false)
-    //  reasonOpt.get should be ("Invalid KEYFIELD: 'AA'; some reason text")
-    //}
-    //
+    it("should collect the rejection reasons if more than one action calls reject") 
+    {
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+        """{
+             "activityType": "impressions",
+             "items": [
+               {
+                 "source": [ "AField" ], 
+                 "actions":[
+                   {
+                     "actionType":"lookup",
+                     "config": {
+                       "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "lookupField": "KEYFIELD",
+                       "fieldsToSelect": [
+                         "EnhField1",
+                         "EnhField2"
+                       ],
+                       "onFail": [
+                          {
+                            "actionType": "reject",
+                            "config": {
+                              "reasonFrom": "lookup"
+                            }
+                          }
+                       ]
+                     }
+                   },
+                   {
+                     "actionType":"lookup",
+                     "config": {
+                       "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "lookupField": "KEYFIELD",
+                       "fieldsToSelect": [
+                         "EnhField3"
+                       ],
+                       "onFail": [
+                          {
+                            "actionType": "reject",
+                            "config": {
+                              "reason": "some reason text"
+                            }
+                          }
+                       ]
+                     }
+                   }
+                 ]
+               }
+             ]
+           }""".stripMargin,
+        sc).collect()
+    
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+    
+      // test the record
+      val recordMap = enriched.head
+      recordMap.size should be (1)
+      val reasonOpt = recordMap.get("reasonForReject")
+      reasonOpt.isEmpty should be (false)
+      reasonOpt.get should be ("Invalid KEYFIELD: 'AA'; some reason text")
+    }
+    
     //it("should output the entire input record if at least one action calls reject") {
     //  val enriched: Array[Map[String, String]] = ActionEngine.process(
     //    "./src/test/resources/input-integration-AA.json", // 'AA' in AField

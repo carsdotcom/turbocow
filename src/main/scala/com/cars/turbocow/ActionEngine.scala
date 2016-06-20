@@ -28,7 +28,6 @@ import scala.collection.mutable.ListBuffer
 
 object ActionEngine
 {
-
   /** Process a set of input files by running the actions specified in the config file.
     *
     * @param inputDir should be local file or HDFS Directory
@@ -44,7 +43,7 @@ object ActionEngine
     config: String,
     sc: SparkContext,
     hiveContext : Option[HiveContext] = None,
-    actionFactory: ActionFactory = new ActionFactory ):
+    actionFactory: ActionFactory = new ActionFactory ): 
     RDD[Map[String, String]]= {
 
     // Parse the config.  Creates a list of SourceActions.

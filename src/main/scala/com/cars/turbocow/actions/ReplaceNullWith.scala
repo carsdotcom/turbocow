@@ -9,7 +9,7 @@ import org.json4s._
 class ReplaceNullWith(replacement: Int) extends Action
 {
 
-  /** Simple Copy - simply copies the input(s) to the output.
+  /** Replace a null value with something else.
     *
     */
   def perform(

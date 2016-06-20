@@ -14,7 +14,7 @@
         // If you notice you are re-using custom actions, they may be a candidate
         // to be added to the framework.
         {
-          "actionType":"custom",
+          "actionType": "custom",
           "config": {
               "any": "thing",
               "someOther": [ "things" ]
@@ -25,7 +25,7 @@
         // Simple copy copies the field value to the field of the same name
         // in the enriched record.
         {
-          "actionType":"simple-copy"
+          "actionType": "simple-copy"
         },
 
         // --------------------------------------------------------------------
@@ -34,14 +34,14 @@
         // "X".  (IE. whatever text is following the last dash in
         // "replace-null-with-X".
         {
-          "actionType":"replace-null-with-0"
+          "actionType": "replace-null-with-0"
         },
 
         // --------------------------------------------------------------------
         // Lookup 
         {
-          "actionType":"lookup",
-          "config":{
+          "actionType": "lookup",
+          "config": {
 
             // If this fieled is present, the next two fields are ignored and
             // the lookup is done in (what is assumed to be) a JSON array of 
@@ -63,7 +63,56 @@
             "fieldsToSelect": [
               "some_field",
               "some_other_field"
+            ],
+
+            // (OPTIONAL) If the lookup succeeds, all the actions in the onPass 
+            // list will be run. 
+            "onPass": [
+              {
+                "actionType": "custom-action",
+                "config": { "key": "val" }
+              },
+              {
+                "actionType": "custom-action2",
+                "config": { "key": "val2" }
+              }
+            ],
+
+            // (OPTIONAL) If the lookup fails, all the actions in the onFail list 
+            // will be run. 
+            "onFail": [
+               {
+                 "actionType": "custom-action",
+                 "config": { "key": "val" }
+               },
+               {
+                 "actionType": "reject",
+                 "config": {
+                   "reasonFrom": "lookup"
+                 }
+               }
             ]
+          }
+        },
+
+        // --------------------------------------------------------------------
+        // Reject 
+        // 
+        // One type of 'reason' field is required, but they are mutually exclusive;
+        // so don't enter more than one:
+        {
+          "actionType": "reject",
+          "config": {
+
+            // Hard code the reason in the json.  This won't be modified by the
+            // program or the framework at all.
+            "reason": "Custom hard-coded reason.",
+
+            // This option takes the reason from the last result string saved of 
+            // this actionType.  (Each action caches a result string, if it succeeds
+            // or fails).
+            // For example, use the below in the onFail section of a lookup action:
+            "reasonFrom": "lookup"
           }
         }
       ]

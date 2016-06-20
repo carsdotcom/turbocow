@@ -19,7 +19,6 @@ case class SourceAction(
 
     var enrichedMap = currentEnrichedMap
     
-    // TODO - do we want to pass in sourceFields list, or iterate through it?
     actions.foreach{ action => 
       val result = action.perform(sourceFields, inputRecord, enrichedMap, context)
 

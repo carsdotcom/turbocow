@@ -49,8 +49,16 @@ object JsonUtil {
 
   /** Aliases for some common extraction types.
     */
-  def extractString(jvalue : JValue): String = extract[String](jvalue)
-  def extractLong(jvalue : JValue): Long = extract[Long](jvalue)
+  def extractLong(jvalue : JValue): Long = this.extract[Long](jvalue)
+  def extractString(jvalue : JValue): String = this.extract[String](jvalue)
+
+  /** Extracts a string.  Calls extractOption[String], but does another check
+    * to determine if the string is empty or not.  Return None if the string is
+    * empty, Some if nonempty.
+    */
+  def extractValidString(jvalue : JValue): Option[String] = {
+    ValidString(this.extractOption[String](jvalue))
+  }
 
 }
 

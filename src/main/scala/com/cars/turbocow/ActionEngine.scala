@@ -46,13 +46,13 @@ object ActionEngine
     actionFactory: ActionFactory = new ActionFactory ): 
     RDD[Map[String, String]]= {
 
-    // Parse the config.  Creates a list of SourceActions.
-    val driverSourceActions = actionFactory.createSourceActions(config)
-    val sourceActions: Broadcast[List[SourceAction]] = sc.broadcast(driverSourceActions)
+    // Parse the config.  Creates a list of Items.
+    val driverItems = actionFactory.createSourceActions(config)
+    val items: Broadcast[List[SourceAction]] = sc.broadcast(driverItems)
     //println("sourceActions = "+sourceActions)
 
-    // Cache all the tables as specified in the sourceActions, then broadcast
-    val tableCachesDriver: Map[String, TableCache] = cacheTables(driverSourceActions, hiveContext)
+    // Cache all the tables as specified in the items, then broadcast
+    val tableCachesDriver: Map[String, TableCache] = cacheTables(driverItems, hiveContext)
     val tableCaches = sc.broadcast(tableCachesDriver)
 
     // Get the input file
@@ -77,7 +77,7 @@ object ActionEngine
       var enrichedMap: Map[String, String] = new HashMap[String, String]
 
       // For every action in the list
-      sourceActions.value.foreach{ action =>
+      items.value.foreach{ action =>
         val result = action.perform(action.source, ast, enrichedMap, actionContext)
         enrichedMap = enrichedMap ++ result.enrichedUpdates
       }

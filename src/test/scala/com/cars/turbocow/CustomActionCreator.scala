@@ -9,7 +9,8 @@ class CustomActionCreator extends ActionCreator {
   override def createAction(
     actionType: String, 
     actionConfig: JValue,
-    sourceFields: List[String]): 
+    sourceFields: List[String],
+    destination: Option[String] ): 
     Option[Action] = {
 
     actionType match {

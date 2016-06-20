@@ -5,7 +5,19 @@
   "activityType": "impressions",
   "items": [
     {
-      "source": ["special_offers_id"],
+      // Source or destination fields may be required, based on the action types
+      // used.  Neither is technically required.
+
+      // (OPTIONAL) Source refers to the fields of the input record used in the following 
+      // actions.
+      "source": [ "inputFieldA", "inputFieldB" ],
+
+      // (OPTIONAL) Destination is the name of the output field that these actions should 
+      // generate in the output enriched record.
+      //"destination": "output_field_name",
+
+      // All the actions to perform, in sequence to process the source fields
+      // (or create the destination output field).
       "actions": [
 
         // --------------------------------------------------------------------
@@ -22,10 +34,23 @@
         },
 
         // --------------------------------------------------------------------
-        // Simple copy copies the field value to the field of the same name
-        // in the enriched record.
+        // Simple copy copies each source field directly to the same-named 
+        // field in the output record.
+        // Requires "source" field[s].
         {
           "actionType": "simple-copy"
+        },
+
+        // --------------------------------------------------------------------
+        // Copy copies the source fields to the destination.
+        // Requires "source".
+        {
+          "actionType": "copy",
+          "config": {
+            "config": {
+               "newName": "new_name_for_this_field_in_the_enriched_record"
+            }
+          }
         },
 
         // --------------------------------------------------------------------
@@ -33,12 +58,15 @@
         // and if found, will set the enriched record's field value to be
         // "X".  (IE. whatever text is following the last dash in
         // "replace-null-with-X".
+        // Requires "source" field[s].
         {
           "actionType": "replace-null-with-0"
         },
 
         // --------------------------------------------------------------------
         // Lookup 
+        // Does a lookup into a pre-cached table.
+        // Requires "source" field[s].
         {
           "actionType": "lookup",
           "config": {

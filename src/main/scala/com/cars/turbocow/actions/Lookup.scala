@@ -182,7 +182,8 @@ object Lookup
   def apply(
     actionConfig: JValue, 
     actionFactory: Option[ActionFactory], 
-    sourceFields: List[String]): 
+    sourceFields: List[String],
+    destination: Option[String] = None ): 
     Lookup = {
 
     new Lookup(
@@ -192,8 +193,8 @@ object Lookup
       lookupField = JsonUtil.extractString(actionConfig \ "lookupField"),
       fieldsToSelect = 
         (actionConfig \ "fieldsToSelect").children.map{e => JsonUtil.extractString(e) },
-      onPass = new SubActionList(actionConfig \ "onPass", actionFactory, sourceFields),
-      onFail = new SubActionList(actionConfig \ "onFail", actionFactory, sourceFields)
+      onPass = new SubActionList(actionConfig \ "onPass", actionFactory, sourceFields, destination),
+      onFail = new SubActionList(actionConfig \ "onFail", actionFactory, sourceFields, destination)
     )
   }
 

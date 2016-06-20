@@ -3,8 +3,10 @@ package com.cars.turbocow
 import scala.collection.immutable.HashMap
 import org.json4s.JsonAST.JValue
 
+// TODO rename this to "Item"
 case class SourceAction(
   source: List[String], 
+  //destination: Option[String],
   actions: List[Action]
 ) extends Action
 {

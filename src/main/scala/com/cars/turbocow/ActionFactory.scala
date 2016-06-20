@@ -32,11 +32,20 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
 
     // transform to a list of SourceActions:
     itemsList.map{ item =>
-      val sourceList = (item \ "source").children.map( _.values.toString)
 
-      val actions = createActionList(item \ "actions", sourceList)
+      // get source fields
+      val sourceList = (item \ "source").toOption match {
+        case Some(jval) => jval.children.map( _.values.toString)
+        case _ => List.empty[String]
+      }
+
+      // get destination - is None if null, "", or missing
+      val destination = JsonUtil.extractValidString(item \ "destination")
+
+      val actions = createActionList(item \ "actions", sourceList, destination)
 
       SourceAction( sourceList, actions )
+      // TODO: SourceAction( sourceList, destination, actions )
     }
   }
 
@@ -45,7 +54,8 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
     */
   def createActionList(
     actionsList: JValue,
-    sourceFields: List[String]): 
+    sourceFields: List[String],
+    destination: Option[String] ): 
     List[Action] = {
 
     actionsList.children.map{ jval: JValue => 
@@ -59,7 +69,7 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
         var action: Option[Action] = None
         val creatorIter = customActionCreators.iterator
         while (creatorIter.hasNext && action.isEmpty) {
-          action = creatorIter.next.createAction(actionType, actionConfig, sourceFields)
+          action = creatorIter.next.createAction(actionType, actionConfig, sourceFields, destination)
         }
         action
       }
@@ -71,7 +81,7 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
       // If a custom action was created, then use that, otherwise 
       // try the standard actions:
       customAction.getOrElse{ 
-        createAction(actionType, actionConfig, sourceFields).getOrElse(throw new Exception(s"Couldn't create action.  Unrecogonized actionType: "+actionType))
+        createAction(actionType, actionConfig, sourceFields, destination).getOrElse(throw new Exception(s"Couldn't create action.  Unrecogonized actionType: "+actionType))
       }
     }
   }
@@ -84,7 +94,8 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
   override def createAction(
     actionType: String, 
     actionConfig: JValue,
-    sourceFields: List[String]): 
+    sourceFields: List[String],
+    destination: Option[String] ): 
     Option[Action] = {
   
     // regexes:

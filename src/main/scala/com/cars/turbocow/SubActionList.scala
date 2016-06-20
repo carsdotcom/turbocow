@@ -17,7 +17,8 @@ extends Serializable //with Action
   def this(
     jval: JValue, 
     actionFactory: Option[ActionFactory],
-    sourceFields: List[String] = List.empty[String]) = {
+    sourceFields: List[String] = List.empty[String],
+    destination: Option[String] ) = {
     
     this(
       //reject = JsonUtil.extractOptionalBool((jval \ "reject"), false),
@@ -28,7 +29,7 @@ extends Serializable //with Action
         // otherwise, must have an action factory to parse the actions
         else { 
           if (actionFactory.isEmpty) throw new Exception("Must include an ActionFactory to Lookup constructor when using onPass/onFail.")
-          else actionFactory.get.createActionList(jActions.get, sourceFields)
+          else actionFactory.get.createActionList(jActions.get, sourceFields, destination)
         }
       }
     )

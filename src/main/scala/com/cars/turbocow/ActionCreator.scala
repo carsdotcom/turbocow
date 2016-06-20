@@ -17,7 +17,8 @@ trait ActionCreator {
   def createAction(
     actionType: String, 
     actionConfig: JValue,
-    sourceFields: List[String]): 
+    sourceFields: List[String],
+    destination: Option[String] ): 
     Option[Action]
 
 }

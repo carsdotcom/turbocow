@@ -482,7 +482,6 @@ class ActionEngineSpec
     // todo this could use more testing
   }
 
-  /*
   describe("custom actions") {
 
     it("should successfully process a custom action") {
@@ -555,7 +554,6 @@ class ActionEngineSpec
       enriched.head("enrichedE") should be ("EEE")
       enriched.head("enrichedF") should be ("FFF")
     }
-
   }
 
   describe("lookup action") {
@@ -573,6 +571,7 @@ class ActionEngineSpec
                      "config": {
                        "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
                        "lookupField": "KEYFIELD",
+                       "lookupFieldValue": "AField",
                        "fieldsToSelect": [
                          "EnhField1",
                          "EnhField2",
@@ -600,13 +599,13 @@ class ActionEngineSpec
              "activityType": "impressions",
              "items": [
                {
-                 "source": [ "AField" ], 
                  "actions":[
                    {
                      "actionType":"lookup",
                      "config": {
                        "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
                        "lookupField": "KEYFIELD",
+                       "lookupFieldValue": "AField",
                        "fieldsToSelect": [
                          "EnhField1",
                          "EnhField2",
@@ -650,13 +649,13 @@ class ActionEngineSpec
              "activityType": "impressions",
              "items": [
                {
-                 "source": [ "AField" ], 
                  "actions":[
                    {
                      "actionType":"lookup",
                      "config": {
                        "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
                        "lookupField": "KEYFIELD",
+                       "lookupFieldValue": "AField", 
                        "fieldsToSelect": [
                          "EnhField1",
                          "EnhField2"
@@ -676,6 +675,7 @@ class ActionEngineSpec
                      "config": {
                        "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
                        "lookupField": "KEYFIELD",
+                       "lookupFieldValue": "AField", 
                        "fieldsToSelect": [
                          "EnhField3"
                        ],
@@ -888,7 +888,6 @@ class ActionEngineSpec
       }
     }
   }
-  */
 }
 
   

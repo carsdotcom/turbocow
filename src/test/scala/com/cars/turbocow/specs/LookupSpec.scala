@@ -53,19 +53,20 @@ class LookupSpec extends UnitSpec {
         	"activityType": "impressions",
         	"items": [
         		{
-        			"source": [ "AField" ], 
+        			"name": "lookup test", 
         			"actions":[
         				{
         					"actionType":"lookup",
-                            "config": {
-                                "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-                                "lookupField": "KEYFIELD",
-                                "fieldsToSelect": [
-                                  "EnhField1",
-                                  "EnhField2",
-                                  "EnhField3"
-                                 ]
-                            }
+                  "config": {
+                    "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                    "lookupField": "KEYFIELD",
+                    "lookupFieldValue": "AField",
+                    "fieldsToSelect": [
+                      "EnhField1",
+                      "EnhField2",
+                      "EnhField3"
+                    ]
+                  }
         				}
         			]
         		}
@@ -85,12 +86,12 @@ class LookupSpec extends UnitSpec {
       actionConfig should not be (JNothing)
 
       // create the action and test all fields after construction:
-      val action = Lookup(actionConfig, None, sourceList)
+      val action = Lookup(actionConfig, None)
       action.lookupFile.get should be ("./src/test/resources/testdimension-table-for-lookup.json")
       action.lookupDB should be (None)
       action.lookupTable should be (None)
       action.lookupField should be ("KEYFIELD")
-      action.source should be ("AField")
+      action.lookupFieldValue should be ("AField")
       action.fieldsToSelect should be (List("EnhField1", "EnhField2", "EnhField3"))
     }
 

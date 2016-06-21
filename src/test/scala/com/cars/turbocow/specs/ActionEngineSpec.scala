@@ -56,112 +56,311 @@ class ActionEngineSpec
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  describe("process()")  // ------------------------------------------------
+  /*
+  describe("simple copy" // ------------------------------------------------
   {
-    it("should successfully process simple-copy") {
-    
+    it("should successfully process one field") {
       val enriched: Array[Map[String, String]] = ActionEngine.process(
         "./src/test/resources/input-integration.json",
-        fileToString("./src/test/resources/testconfig-integration-simplecopy.json"),
+        """{
+            "activityType": "impressions",
+            "items": [
+              {
+                "actions":[{
+                    "actionType":"simple-copy",
+                    "config": {
+                      "source": [ "AField" ], 
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        """,
         sc).collect()
   
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head("AField") should be ("A")
-      enriched.head("CField") should be ("10")
+      enriched.head.size should be (1)
+      enriched.head.get("AField") should be (Some("A"))
     }
 
-    it("should throw exception if 'copy' action has multiple sources") {
+    it("should successfully process two fields") {
+    
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration.json",
+        """{
+            "activityType": "impressions",
+            "items": [
+              {
+                "actions":[{
+                    "actionType":"simple-copy",
+                    "config": {
+                      "source": [ "AField", "CField" ], 
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        """,
+        sc).collect()
+  
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+      enriched.head.size should be (2)
+      enriched.head.get("AField") should be (Some("A"))
+      enriched.head.get("CField") should be (Some("10"))
+    }
 
-      try {
+    it("should fail parsing missing config") {
+      val e = intercept[Exception] {
         val enriched: Array[Map[String, String]] = ActionEngine.process(
           "./src/test/resources/input-integration.json",
           """{
-                    |   "activityType":"impressions",
-                    |   "items":[
-                    |      {
-                    |         "source":[
-                    |            "AField",
-                    |            "CField"
-                    |         ],
-                    |         "actions":[
-                    |            {
-                    |               "actionType":"copy",
-                    |               "config":{
-                    |                  "newName":"time_stamp"
-                    |               }
-                    |            }
-                    |         ]
-                    |      }
-                    |   ]
-                    |}""".stripMargin,
-          sc).collect()
-
-        fail()
-      }
-      catch{
-        case e: Throwable =>
+              "activityType": "impressions",
+              "items": [
+                {
+                  "actions":[{
+                      "actionType":"simple-copy" }]}]}""",
+          sc)
       }
     }
+    it("should fail parsing empty list") {
+      val e = intercept[Exception] {
+        val enriched: Array[Map[String, String]] = ActionEngine.process(
+          "./src/test/resources/input-integration.json",
+          """{
+              "activityType": "impressions",
+              "items": [
+                {
+                  "actions":[{
+                      "actionType":"simple-copy",
+                      "config": {
+                        "source": [ ], }}]}]}""",
+          sc)
+      }
+    }
+    it("should fail parsing list with empty element") {
+      val e = intercept[Exception] {
+        val enriched: Array[Map[String, String]] = ActionEngine.process(
+          "./src/test/resources/input-integration.json",
+          """{
+              "activityType": "impressions",
+              "items": [
+                {
+                  "actions":[{
+                      "actionType":"simple-copy",
+                      "config": {
+                        "source": [ "A", "" ], }}]}]}""",
+          sc)
+      }
+    }
+    it("should fail parsing list with null element") {
+      val e = intercept[Exception] {
+        val enriched: Array[Map[String, String]] = ActionEngine.process(
+          "./src/test/resources/input-integration.json",
+          """{
+              "activityType": "impressions",
+              "items": [
+                {
+                  "actions":[{
+                      "actionType":"simple-copy",
+                      "config": {
+                        "source": [ "A", null ], }}]}]}""",
+          sc)
+      }
+    }
+  }
 
-    it("should successfully process 'copy' with config segment with single source ") {
+  describe("copy action") {
+    it("should successfully process 'copy' with single config element") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.process(
         "./src/test/resources/input-integration.json",
         """{
-                   |   "activityType":"impressions",
-                   |   "items":[
-                   |      {
-                   |         "source":[
-                   |            "AField"
-                   |         ],
-                   |         "actions":[
-                   |            {
-                   |               "actionType":"copy",
-                   |               "config":{
-                   |                  "newName":"time_stamp"
-                   |               }
-                   |            }
-                   |         ]
-                   |      }
-                   |   ]
-                   |}""".stripMargin,
+          |  "activityType":"impressions",
+          |  "items":[
+          |    {
+          |      "actions":[
+          |        {
+          |          "actionType":"copy",
+          |          "config": [ 
+          |            {
+          |              "sourceName": "AField",
+          |              "enrichedName": "AFieldEnriched"
+          |            }
+          |          ]
+          |        }
+          |      ]
+          |    }
+          |  ]
+          |}""".stripMargin,
         sc).collect()
 
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head("time_stamp") should be ("A")
+      enriched.head.get("AFieldEnriched") should be (Some("A"))
     }
 
-    it("should throw exception if 'copy' action has a null newName") {
+    it("should successfully process 'copy' with two config elements") {
+
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration.json",
+        """{
+          |  "activityType":"impressions",
+          |  "items":[
+          |    {
+          |      "actions":[
+          |        {
+          |          "actionType":"copy",
+          |          "config": [ 
+          |            {
+          |              "sourceName": "AField",
+          |              "enrichedName": "AFieldEnriched"
+          |            },
+          |            {
+          |              "sourceName": "BField",
+          |              "enrichedName": "BFieldEnriched"
+          |            }
+          |          ]
+          |        }
+          |      ]
+          |    }
+          |  ]
+          |}""".stripMargin,
+        sc).collect()
+
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+      enriched.head.get("AFieldEnriched") should be (Some("A"))
+      enriched.head.get("BFieldEnriched") should be (Some("B"))
+    }
+    it("should throw exception on construct if 'copy' action has a null sourceName") {
 
       try {
         val enriched: Array[Map[String, String]] = ActionEngine.process(
           "./src/test/resources/input-integration.json",
           """{
-                     |   "activityType":"impressions",
-                     |   "items":[
-                     |      {
-                     |         "source":[
-                     |            "AField"
-                     |         ],
-                     |         "actions":[
-                     |            {
-                     |               "actionType":"copy",
-                     |               "config":{
-                     |                  "newName":null
-                     |               }
-                     |            }
-                     |         ]
-                     |      }
-                     |   ]
-                     |}""".stripMargin,
-          sc).collect()
+          |    "activityType":"impressions",
+          |    "items":[
+          |      {
+          |        "actions":[
+          |          {
+          |            "actionType":"copy",
+          |            "config": [ 
+          |              {
+          |                "sourceName": null,
+          |                "enrichedName": "AField"
+          |              }
+          |            ]
+          |          }
+          |        ]
+          |      }
+          |    ]
+          |}""".stripMargin,
+          sc)
 
         fail()
       }
       catch{
-        case e: Throwable =>
+        case e: Throwable => // pass
+      }
+    }
+
+    it("should throw exception on construct if 'copy' action has a null enrichedName") {
+
+      try {
+        val enriched: Array[Map[String, String]] = ActionEngine.process(
+          "./src/test/resources/input-integration.json",
+          """{
+          |    "activityType":"impressions",
+          |    "items":[
+          |      {
+          |        "actions":[
+          |          {
+          |            "actionType":"copy",
+          |            "config": [ 
+          |              {
+          |                "sourceName": "AField",
+          |                "enrichedName": null
+          |              }
+          |            ]
+          |          }
+          |        ]
+          |      }
+          |    ]
+          |}""".stripMargin,
+          sc)
+
+        fail()
+      }
+      catch{
+        case e: Throwable => // pass
+      }
+    }
+
+    it("should throw exception on construct if 'copy' action has an empty sourceName") {
+
+      try {
+        val enriched: Array[Map[String, String]] = ActionEngine.process(
+          "./src/test/resources/input-integration.json",
+          """{
+          |    "activityType":"impressions",
+          |    "items":[
+          |      {
+          |        "actions":[
+          |          {
+          |            "actionType":"copy",
+          |            "config": [ 
+          |              {
+          |                "sourceName": "",
+          |                "enrichedName": "AField"
+          |              }
+          |            ]
+          |          }
+          |        ]
+          |      }
+          |    ]
+          |}""".stripMargin,
+          sc)
+
+        fail()
+      }
+      catch{
+        case e: Throwable => // pass
+      }
+    }
+
+    it("should throw exception on construct if 'copy' action has a empty enrichedName") {
+
+      try {
+        val enriched: Array[Map[String, String]] = ActionEngine.process(
+          "./src/test/resources/input-integration.json",
+          """{
+          |    "activityType":"impressions",
+          |    "items":[
+          |      {
+          |        "actions":[
+          |          {
+          |            "actionType":"copy",
+          |            "config": [ 
+          |              {
+          |                "sourceName": "AField",
+          |                "enrichedName": ""
+          |              }
+          |            ]
+          |          }
+          |        ]
+          |      }
+          |    ]
+          |}""".stripMargin,
+          sc)
+
+        fail()
+      }
+      catch{
+        case e: Throwable => // pass
       }
     }
 
@@ -171,29 +370,32 @@ class ActionEngineSpec
         val enriched: Array[Map[String, String]] = ActionEngine.process(
           "./src/test/resources/input-integration.json",
           """{
-                     |  "activityType" : "impressions",
-                     |  "items" : [
-                     |    {
-                     |        "source" : [ "AField" ],
-                     |        "actions" : [
-                     |        {
-                     |            "actionType" : "copy"
-                     |        }
-                     |      ]
-                     |    }
-                     |  ]
-                     |}""".stripMargin,
-          sc).collect()
+            |  "activityType" : "impressions",
+            |  "items" : [
+            |    {
+            |      "actions" : [
+            |        {
+            |          "actionType" : "copy"
+            |        }
+            |      ]
+            |    }
+            |  ]
+            |}""".stripMargin,
+          sc)
 
         fail()
         }
       catch{
-        case e: Throwable =>
+        case e: Throwable => // pass
       }
     }
+  }
+  */
+  
+  /*  
+  describe("replace null with") {
 
-    /** Helper test function
-      */
+    // Helper test function
     def testReplaceNullWith(value: Int) = {
       val enriched: Array[Map[String, String]] = ActionEngine.process(
         "./src/test/resources/input-integration-replacenullwith.json",
@@ -215,23 +417,50 @@ class ActionEngineSpec
     it("should successfully process replace-null-with-999") {
       testReplaceNullWith(999)
     }
+  }
+
+  describe("custom actions") {
 
     it("should successfully process a custom action") {
       val enriched: Array[Map[String, String]] = ActionEngine.process(
         "./src/test/resources/input-integration.json",
-        fileToString("./src/test/resources/testconfig-integration-custom.json"),
+        """
+          {
+          	"activityType": "impressions",
+          	"items": [
+          		{
+          			"actions":[
+                  {
+                    "actionType":"custom-add-enriched-fields",
+                    "config": [
+                      {
+                        "key": "customA",
+                        "value": "AAA"
+                      },
+                      {
+                        "key": "customB",
+                        "value": "BBB"
+                      }
+                    ]
+                  }
+          			]
+          		}
+          	]
+          }
+        """,
         sc, 
         None,
         new ActionFactory(new CustomActionCreator) ).collect()
     
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head("EnhField1") should be ("1")
-      enriched.head("EnhField2") should be ("2")
-      enriched.head("EnhField3") should be ("3")
+      enriched.head.size should be (2)
       enriched.head("customA") should be ("AAA")
       enriched.head("customB") should be ("BBB")
     }
+  }
+
+  describe("misc ") {
     
     //it("should successfully process a different custom action") {
     //  val enriched: List[Map[String, String]] = ActionEngine.process(
@@ -274,7 +503,6 @@ class ActionEngineSpec
              "activityType": "impressions",
              "items": [
                {
-                 "source": [ "AField" ], 
                  "actions":[
                    {
                      "actionType":"lookup",
@@ -596,6 +824,7 @@ class ActionEngineSpec
       }
     }
   }
+  */
 }
 
   

@@ -37,13 +37,26 @@ class ActionFactorySpec extends UnitSpec {
   val resourcesDir = "./src/test/resources/"
   describe("ActionListFactory.createSourceActions")  // ------------------------------------------------
   {
-    it("should successfully parse a 1-source, 1-action config file") {
+    it("should successfully parse a 1-action config file") {
 
       val actionFactory = new ActionFactoryForTest
-      val config = Source.fromFile(resourcesDir + "testconfig-1source-1action.json").getLines().mkString("")
+      //val config = Source.fromFile(resourcesDir + "testconfig-1source-1action.json").getLines().mkString("")
+      val config = """
+        {
+        	"activityType": "impressions",
+        	"items": [
+        		{
+        			"actions":[
+        				{
+        					"actionType":"Action1"
+        				}
+        			]
+        		}
+        	]
+        }
+      """
       val itemList: List[SourceAction] = actionFactory.createSourceActions(config)
       itemList.size should be (1)
-      itemList.head.source should be (List("AField"))
       itemList.head.actions.size should be (1)
 
       itemList.head.actions.head match {
@@ -52,26 +65,27 @@ class ActionFactorySpec extends UnitSpec {
       }
     }
 
-    it("should successfully parse a 2-source, 1-action config file") {
+    it("should successfully parse a 2-action config file") {
       val actionFactory = new ActionFactoryForTest
-      val config = Source.fromFile(resourcesDir + "testconfig-2source-1action.json").getLines().mkString("")
+      val config = """
+        {
+          "activityType": "impressions",
+          "items": [
+            {
+              "actions":[
+                {
+                  "actionType":"Action1"
+                },
+                {
+                  "actionType":"Action2"
+                }
+              ]
+            }
+          ]
+        }
+      """
       val itemList: List[SourceAction] = actionFactory.createSourceActions(config)
       itemList.size should be (1)
-      itemList.head.source should be (List("AField", "BField"))
-      itemList.head.actions.size should be (1)
-
-      itemList.head.actions.head match {
-        case a: Action1 => ;
-        case _ => fail()
-      }
-    }
-
-    it("should successfully parse a 2-source, 2-action config file") {
-      val actionFactory = new ActionFactoryForTest
-      val config = Source.fromFile(resourcesDir + "testconfig-2source-2action.json").getLines().mkString("")
-      val itemList: List[SourceAction] = actionFactory.createSourceActions(config)
-      itemList.size should be (1)
-      itemList.head.source should be (List("AField", "BField"))
       itemList.head.actions.size should be (2)
 
       itemList.head.actions.head match {
@@ -86,12 +100,34 @@ class ActionFactorySpec extends UnitSpec {
 
     it("should successfully parse a 2-item config file") {
       val actionFactory = new ActionFactoryForTest
-      val config = Source.fromFile(resourcesDir + "testconfig-2item.json").getLines().mkString("")
+      val config = """
+        {
+        	"activityType": "impressions",
+        	"items": [
+        		{
+        			"actions":[
+        				{
+        					"actionType":"Action1"
+        				}
+        			]
+        		},
+            {
+              "actions":[
+                {
+                  "actionType":"Action1"
+                },
+                {
+                  "actionType":"Action2"
+                }
+              ]
+            }
+        	]
+        }
+      """
       val itemList: List[SourceAction] = actionFactory.createSourceActions(config)
       itemList.size should be (2)
 
       // check first item (head)
-      itemList(0).source should be (List("AField", "BField"))
       itemList(0).actions.size should be (1)
       itemList(0).actions.head match {
         case a: Action1 => ;
@@ -99,7 +135,6 @@ class ActionFactorySpec extends UnitSpec {
       }
 
       // check 2nd item
-      itemList(1).source should be (List("CField", "DField"))
       itemList(1).actions.size should be (2)
       itemList(1).actions(0) match {
         case a: Action1 => ;
@@ -114,12 +149,27 @@ class ActionFactorySpec extends UnitSpec {
     it("should successfully parse a file with custom and standard actions") {
       //val actionFactory = new ActionFactory(List(new CustomActionCreator))
       val actionFactory = new ActionFactoryForTest(List(new CustomActionCreator))
-      val config = Source.fromFile(resourcesDir + "testconfig-custom-and-standard.json").getLines().mkString("")
+      val config = """
+        {
+        	"activityType": "impressions",
+        	"items": [
+        		{
+                "actions":[
+                    {
+                        "actionType":"custom-1"
+                    },
+                    {
+                        "actionType":"Action1"
+                    }
+                ]
+            }
+        	]
+        }
+      """
       val itemList: List[SourceAction] = actionFactory.createSourceActions(config)
       itemList.size should be (1)
 
       // check first item (head)
-      itemList(0).source should be (List("AField", "BField"))
       itemList(0).actions.size should be (2)
       itemList(0).actions(0) match {
         case a: Custom1 => ;

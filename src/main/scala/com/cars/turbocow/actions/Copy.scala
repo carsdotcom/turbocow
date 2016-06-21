@@ -11,22 +11,15 @@ import org.json4s.JsonAST.JNothing
   * by updating the keyname to @newName value mentioned
   * in the configuration JSON
   */
-class Copy(actionConfig: JValue, source: String) extends Action
+class Copy(actionConfig: JValue) extends Action
 {
-
-  def this(actionConfig : JValue, sourceFields: List[String]) = {
-    this(
-      actionConfig, 
-      {
-        if (sourceFields.length > 1) 
-          throw new Exception("The 'copy' action type does not allow multiple source fields. Please use one 'copy' action per each source field.")
-        else if (sourceFields.length != 1) 
-          throw new Exception("Must specify exactly one source field for the 'copy' action.  Please add a 'source' field.")
-        else 
-          ValidString(sourceFields.head).getOrElse("The 'source' field must not be blank for the 'copy' action.  Please add a valid source field.")
-      }
-    )
-  }
+  throw new Exception("TODO")
+  //if (sourceFields.length > 1) 
+  //  throw new Exception("The 'copy' action type does not allow multiple source fields. Please use one 'copy' action per each source field.")
+  //else if (sourceFields.length != 1) 
+  //  throw new Exception("Must specify exactly one source field for the 'copy' action.  Please add a 'source' field.")
+  //else 
+  //  ValidString(sourceFields.head).getOrElse("The 'source' field must not be blank for the 'copy' action.  Please add a valid source field.")
 
   val newName = JsonUtil.extractOption[String](actionConfig \ "newName")
   newName.getOrElse{ throw new Exception("For 'copy' actions, the 'newName' field is required in the action's 'config' object.") }
@@ -42,20 +35,27 @@ class Copy(actionConfig: JValue, source: String) extends Action
 
     implicit val jsonFormats = org.json4s.DefaultFormats
 
-    val enriched = {
+    val enriched = Map.empty[String, String]
 
-      // search in the source json for this field name.
-      val found = inputRecord \ source
-
-      if (found == JNothing) {
-        // Returning None in a flatMap adds nothing to the resulting collection:
-        None
-      }
-      else {
-        Some((newName.get, found.extract[String]))
-      }
-    }.toMap
+    //val enriched = {
+    //
+    //  // search in the source json for this field name.
+    //  val inputFieldValue = inputRecord \ source
+    //
+    //  if (inputFieldValue == JNothing) {
+    //    // Returning None in a flatMap adds nothing to the resulting collection:
+    //    None
+    //  }
+    //  else {
+    //    Some((newName.get, inputFieldValue.extract[String]))
+    //  }
+    //}.toMap
 
     PerformResult(enriched)
   }
 }
+
+case class CopyConfigElement(
+  sourceName: String,
+  enrichedName: String
+)

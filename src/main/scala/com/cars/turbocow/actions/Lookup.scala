@@ -19,7 +19,7 @@ class Lookup(
   val lookupDB: Option[String],
   val lookupTable: Option[String],
   val lookupField: String,
-  val source: String,
+  val lookupFieldValue: String,
   val fieldsToSelect: List[String],
   val onPass: SubActionList = new SubActionList,
   val onFail: SubActionList = new SubActionList
@@ -80,7 +80,7 @@ class Lookup(
 
     implicit val jsonFormats = org.json4s.DefaultFormats
 
-    val sourceFields = List(source) // todo refactor the below to not use a list
+    val sourceFields = List(lookupFieldValue) // todo refactor the below to not use a list
 
     val enrichedUpdates = sourceFields.flatMap{ field => 
 
@@ -179,24 +179,19 @@ object Lookup
     */
   def apply(
     actionConfig: JValue, 
-    actionFactory: Option[ActionFactory], 
-    sourceFields: List[String],
-    destination: Option[String] = None ): 
+    actionFactory: Option[ActionFactory]): 
     Lookup = {
-
-    // The source field must have only one item in it.
-    if(sourceFields.size != 1) throw new Exception("Lookup actions can have only one 'source' field")
 
     new Lookup(
       lookupFile = JsonUtil.extractOption[String](actionConfig \ "lookupFile"),
       lookupDB = JsonUtil.extractOption[String](actionConfig \ "lookupDB"),
       lookupTable = JsonUtil.extractOption[String](actionConfig \ "lookupTable"),
       lookupField = JsonUtil.extractString(actionConfig \ "lookupField"),
-      source = sourceFields.head,
+      lookupFieldValue = JsonUtil.extractValidString(actionConfig \ "lookupFieldValue").getOrElse("lookupFieldValue cannot be blank in 'lookup' action."),
       fieldsToSelect = 
         (actionConfig \ "fieldsToSelect").children.map{e => JsonUtil.extractString(e) },
-      onPass = new SubActionList(actionConfig \ "onPass", actionFactory, sourceFields, destination),
-      onFail = new SubActionList(actionConfig \ "onFail", actionFactory, sourceFields, destination)
+      onPass = new SubActionList(actionConfig \ "onPass", actionFactory),
+      onFail = new SubActionList(actionConfig \ "onFail", actionFactory)
     )
   }
 

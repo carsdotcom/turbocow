@@ -77,15 +77,20 @@ class LookupSpec extends UnitSpec {
       val actionsList = ((configAST \ "items").children.head \ "actions")
       actionsList.children.size should be (1)
 
+      val sourceList = ((configAST \ "items").children.head \ "source").children.toList.map{ jval =>
+        JsonUtil.extractString(jval)
+      }
+
       val actionConfig = actionsList.children.head \ "config"
       actionConfig should not be (JNothing)
 
       // create the action and test all fields after construction:
-      val action = Lookup(actionConfig, None, List.empty[String])
+      val action = Lookup(actionConfig, None, sourceList)
       action.lookupFile.get should be ("./src/test/resources/testdimension-table-for-lookup.json")
       action.lookupDB should be (None)
       action.lookupTable should be (None)
       action.lookupField should be ("KEYFIELD")
+      action.source should be ("AField")
       action.fieldsToSelect should be (List("EnhField1", "EnhField2", "EnhField3"))
     }
 

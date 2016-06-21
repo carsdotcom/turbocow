@@ -6,14 +6,13 @@ import com.cars.turbocow.PerformResult
 import org.json4s._
 
 
-class ReplaceNullWith(replacement: Int) extends Action
+class ReplaceNullWith(replacement: Int, sourceFields: List[String]) extends Action
 {
 
   /** Replace a null value with something else.
     *
     */
   def perform(
-    sourceFields: List[String], 
     inputRecord: JValue, 
     currentEnrichedMap: Map[String, String],
     context: ActionContext): 

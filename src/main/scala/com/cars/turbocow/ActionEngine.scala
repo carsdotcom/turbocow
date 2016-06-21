@@ -78,7 +78,7 @@ object ActionEngine
 
       // For every action in the list
       items.value.foreach{ action =>
-        val result = action.perform(action.source, ast, enrichedMap, actionContext)
+        val result = action.perform(ast, enrichedMap, actionContext)
         enrichedMap = enrichedMap ++ result.enrichedUpdates
       }
 

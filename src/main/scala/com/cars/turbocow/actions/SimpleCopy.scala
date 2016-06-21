@@ -7,14 +7,14 @@ import com.cars.turbocow.PerformResult
 import org.json4s._
 
 
-class SimpleCopy extends Action with Serializable
+class SimpleCopy(sourceFields: List[String]) extends Action with Serializable
 {
+  if (sourceFields.size < 1) throw new Exception("source fields must be at least 1 for 'simple-copy'.")
 
   /** Simple Copy - simply copies the input(s) to the output.
     *
     */
   def perform(
-    sourceFields: List[String], 
     inputRecord: JValue, 
     currentEnrichedMap: Map[String, String],
     context: ActionContext): 

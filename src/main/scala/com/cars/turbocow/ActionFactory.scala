@@ -106,8 +106,8 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
       case "add-enriched-fields" => Option(new AddEnrichedFields(actionConfig))
       case "lookup" => Option(actions.Lookup(actionConfig, Option(this), sourceFields))
       case "reject" => Option(new actions.Reject(actionConfig))
-      case replaceNullWithRE(number) => Option(new actions.ReplaceNullWith(number.toInt))
-      case "simple-copy" => Option(new actions.SimpleCopy)
+      case replaceNullWithRE(number) => Option(new actions.ReplaceNullWith(number.toInt, sourceFields))
+      case "simple-copy" => Option(new actions.SimpleCopy(sourceFields))
       case _ => None
     }
   }

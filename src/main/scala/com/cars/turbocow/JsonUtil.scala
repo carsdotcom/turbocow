@@ -29,9 +29,14 @@ object JsonUtil {
   def extractOption[TYPE](jvalue: JValue)(implicit m: Manifest[TYPE]): Option[TYPE] = {
     jvalue.toOption match { 
       case None => None
-      case some => Option(extract[TYPE](some.get))
+      case Some(e) => Option(extract[TYPE](e))
     }
   }
+
+  /** Aliases for some common extraction types.
+    */
+  def extractOptionLong(jvalue : JValue): Option[Long] = this.extractOption[Long](jvalue)
+  def extractOptionString(jvalue : JValue): Option[String] = this.extractOption[String](jvalue)
 
   /** Extract a boolean from a JValue.  If it is JNothing/JNull, you must provide
     * a default value.  If you do not provide a default value, and the value is 

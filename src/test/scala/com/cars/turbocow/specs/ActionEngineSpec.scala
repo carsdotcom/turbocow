@@ -112,6 +112,36 @@ class ActionEngineSpec
       enriched.head.get("CField") should be (Some("10"))
     }
 
+    it("should successfully copy over a field even if it is blank in the input") {
+    
+      // Note: EField is empty ("") in the input record
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration.json",
+        """{
+            "activityType": "impressions",
+            "items": [
+              {
+                "actions":[{
+                    "actionType":"simple-copy",
+                    "config": {
+                      "source": [ "AField", "EField", "CField" ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        """,
+        sc).collect()
+  
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+      enriched.head.size should be (3)
+      enriched.head.get("AField") should be (Some("A"))
+      enriched.head.get("CField") should be (Some("10"))
+      enriched.head.get("EField") should be (Some(""))
+    }
+
     it("should fail parsing missing config") {
       val e = intercept[Exception] {
         ActionEngine.process(
@@ -238,9 +268,9 @@ class ActionEngineSpec
       enriched.head.get("BFieldEnriched") should be (Some("B"))
     }
 
-    /*
     it("should successfully 'copy' over blank values from the input record, if specified") {
 
+      // Note: EField value is "" in the input record
       val enriched: Array[Map[String, String]] = ActionEngine.process(
         "./src/test/resources/input-integration.json",
         """{
@@ -273,7 +303,6 @@ class ActionEngineSpec
       enriched.head.get("AFieldEnriched") should be (Some("A"))
       enriched.head.get("EFieldEnriched") should be (Some(""))
     }
-    */
 
     it("should throw exception on construct if 'copy' action has a null sourceName") {
 

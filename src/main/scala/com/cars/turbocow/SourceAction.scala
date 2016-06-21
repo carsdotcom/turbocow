@@ -13,7 +13,6 @@ case class SourceAction(
   /** Run through all actions and perform each in order.
     */
   override def perform(
-    sourceFields: List[String], 
     inputRecord: JValue, 
     currentEnrichedMap: Map[String, String],
     context: ActionContext): 
@@ -22,7 +21,7 @@ case class SourceAction(
     var enrichedMap = currentEnrichedMap
     
     actions.foreach{ action => 
-      val result = action.perform(sourceFields, inputRecord, enrichedMap, context)
+      val result = action.perform(inputRecord, enrichedMap, context)
 
       // merge in the results
       enrichedMap = enrichedMap ++ result.enrichedUpdates

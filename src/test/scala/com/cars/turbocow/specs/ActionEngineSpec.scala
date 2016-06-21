@@ -550,11 +550,11 @@ class ActionEngineSpec
 
       // create sourceactions list:
       val testLookups = List(
-        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA", List("enrichedField0")),
-        new Lookup(None, Some("db"), Some("tableB"), "lookupFieldB", List("enrichedField1")),
-        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA", List("enrichedField1")),
-        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA2", List("enrichedField2")),
-        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA", List("enrichedField3"))
+        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA", "sourceField", List("enrichedField0")),
+        new Lookup(None, Some("db"), Some("tableB"), "lookupFieldB", "sourceField", List("enrichedField1")),
+        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA", "sourceField", List("enrichedField1")),
+        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA2", "sourceField", List("enrichedField2")),
+        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA", "sourceField", List("enrichedField3"))
       )
       val sourceActions = List(
         SourceAction(

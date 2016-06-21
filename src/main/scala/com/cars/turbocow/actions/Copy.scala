@@ -1,6 +1,6 @@
 package com.cars.turbocow.actions
 
-import com.cars.turbocow.{Action, ActionContext, JsonUtil}
+import com.cars.turbocow.{Action, ActionContext, JsonUtil, ValidString}
 import com.cars.turbocow.PerformResult
 import org.json4s.JValue
 import org.json4s.JsonAST.JNothing
@@ -11,20 +11,30 @@ import org.json4s.JsonAST.JNothing
   * by updating the keyname to @newName value mentioned
   * in the configuration JSON
   */
-class Copy(actionConfig : JValue, sourceFields: List[String]) extends Action
+class Copy(actionConfig: JValue, source: String) extends Action
 {
+
+  def this(actionConfig : JValue, sourceFields: List[String]) = {
+    this(
+      actionConfig, 
+      {
+        if (sourceFields.length > 1) 
+          throw new Exception("The 'copy' action type does not allow multiple source fields. Please use one 'copy' action per each source field.")
+        else if (sourceFields.length != 1) 
+          throw new Exception("Must specify exactly one source field for the 'copy' action.  Please add a 'source' field.")
+        else 
+          ValidString(sourceFields.head).getOrElse("The 'source' field must not be blank for the 'copy' action.  Please add a valid source field.")
+      }
+    )
+  }
 
   val newName = JsonUtil.extractOption[String](actionConfig \ "newName")
   newName.getOrElse{ throw new Exception("For 'copy' actions, the 'newName' field is required in the action's 'config' object.") }
-
-  if (sourceFields.length > 1) 
-    throw new Exception("The 'copy' action type does not allow multiple source fields. Please use one 'copy' action per each source field.")
 
   /** Copy - copies the input(s) to the output by the updating with @newName.
     *
     */
   def perform(
-    sourceFields: List[String],
     inputRecord: JValue,
     currentEnrichedMap: Map[String, String],
     context: ActionContext):
@@ -34,11 +44,8 @@ class Copy(actionConfig : JValue, sourceFields: List[String]) extends Action
 
     val enriched = {
 
-      // for one sourceField, get the data out of the inputRecord, and add it to map to return.
-      val sourceField = sourceFields.head
-
       // search in the source json for this field name.
-      val found = inputRecord \ sourceField
+      val found = inputRecord \ source
 
       if (found == JNothing) {
         // Returning None in a flatMap adds nothing to the resulting collection:

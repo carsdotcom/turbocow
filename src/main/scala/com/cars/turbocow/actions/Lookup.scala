@@ -19,6 +19,7 @@ class Lookup(
   val lookupDB: Option[String],
   val lookupTable: Option[String],
   val lookupField: String,
+  val source: String,
   val fieldsToSelect: List[String],
   val onPass: SubActionList = new SubActionList,
   val onFail: SubActionList = new SubActionList
@@ -72,7 +73,6 @@ class Lookup(
     *
     */
   def perform(
-    sourceFields: List[String], 
     inputRecord: JValue, 
     currentEnrichedMap: Map[String, String],
     context: ActionContext): 
@@ -80,9 +80,7 @@ class Lookup(
 
     implicit val jsonFormats = org.json4s.DefaultFormats
 
-    // The source field must have only one item in it.
-    if(sourceFields.size != 1) return PerformResult()
-    // TODO - should error out if more than one field in source
+    val sourceFields = List(source) // todo refactor the below to not use a list
 
     val enrichedUpdates = sourceFields.flatMap{ field => 
 
@@ -149,7 +147,7 @@ class Lookup(
             else { // have onFail actions.  Run them all.
               // todo add this to SubActionList?
               onFail.actions.map{ action => 
-                action.perform(sourceFields, inputRecord, currentEnrichedMap, context).enrichedUpdates.toList
+                action.perform(inputRecord, currentEnrichedMap, context).enrichedUpdates.toList
               }.foldLeft( List.empty[Tuple2[String, String]] )( _ ++ _ )
             }
           }
@@ -186,11 +184,15 @@ object Lookup
     destination: Option[String] = None ): 
     Lookup = {
 
+    // The source field must have only one item in it.
+    if(sourceFields.size != 1) throw new Exception("Lookup actions can have only one 'source' field")
+
     new Lookup(
       lookupFile = JsonUtil.extractOption[String](actionConfig \ "lookupFile"),
       lookupDB = JsonUtil.extractOption[String](actionConfig \ "lookupDB"),
       lookupTable = JsonUtil.extractOption[String](actionConfig \ "lookupTable"),
       lookupField = JsonUtil.extractString(actionConfig \ "lookupField"),
+      source = sourceFields.head,
       fieldsToSelect = 
         (actionConfig \ "fieldsToSelect").children.map{e => JsonUtil.extractString(e) },
       onPass = new SubActionList(actionConfig \ "onPass", actionFactory, sourceFields, destination),

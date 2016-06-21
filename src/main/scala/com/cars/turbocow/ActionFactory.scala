@@ -42,7 +42,7 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
       // get destination - is None if null, "", or missing
       val destination = JsonUtil.extractValidString(item \ "destination")
 
-      val actions = createActionList(item \ "actions", sourceList, destination)
+      val actions = createActionList(item \ "actions")
 
       SourceAction( sourceList, actions )
       // TODO: SourceAction( sourceList, destination, actions )
@@ -53,9 +53,7 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
     * 
     */
   def createActionList(
-    actionsList: JValue,
-    sourceFields: List[String],
-    destination: Option[String] ): 
+    actionsList: JValue): 
     List[Action] = {
 
     actionsList.children.map{ jval: JValue => 
@@ -69,7 +67,7 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
         var action: Option[Action] = None
         val creatorIter = customActionCreators.iterator
         while (creatorIter.hasNext && action.isEmpty) {
-          action = creatorIter.next.createAction(actionType, actionConfig, sourceFields, destination)
+          action = creatorIter.next.createAction(actionType, actionConfig)
         }
         action
       }
@@ -81,7 +79,7 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
       // If a custom action was created, then use that, otherwise 
       // try the standard actions:
       customAction.getOrElse{ 
-        createAction(actionType, actionConfig, sourceFields, destination).getOrElse(throw new Exception(s"Couldn't create action.  Unrecogonized actionType: "+actionType))
+        createAction(actionType, actionConfig).getOrElse(throw new Exception(s"Couldn't create action.  Unrecogonized actionType: "+actionType))
       }
     }
   }
@@ -93,21 +91,19 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
     */
   override def createAction(
     actionType: String, 
-    actionConfig: JValue,
-    sourceFields: List[String],
-    destination: Option[String] ): 
+    actionConfig: JValue): 
     Option[Action] = {
   
     // regexes:
     val replaceNullWithRE = """replace-null-with-([0-9]+)""".r
   
     actionType match {
-      case "copy" => Option(new actions.Copy(actionConfig, sourceFields))
+      case "copy" => Option(new actions.Copy(actionConfig))
       case "add-enriched-fields" => Option(new AddEnrichedFields(actionConfig))
-      case "lookup" => Option(actions.Lookup(actionConfig, Option(this), sourceFields))
+      case "lookup" => Option(actions.Lookup(actionConfig, Option(this)))
       case "reject" => Option(new actions.Reject(actionConfig))
-      case replaceNullWithRE(number) => Option(new actions.ReplaceNullWith(number.toInt, sourceFields))
-      case "simple-copy" => Option(new actions.SimpleCopy(sourceFields))
+      case replaceNullWithRE(number) => Option(new actions.ReplaceNullWith(number.toInt, actionConfig))
+      case "simple-copy" => Option(new actions.SimpleCopy(actionConfig))
       case _ => None
     }
   }

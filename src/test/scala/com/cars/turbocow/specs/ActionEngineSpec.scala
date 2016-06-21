@@ -436,33 +436,53 @@ class ActionEngineSpec
     }
   }
   
-  /*  
   describe("replace null with") {
 
     // Helper test function
-    def testReplaceNullWith(value: Int) = {
+    def testReplaceNullWith(value: String) = {
+      println("value = "+value)
       val enriched: Array[Map[String, String]] = ActionEngine.process(
         "./src/test/resources/input-integration-replacenullwith.json",
-        fileToString(s"./src/test/resources/testconfig-integration-replacenullwith${value.toString}.json"),
+        s"""
+        {
+          "activityType": "impressions",
+          "items": [
+            {
+              "actions":[
+                {
+                  "actionType": "replace-null-with-${value}",
+                  "config": {
+                    "source": [ "AField", "CField", "DField" ]
+                  }
+                }
+              ]
+        
+            }
+          ]
+        }""",
         sc).collect()
 
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head("AField") should be ("A")
-      enriched.head("CField") should be (value.toString) // this one was null
-      enriched.head("DField") should be (value.toString) // this one was missing
+      enriched.head.size should be (2)
+      enriched.head.get("CField") should be (Some(value)) // this one was null
+      enriched.head.get("DField") should be (Some(value)) // this one was missing
+      enriched.head.get("AField") should be (None) // do nothing to a field that is not null
+      // note the semantics of this are weird.  todo - rethink this action
     }
 
-    it("should successfully process replace-null-with-0") {
-      testReplaceNullWith(0)
+    it("should successfully process replace-null-with-X") {
+      testReplaceNullWith("0")
+      testReplaceNullWith("1")
+      testReplaceNullWith("2")
+      testReplaceNullWith("X")
+      testReplaceNullWith("XXXXXYYYYZ have a nice day   ")
     }
 
-    // make sure any value will work
-    it("should successfully process replace-null-with-999") {
-      testReplaceNullWith(999)
-    }
+    // todo this could use more testing
   }
 
+  /*
   describe("custom actions") {
 
     it("should successfully process a custom action") {
@@ -470,10 +490,10 @@ class ActionEngineSpec
         "./src/test/resources/input-integration.json",
         """
           {
-          	"activityType": "impressions",
-          	"items": [
-          		{
-          			"actions":[
+            "activityType": "impressions",
+            "items": [
+              {
+                "actions":[
                   {
                     "actionType":"custom-add-enriched-fields",
                     "config": [
@@ -487,9 +507,9 @@ class ActionEngineSpec
                       }
                     ]
                   }
-          			]
-          		}
-          	]
+                ]
+              }
+            ]
           }
         """,
         sc, 

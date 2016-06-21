@@ -9,7 +9,7 @@ import com.cars.turbocow.Defs
 
 class SimpleCopy(sourceList: List[String]) extends Action with Serializable
 {
-  if (sourceList.isEmpty) throw new Exception("'simple-copy' must have at least one 'source' field listed.")
+  if (sourceList.isEmpty) throw new Exception("'simple-copy' must have at least one 'source' field listed in the config section.")
 
   /** Constructor with JValue (config) param.
     */
@@ -37,23 +37,19 @@ class SimpleCopy(sourceList: List[String]) extends Action with Serializable
     implicit val jsonFormats = org.json4s.DefaultFormats
 
     // for each sourceField, get the data out of the inputRecord, and add it to map to return.
-    //val enrichedUpdates = sourceFields.flatMap{ field =>
-    //
-    //  // search in the source json for this field name.
-    //  val found = inputRecord \ field
-    //
-    //  if(found == JNothing) {
-    //    // Returning None in a flatMap adds nothing to the resulting collection:
-    //    None
-    //  }
-    //  else {
-    //    // Add this tuple to the resulting list (which is converted to a map later)
-    //    Some((field, found.extract[String]))
-    //  }
-    //}.toMap
-    //
-    //PerformResult(enrichedUpdates)
-    PerformResult(Defs.emptyStringMap)
+    val enrichedUpdates = sourceList.flatMap{ inputFieldName =>
+    
+      // search in the source json for this field name.
+      val inputField = JsonUtil.extractOptionString(inputRecord \ inputFieldName)
+
+      inputField match {
+        // Returning None in a flatMap adds nothing to the resulting collection:
+        case None => None
+        case Some(fieldVal) => Some( (inputFieldName, fieldVal) )
+      }
+    }.toMap
+    
+    PerformResult(enrichedUpdates)
   }
   
 }

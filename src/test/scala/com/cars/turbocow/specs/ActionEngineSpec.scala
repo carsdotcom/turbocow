@@ -56,8 +56,7 @@ class ActionEngineSpec
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  /*
-  describe("simple copy" // ------------------------------------------------
+  describe("simple copy") // ------------------------------------------------
   {
     it("should successfully process one field") {
       val enriched: Array[Map[String, String]] = ActionEngine.process(
@@ -69,7 +68,7 @@ class ActionEngineSpec
                 "actions":[{
                     "actionType":"simple-copy",
                     "config": {
-                      "source": [ "AField" ], 
+                      "source": [ "AField" ]
                     }
                   }
                 ]
@@ -96,7 +95,7 @@ class ActionEngineSpec
                 "actions":[{
                     "actionType":"simple-copy",
                     "config": {
-                      "source": [ "AField", "CField" ], 
+                      "source": [ "AField", "CField" ]
                     }
                   }
                 ]
@@ -115,7 +114,7 @@ class ActionEngineSpec
 
     it("should fail parsing missing config") {
       val e = intercept[Exception] {
-        val enriched: Array[Map[String, String]] = ActionEngine.process(
+        ActionEngine.process(
           "./src/test/resources/input-integration.json",
           """{
               "activityType": "impressions",
@@ -128,7 +127,7 @@ class ActionEngineSpec
     }
     it("should fail parsing empty list") {
       val e = intercept[Exception] {
-        val enriched: Array[Map[String, String]] = ActionEngine.process(
+        ActionEngine.process(
           "./src/test/resources/input-integration.json",
           """{
               "activityType": "impressions",
@@ -137,13 +136,13 @@ class ActionEngineSpec
                   "actions":[{
                       "actionType":"simple-copy",
                       "config": {
-                        "source": [ ], }}]}]}""",
+                        "source": [ ] }}]}]}""",
           sc)
       }
     }
     it("should fail parsing list with empty element") {
       val e = intercept[Exception] {
-        val enriched: Array[Map[String, String]] = ActionEngine.process(
+        ActionEngine.process(
           "./src/test/resources/input-integration.json",
           """{
               "activityType": "impressions",
@@ -152,13 +151,13 @@ class ActionEngineSpec
                   "actions":[{
                       "actionType":"simple-copy",
                       "config": {
-                        "source": [ "A", "" ], }}]}]}""",
+                        "source": [ "A", "" ] }}]}]}""",
           sc)
       }
     }
     it("should fail parsing list with null element") {
       val e = intercept[Exception] {
-        val enriched: Array[Map[String, String]] = ActionEngine.process(
+        ActionEngine.process(
           "./src/test/resources/input-integration.json",
           """{
               "activityType": "impressions",
@@ -167,12 +166,13 @@ class ActionEngineSpec
                   "actions":[{
                       "actionType":"simple-copy",
                       "config": {
-                        "source": [ "A", null ], }}]}]}""",
+                        "source": [ "A", null ] }}]}]}""",
           sc)
       }
     }
   }
 
+  /*
   describe("copy action") {
     it("should successfully process 'copy' with single config element") {
 

@@ -5,16 +5,12 @@
   "activityType": "impressions",
   "items": [
     {
-      // Source or destination fields may be required, based on the action types
-      // used.  Neither is technically required.
-
-      // (OPTIONAL) Source refers to the fields of the input record used in the following 
-      // actions.
-      "source": [ "inputFieldA", "inputFieldB" ],
-
-      // (OPTIONAL) Destination is the name of the output field that these actions should 
-      // generate in the output enriched record.
-      //"destination": "output_field_name",
+      // The name field is strictly for the author's use, to name this sequence 
+      // of actions.  The best practice is to name it after the output field
+      // in the enriched record that this list generates.  If it generates more
+      // than one field, name them all, or use something generic like 
+      // "all the simple-copy fields".   This field is not used in the code at all.
+      "name": "name_of_this_action_list",
 
       // All the actions to perform, in sequence to process the source fields
       // (or create the destination output field).
@@ -36,31 +32,45 @@
         // --------------------------------------------------------------------
         // Simple copy copies each source field directly to the same-named 
         // field in the output record.
-        // Requires "source" field[s].
         {
-          "actionType": "simple-copy"
-        },
-
-        // --------------------------------------------------------------------
-        // Copy copies the source fields to the destination.
-        // Requires "source".
-        {
-          "actionType": "copy",
+          "actionType": "simple-copy",
           "config": {
-            "config": {
-               "newName": "new_name_for_this_field_in_the_enriched_record"
-            }
+            "source": [ "field1", "field2" ] // etc.
           }
         },
 
         // --------------------------------------------------------------------
-        // "Replace Null With X" checks for a null value in the input field,
+        // Copy copies a field's value into a potentially-differently-named field.
+        // More configurable than simple-copy.  For each element in config, 
+        // you must specify a 'source' and an 'enrichedField' (destination).
+        {
+          "actionType": "copy",
+          "config": {
+            "config": [
+              {
+                "sourceName":        "name_of_field_from_input_record", 
+                "enrichedName": "name_of_field_in_output_record"
+              },
+              {
+                "sourceName":        "name_of_field_from_input_record2", 
+                "enrichedName": "name_of_field_in_output_record2"
+              }
+              // etc.
+            ]
+          }
+        },
+
+        // --------------------------------------------------------------------
+        // "Replace Null With X" checks for a null value in the input field(s),
         // and if found, will set the enriched record's field value to be
         // "X".  (IE. whatever text is following the last dash in
         // "replace-null-with-X".
         // Requires "source" field[s].
         {
-          "actionType": "replace-null-with-0"
+          "actionType": "replace-null-with-0",
+          "config": {
+            "source": [ "field1", "field2" ] // etc.
+          }
         },
 
         // --------------------------------------------------------------------
@@ -82,16 +92,20 @@
             "lookupDB": "als_search",
             "lookupTable": "local_offer_group",
 
-            // Field to look up (lookup on the value of the source field).  
-            // This field is always required.
-            "lookupField": "ods_local_offer_id",
-
             // All of these fields (if found), will be selected and added to the 
-            // enriched record:
+            // enriched record (the X in "select X from ....")
             "fieldsToSelect": [
               "some_field",
               "some_other_field"
             ],
+
+            // Field to look up (lookup on the value of the source field).  
+            // This field is always required.
+            "lookupField": "ods_local_offer_id",
+
+            // This is the value to look up on.  
+            // (The 'X' in "select ... where $lookupField = X").
+            "lookupFieldValue": "front_door_affiliate_pty_id",
 
             // (OPTIONAL) If the lookup succeeds, all the actions in the onPass 
             // list will be run. 

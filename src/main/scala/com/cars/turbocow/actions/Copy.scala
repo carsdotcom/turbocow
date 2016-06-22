@@ -25,9 +25,9 @@ class Copy(copyConfigList: List[CopyConfigElement]) extends Action
           config.children.map{ confElement: JValue =>
             val inputSource = JsonUtil.extractValidString(confElement \ "inputSource")
             inputSource.getOrElse("'copy' config has empty or missing 'inputSource'.  You must supply a 'inputSource' for each element in a 'copy' config array.")
-            val enrichedName = JsonUtil.extractValidString(confElement \ "enrichedName")
-            enrichedName.getOrElse("'copy' config has empty or missing 'enrichedName'.  You must supply a 'enrichedName' for each element in a 'copy' config array.")
-            CopyConfigElement(inputSource.get, enrichedName.get)
+            val outputTarget = JsonUtil.extractValidString(confElement \ "outputTarget")
+            outputTarget.getOrElse("'copy' config has empty or missing 'outputTarget'.  You must supply a 'outputTarget' for each element in a 'copy' config array.")
+            CopyConfigElement(inputSource.get, outputTarget.get)
           }
         }
       }
@@ -52,7 +52,7 @@ class Copy(copyConfigList: List[CopyConfigElement]) extends Action
     
       inputFieldValue match {
         case None => None
-        case Some(fieldVal) => Some( (copyConfig.enrichedName, fieldVal) )
+        case Some(fieldVal) => Some( (copyConfig.outputTarget, fieldVal) )
       }
 
     }.toMap
@@ -63,5 +63,5 @@ class Copy(copyConfigList: List[CopyConfigElement]) extends Action
 
 case class CopyConfigElement(
   inputSource: String,
-  enrichedName: String
+  outputTarget: String
 )

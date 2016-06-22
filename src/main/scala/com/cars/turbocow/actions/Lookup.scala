@@ -18,7 +18,7 @@ class Lookup(
   val lookupFile: Option[String],
   val lookupDB: Option[String],
   val lookupTable: Option[String],
-  val lookupField: String,
+  val where: String,
   val lookupFieldValue: String,
   val fieldsToSelect: List[String],
   val onPass: SubActionList = new SubActionList,
@@ -31,7 +31,7 @@ class Lookup(
     sb.append(s"""Lookup:{lookupFile(${lookupFile.getOrElse("<NONE>")})""")
     sb.append(s""", lookupDB(${lookupDB.getOrElse("<NONE>")})""")
     sb.append(s""", lookupTable(${lookupTable.getOrElse("<NONE>")})""")
-    sb.append(s""", lookupField($lookupField)""")
+    sb.append(s""", where($where)""")
     sb.append(s""", fieldsToSelect = """)
     fieldsToSelect.foreach{ f => sb.append(f + ",") }
     sb.append(s""", onPass = ${onPass.toString}""")
@@ -61,10 +61,10 @@ class Lookup(
     else
       throw new Exception(s"couldn't find lookupDB($lookupDB) or lookupTable($lookupTable)")
 
-  // get all the fields needed in this table (fieldsToSelect + lookupField), without dups
+  // get all the fields needed in this table (fieldsToSelect + where), without dups
   val allFields = { 
-    if (lookupField != null && lookupField.nonEmpty) {
-      fieldsToSelect :+ lookupField
+    if (where != null && where.nonEmpty) {
+      fieldsToSelect :+ where
     }
     else fieldsToSelect
   }.distinct
@@ -111,7 +111,7 @@ class Lookup(
             // todo what if not there, todo check the enriched record first
             fieldsToSelect.map{ field => 
               val resultOpt = tc.lookup(
-                lookupField, 
+                where, 
                 lookupValue.get.toString,
                 field)
               if (resultOpt.isEmpty) Map.empty[String, String]
@@ -131,13 +131,13 @@ class Lookup(
 
           val dimRecord: Option[JValue] = 
             if( lookupValue.isEmpty ) None
-            else configAST.children.find( record => (record \ lookupField) == JString(lookupValue.get) )
+            else configAST.children.find( record => (record \ where) == JString(lookupValue.get) )
 
           if (dimRecord.isEmpty) { // failed
 
             // Set the failure reason in the scratchpad for pickup later and 
             // possible rejection.
-            val rejectReason = s"""Invalid $lookupField: '${lookupValue.getOrElse("")}'"""
+            val rejectReason = s"""Invalid $where: '${lookupValue.getOrElse("")}'"""
             context.scratchPad.setResult("lookup", rejectReason)
 
             if (onFail.actions.isEmpty) {
@@ -153,7 +153,7 @@ class Lookup(
           }
           else { // ok, found it
 
-            context.scratchPad.setResult("lookup", s"""Field '$lookupField' exists in table '$dbAndTable':  '${lookupValue.getOrElse("")}'""")
+            context.scratchPad.setResult("lookup", s"""Field '$where' exists in table '$dbAndTable':  '${lookupValue.getOrElse("")}'""")
 
             fieldsToSelect.map{ selectField => 
               val fieldVal = (dimRecord.get \ selectField).extract[String]
@@ -186,7 +186,7 @@ object Lookup
       lookupFile = JsonUtil.extractOption[String](actionConfig \ "lookupFile"),
       lookupDB = JsonUtil.extractOption[String](actionConfig \ "lookupDB"),
       lookupTable = JsonUtil.extractOption[String](actionConfig \ "lookupTable"),
-      lookupField = JsonUtil.extractString(actionConfig \ "lookupField"),
+      where = JsonUtil.extractString(actionConfig \ "where"),
       lookupFieldValue = JsonUtil.extractValidString(actionConfig \ "lookupFieldValue").getOrElse("lookupFieldValue cannot be blank in 'lookup' action."),
       fieldsToSelect = 
         (actionConfig \ "fieldsToSelect").children.map{e => JsonUtil.extractString(e) },

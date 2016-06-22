@@ -29,7 +29,7 @@
           "config":{
             "lookupDB": "dw_dev",
             "lookupTable": "affiliate",
-            "lookupField": "ods_affiliate_id",
+            "where": "ods_affiliate_id",
             "fieldsToSelect": [
               "affiliate_id"
             ]
@@ -67,7 +67,7 @@
           "config":{
             "lookupDB": "dw_dev",
             "lookupTable": "web_page_type",
-            "lookupField": "web_page_type_id",
+            "where": "web_page_type_id",
             "fieldsToSelect": [
               "web_page_type_name",
               "web_page_type_desc"
@@ -97,7 +97,7 @@
           "config":{
             "lookupDB": "dw_dev",
             "lookupTable": "affiliate",
-            "lookupField": "ods_affiliate_id",
+            "where": "ods_affiliate_id",
             "fieldsToSelect": [
               "branding_name", 
               "official_name"

@@ -572,7 +572,7 @@ class ActionEngineSpec
                        "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
                        "where": "KEYFIELD",
                        "equals": "AField",
-                       "fieldsToSelect": [
+                       "select": [
                          "EnhField1",
                          "EnhField2",
                          "EnhField3"
@@ -606,7 +606,7 @@ class ActionEngineSpec
                        "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
                        "where": "KEYFIELD",
                        "equals": "AField",
-                       "fieldsToSelect": [
+                       "select": [
                          "EnhField1",
                          "EnhField2",
                          "EnhField3"
@@ -656,7 +656,7 @@ class ActionEngineSpec
                        "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
                        "where": "KEYFIELD",
                        "equals": "AField", 
-                       "fieldsToSelect": [
+                       "select": [
                          "EnhField1",
                          "EnhField2"
                        ],
@@ -676,7 +676,7 @@ class ActionEngineSpec
                        "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
                        "where": "KEYFIELD",
                        "equals": "AField", 
-                       "fieldsToSelect": [
+                       "select": [
                          "EnhField3"
                        ],
                        "onFail": [
@@ -720,7 +720,7 @@ class ActionEngineSpec
     //                 "config": {
     //                   "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
     //                   "where": "KEYFIELD",
-    //                   "fieldsToSelect": [
+    //                   "select": [
     //                     "EnhField1",
     //                     "EnhField2",
     //                     "EnhField3"
@@ -770,7 +770,7 @@ class ActionEngineSpec
     //                 "config": {
     //                   "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
     //                   "where": "KEYFIELD",
-    //                   "fieldsToSelect": [
+    //                   "select": [
     //                     "EnhField1",
     //                     "EnhField2",
     //                     "EnhField3"
@@ -815,7 +815,7 @@ class ActionEngineSpec
     //                   "config": {
     //                     "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
     //                     "where": "KEYFIELD",
-    //                     "fieldsToSelect": [
+    //                     "select": [
     //                       "EnhField1",
     //                       "EnhField2",
     //                       "EnhField3"

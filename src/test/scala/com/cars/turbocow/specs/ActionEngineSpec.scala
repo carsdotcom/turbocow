@@ -217,7 +217,7 @@ class ActionEngineSpec
           |          "config": [ 
           |            {
           |              "inputSource": "AField",
-          |              "enrichedName": "AFieldEnriched"
+          |              "outputTarget": "AFieldEnriched"
           |            }
           |          ]
           |        }
@@ -247,11 +247,11 @@ class ActionEngineSpec
           |          "config": [ 
           |            {
           |              "inputSource": "AField",
-          |              "enrichedName": "AFieldEnriched"
+          |              "outputTarget": "AFieldEnriched"
           |            },
           |            {
           |              "inputSource": "BField",
-          |              "enrichedName": "BFieldEnriched"
+          |              "outputTarget": "BFieldEnriched"
           |            }
           |          ]
           |        }
@@ -283,11 +283,11 @@ class ActionEngineSpec
           |          "config": [ 
           |            {
           |              "inputSource": "AField",
-          |              "enrichedName": "AFieldEnriched"
+          |              "outputTarget": "AFieldEnriched"
           |            },
           |            {
           |              "inputSource": "EField",
-          |              "enrichedName": "EFieldEnriched"
+          |              "outputTarget": "EFieldEnriched"
           |            }
           |          ]
           |        }
@@ -319,7 +319,7 @@ class ActionEngineSpec
           |            "config": [ 
           |              {
           |                "inputSource": null,
-          |                "enrichedName": "AField"
+          |                "outputTarget": "AField"
           |              }
           |            ]
           |          }
@@ -332,7 +332,7 @@ class ActionEngineSpec
       }
     }
 
-    it("should throw exception on construct if 'copy' action has a null enrichedName") {
+    it("should throw exception on construct if 'copy' action has a null outputTarget") {
 
       intercept[Exception] {
         ActionEngine.process(
@@ -347,7 +347,7 @@ class ActionEngineSpec
           |            "config": [ 
           |              {
           |                "inputSource": "AField",
-          |                "enrichedName": null
+          |                "outputTarget": null
           |              }
           |            ]
           |          }
@@ -375,7 +375,7 @@ class ActionEngineSpec
           |            "config": [ 
           |              {
           |                "inputSource": "",
-          |                "enrichedName": "AField"
+          |                "outputTarget": "AField"
           |              }
           |            ]
           |          }
@@ -387,7 +387,7 @@ class ActionEngineSpec
       }
     }
 
-    it("should throw exception on construct if 'copy' action has a empty enrichedName") {
+    it("should throw exception on construct if 'copy' action has a empty outputTarget") {
 
       intercept[Exception] {
         ActionEngine.process(
@@ -402,7 +402,7 @@ class ActionEngineSpec
           |            "config": [ 
           |              {
           |                "inputSource": "AField",
-          |                "enrichedName": ""
+          |                "outputTarget": ""
           |              }
           |            ]
           |          }

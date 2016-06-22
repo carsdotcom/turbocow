@@ -48,12 +48,12 @@
           "config": {
             "config": [
               {
-                "inputSource":        "name_of_field_from_input_record", 
-                "enrichedName": "name_of_field_in_output_record"
+                "inputSource":  "name_of_field_from_input_record", 
+                "outputTarget": "name_of_field_in_output_record"
               },
               {
-                "inputSource":        "name_of_field_from_input_record2", 
-                "enrichedName": "name_of_field_in_output_record2"
+                "inputSource":  "name_of_field_from_input_record2", 
+                "outputTarget": "name_of_field_in_output_record2"
               }
               // etc.
             ]

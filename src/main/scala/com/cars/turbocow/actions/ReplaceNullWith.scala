@@ -18,7 +18,7 @@ class ReplaceNullWith(replacement: String, sourceList: List[String]) extends Act
       actionConfig.toOption match {
         case None => throw new Exception("'config' section is missing in 'replace-null-with' action.")
         case Some(config) => {
-          val jSourceList = (actionConfig \ "source" ).children
+          val jSourceList = (actionConfig \ "inputSource" ).children
           val sourceList = jSourceList.flatMap( e=> JsonUtil.extractValidString(e) )
           // check for any empty fields
           if (sourceList.size != jSourceList.size) throw new Exception("'replace-null-with' actions must not have source fields that are null or empty.")

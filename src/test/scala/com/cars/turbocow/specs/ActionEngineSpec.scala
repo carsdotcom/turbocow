@@ -452,7 +452,7 @@ class ActionEngineSpec
                 {
                   "actionType": "replace-null-with-${value}",
                   "config": {
-                    "source": [ "AField", "CField", "DField" ]
+                    "inputSource": [ "AField", "CField", "DField" ]
                   }
                 }
               ]

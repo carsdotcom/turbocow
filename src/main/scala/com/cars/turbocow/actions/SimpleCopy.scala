@@ -16,7 +16,7 @@ class SimpleCopy(sourceList: List[String]) extends Action with Serializable
   def this(actionConfig: JValue) = {
     this(
       {
-        val jSourceList = (actionConfig \ "source" ).children
+        val jSourceList = (actionConfig \ "inputSource" ).children
         val sourceList = jSourceList.flatMap( e=> JsonUtil.extractValidString(e) )
         // check for any empty fields
         if (sourceList.size != jSourceList.size) throw new Exception("'simple-copy' actions must not have source fields that are null or empty.")

@@ -20,13 +20,13 @@ class HiveTableCache(
     * 
     */
   override def lookup(
-    lookupField: String,
+    where: String,
     lookupValue: Any,
     select: String // field to select
   ): Option[String] = {
 
     // todo log this error instead?  Below, on error, we just return None
-    val map = tableMap.getOrElse(lookupField, throw new Exception(s"""couldn't find HiveTableCache indexed on field: "$lookupField)"""))
+    val map = tableMap.getOrElse(where, throw new Exception(s"""couldn't find HiveTableCache indexed on field: "$where)"""))
 
     val rowOpt = map.get(lookupValue)
     //println("RRRRRRRRRRRRRRRR lookupValue = "+lookupValue)

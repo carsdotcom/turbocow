@@ -570,7 +570,7 @@ class ActionEngineSpec
                      "actionType":"lookup",
                      "config": {
                        "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-                       "lookupField": "KEYFIELD",
+                       "where": "KEYFIELD",
                        "lookupFieldValue": "AField",
                        "fieldsToSelect": [
                          "EnhField1",
@@ -604,7 +604,7 @@ class ActionEngineSpec
                      "actionType":"lookup",
                      "config": {
                        "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-                       "lookupField": "KEYFIELD",
+                       "where": "KEYFIELD",
                        "lookupFieldValue": "AField",
                        "fieldsToSelect": [
                          "EnhField1",
@@ -654,7 +654,7 @@ class ActionEngineSpec
                      "actionType":"lookup",
                      "config": {
                        "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-                       "lookupField": "KEYFIELD",
+                       "where": "KEYFIELD",
                        "lookupFieldValue": "AField", 
                        "fieldsToSelect": [
                          "EnhField1",
@@ -674,7 +674,7 @@ class ActionEngineSpec
                      "actionType":"lookup",
                      "config": {
                        "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-                       "lookupField": "KEYFIELD",
+                       "where": "KEYFIELD",
                        "lookupFieldValue": "AField", 
                        "fieldsToSelect": [
                          "EnhField3"
@@ -719,7 +719,7 @@ class ActionEngineSpec
     //                 "actionType":"lookup",
     //                 "config": {
     //                   "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-    //                   "lookupField": "KEYFIELD",
+    //                   "where": "KEYFIELD",
     //                   "fieldsToSelect": [
     //                     "EnhField1",
     //                     "EnhField2",
@@ -769,7 +769,7 @@ class ActionEngineSpec
     //                 "actionType":"lookup",
     //                 "config": {
     //                   "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-    //                   "lookupField": "KEYFIELD",
+    //                   "where": "KEYFIELD",
     //                   "fieldsToSelect": [
     //                     "EnhField1",
     //                     "EnhField2",
@@ -814,7 +814,7 @@ class ActionEngineSpec
     //                   "actionType":"lookup",
     //                   "config": {
     //                     "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-    //                     "lookupField": "KEYFIELD",
+    //                     "where": "KEYFIELD",
     //                     "fieldsToSelect": [
     //                       "EnhField1",
     //                       "EnhField2",
@@ -842,11 +842,11 @@ class ActionEngineSpec
 
       // create sourceactions list:
       val testLookups = List(
-        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA", "sourceField", List("enrichedField0")),
-        new Lookup(None, Some("db"), Some("tableB"), "lookupFieldB", "sourceField", List("enrichedField1")),
-        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA", "sourceField", List("enrichedField1")),
-        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA2", "sourceField", List("enrichedField2")),
-        new Lookup(None, Some("db"), Some("tableA"), "lookupFieldA", "sourceField", List("enrichedField3"))
+        new Lookup(None, Some("db"), Some("tableA"), "whereA", "sourceField", List("enrichedField0")),
+        new Lookup(None, Some("db"), Some("tableB"), "whereB", "sourceField", List("enrichedField1")),
+        new Lookup(None, Some("db"), Some("tableA"), "whereA", "sourceField", List("enrichedField1")),
+        new Lookup(None, Some("db"), Some("tableA"), "whereA2", "sourceField", List("enrichedField2")),
+        new Lookup(None, Some("db"), Some("tableA"), "whereA", "sourceField", List("enrichedField3"))
       )
       val sourceActions = List(
         SourceAction(

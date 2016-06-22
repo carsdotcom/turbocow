@@ -81,7 +81,17 @@
           "actionType": "lookup",
           "config": {
 
-            // If this fieled is present, the next two fields are ignored and
+            // "SELECT ..."
+            // All of these fields (if found), will be selected and added to the 
+            // enriched record (the X in "select X from ....")
+            "select": [
+              "some_field",
+              "some_other_field"
+            ],
+
+            // -------------------------------------------------------
+            // "FROM ..."
+            // If this field is present, the next two fields are ignored and
             // the lookup is done in (what is assumed to be) a JSON array of 
             // records (simulating an input record).  
             // This will be mostly used in tests.
@@ -91,21 +101,17 @@
             // "lookupFile" is specified, these fields are ignored.
             "lookupDB": "als_search",
             "lookupTable": "local_offer_group",
+            // -------------------------------------------------------
 
-            // All of these fields (if found), will be selected and added to the 
-            // enriched record (the X in "select X from ....")
-            "fieldsToSelect": [
-              "some_field",
-              "some_other_field"
-            ],
-
+            // "WHERE ..."
             // Field to look up (lookup on the value of the source field).  
             // This field is always required.
-            "lookupField": "ods_local_offer_id",
+            "where": "ods_local_offer_id",
 
+            // "= ..." (EQUALS)
             // This is the value to look up on.  
-            // (The 'X' in "select ... where $lookupField = X").
-            "lookupFieldValue": "front_door_affiliate_pty_id",
+            // (The 'X' in "select ... where A = X").
+            "equals": "front_door_affiliate_pty_id",
 
             // (OPTIONAL) If the lookup succeeds, all the actions in the onPass 
             // list will be run. 

@@ -142,7 +142,7 @@ object ActionEngine
       val allFieldsToSelect = lookupList.flatMap{ _.allFields }.distinct
 
       // the list of all fields to use as 'indexing' keys
-      val allIndexFields = lookupList.map{ _.lookupField }.distinct
+      val allIndexFields = lookupList.map{ _.where }.distinct
 
       // Make sure all the DBs and Tables match:
       lookupList.foreach{ lookup => if (lookup.dbAndTable != refLookup.dbAndTable) throw new Exception(s"the database and table did not match: refLookup.lookupDB(${refLookup.lookupDB}), refLookup.lookupTable(${refLookup.lookupTable}), refLookup.dbAndTable(${refLookup.dbAndTable}), lookup.lookupDB(${lookup.lookupDB}), lookup.lookupTable(${lookup.lookupTable}), lookup.dbAndTable(${lookup.dbAndTable})")}

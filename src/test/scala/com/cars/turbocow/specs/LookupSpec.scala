@@ -60,7 +60,7 @@ class LookupSpec extends UnitSpec {
                   "config": {
                     "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
                     "where": "KEYFIELD",
-                    "lookupFieldValue": "AField",
+                    "equals": "AField",
                     "fieldsToSelect": [
                       "EnhField1",
                       "EnhField2",
@@ -91,7 +91,7 @@ class LookupSpec extends UnitSpec {
       action.lookupDB should be (None)
       action.lookupTable should be (None)
       action.where should be ("KEYFIELD")
-      action.lookupFieldValue should be ("AField")
+      action.equals should be ("AField")
       action.fieldsToSelect should be (List("EnhField1", "EnhField2", "EnhField3"))
     }
 

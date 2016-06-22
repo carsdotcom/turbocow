@@ -216,7 +216,7 @@ class ActionEngineSpec
           |          "actionType":"copy",
           |          "config": [ 
           |            {
-          |              "sourceName": "AField",
+          |              "inputSource": "AField",
           |              "enrichedName": "AFieldEnriched"
           |            }
           |          ]
@@ -246,11 +246,11 @@ class ActionEngineSpec
           |          "actionType":"copy",
           |          "config": [ 
           |            {
-          |              "sourceName": "AField",
+          |              "inputSource": "AField",
           |              "enrichedName": "AFieldEnriched"
           |            },
           |            {
-          |              "sourceName": "BField",
+          |              "inputSource": "BField",
           |              "enrichedName": "BFieldEnriched"
           |            }
           |          ]
@@ -282,11 +282,11 @@ class ActionEngineSpec
           |          "actionType":"copy",
           |          "config": [ 
           |            {
-          |              "sourceName": "AField",
+          |              "inputSource": "AField",
           |              "enrichedName": "AFieldEnriched"
           |            },
           |            {
-          |              "sourceName": "EField",
+          |              "inputSource": "EField",
           |              "enrichedName": "EFieldEnriched"
           |            }
           |          ]
@@ -304,7 +304,7 @@ class ActionEngineSpec
       enriched.head.get("EFieldEnriched") should be (Some(""))
     }
 
-    it("should throw exception on construct if 'copy' action has a null sourceName") {
+    it("should throw exception on construct if 'copy' action has a null inputSource") {
 
       intercept[Exception] {
         ActionEngine.process(
@@ -318,7 +318,7 @@ class ActionEngineSpec
           |            "actionType":"copy",
           |            "config": [ 
           |              {
-          |                "sourceName": null,
+          |                "inputSource": null,
           |                "enrichedName": "AField"
           |              }
           |            ]
@@ -346,7 +346,7 @@ class ActionEngineSpec
           |            "actionType":"copy",
           |            "config": [ 
           |              {
-          |                "sourceName": "AField",
+          |                "inputSource": "AField",
           |                "enrichedName": null
           |              }
           |            ]
@@ -360,7 +360,7 @@ class ActionEngineSpec
       }
     }
 
-    it("should throw exception on construct if 'copy' action has an empty sourceName") {
+    it("should throw exception on construct if 'copy' action has an empty inputSource") {
 
       intercept[Exception] {
         ActionEngine.process(
@@ -374,7 +374,7 @@ class ActionEngineSpec
           |            "actionType":"copy",
           |            "config": [ 
           |              {
-          |                "sourceName": "",
+          |                "inputSource": "",
           |                "enrichedName": "AField"
           |              }
           |            ]
@@ -401,7 +401,7 @@ class ActionEngineSpec
           |            "actionType":"copy",
           |            "config": [ 
           |              {
-          |                "sourceName": "AField",
+          |                "inputSource": "AField",
           |                "enrichedName": ""
           |              }
           |            ]

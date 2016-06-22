@@ -23,11 +23,11 @@ class Copy(copyConfigList: List[CopyConfigElement]) extends Action
         case None => throw new Exception("'config' section is missing in 'copy' action.")
         case Some(config) => {
           config.children.map{ confElement: JValue =>
-            val sourceName = JsonUtil.extractValidString(confElement \ "sourceName")
-            sourceName.getOrElse("'copy' config has empty or missing 'sourceName'.  You must supply a 'sourceName' for each element in a 'copy' config array.")
+            val inputSource = JsonUtil.extractValidString(confElement \ "inputSource")
+            inputSource.getOrElse("'copy' config has empty or missing 'inputSource'.  You must supply a 'inputSource' for each element in a 'copy' config array.")
             val enrichedName = JsonUtil.extractValidString(confElement \ "enrichedName")
             enrichedName.getOrElse("'copy' config has empty or missing 'enrichedName'.  You must supply a 'enrichedName' for each element in a 'copy' config array.")
-            CopyConfigElement(sourceName.get, enrichedName.get)
+            CopyConfigElement(inputSource.get, enrichedName.get)
           }
         }
       }
@@ -48,7 +48,7 @@ class Copy(copyConfigList: List[CopyConfigElement]) extends Action
     val enriched = copyConfigList.flatMap { copyConfig =>
     
       // search in the source json for this field name.
-      val inputFieldValue = JsonUtil.extractOptionString(inputRecord \ copyConfig.sourceName)
+      val inputFieldValue = JsonUtil.extractOptionString(inputRecord \ copyConfig.inputSource)
     
       inputFieldValue match {
         case None => None
@@ -62,6 +62,6 @@ class Copy(copyConfigList: List[CopyConfigElement]) extends Action
 }
 
 case class CopyConfigElement(
-  sourceName: String,
+  inputSource: String,
   enrichedName: String
 )

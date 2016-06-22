@@ -30,12 +30,12 @@
         },
 
         // --------------------------------------------------------------------
-        // Simple copy copies each source field directly to the same-named 
-        // field in the output record.
+        // Simple copy copies each source field from the input record directly to 
+        // the same-named field in the output record.
         {
           "actionType": "simple-copy",
           "config": {
-            "source": [ "field1", "field2" ] // etc.
+            "inputSource": [ "field1", "field2" ] // etc.
           }
         },
 

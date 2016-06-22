@@ -68,7 +68,7 @@ class ActionEngineSpec
                 "actions":[{
                     "actionType":"simple-copy",
                     "config": {
-                      "source": [ "AField" ]
+                      "inputSource": [ "AField" ]
                     }
                   }
                 ]
@@ -95,7 +95,7 @@ class ActionEngineSpec
                 "actions":[{
                     "actionType":"simple-copy",
                     "config": {
-                      "source": [ "AField", "CField" ]
+                      "inputSource": [ "AField", "CField" ]
                     }
                   }
                 ]
@@ -124,7 +124,7 @@ class ActionEngineSpec
                 "actions":[{
                     "actionType":"simple-copy",
                     "config": {
-                      "source": [ "AField", "EField", "CField" ]
+                      "inputSource": [ "AField", "EField", "CField" ]
                     }
                   }
                 ]
@@ -166,7 +166,7 @@ class ActionEngineSpec
                   "actions":[{
                       "actionType":"simple-copy",
                       "config": {
-                        "source": [ ] }}]}]}""",
+                        "inputSource": [ ] }}]}]}""",
           sc)
       }
     }
@@ -181,7 +181,7 @@ class ActionEngineSpec
                   "actions":[{
                       "actionType":"simple-copy",
                       "config": {
-                        "source": [ "A", "" ] }}]}]}""",
+                        "inputSource": [ "A", "" ] }}]}]}""",
           sc)
       }
     }
@@ -196,7 +196,7 @@ class ActionEngineSpec
                   "actions":[{
                       "actionType":"simple-copy",
                       "config": {
-                        "source": [ "A", null ] }}]}]}""",
+                        "inputSource": [ "A", null ] }}]}]}""",
           sc)
       }
     }

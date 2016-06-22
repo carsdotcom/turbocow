@@ -19,7 +19,7 @@ class Lookup(
   val lookupDB: Option[String],
   val lookupTable: Option[String],
   val where: String,
-  val lookupFieldValue: String,
+  val equals: String,
   val fieldsToSelect: List[String],
   val onPass: SubActionList = new SubActionList,
   val onFail: SubActionList = new SubActionList
@@ -80,7 +80,7 @@ class Lookup(
 
     implicit val jsonFormats = org.json4s.DefaultFormats
 
-    val sourceFields = List(lookupFieldValue) // todo refactor the below to not use a list
+    val sourceFields = List(equals) // todo refactor the below to not use a list
 
     val enrichedUpdates = sourceFields.flatMap{ field => 
 
@@ -187,7 +187,7 @@ object Lookup
       lookupDB = JsonUtil.extractOption[String](actionConfig \ "lookupDB"),
       lookupTable = JsonUtil.extractOption[String](actionConfig \ "lookupTable"),
       where = JsonUtil.extractString(actionConfig \ "where"),
-      lookupFieldValue = JsonUtil.extractValidString(actionConfig \ "lookupFieldValue").getOrElse("lookupFieldValue cannot be blank in 'lookup' action."),
+      equals = JsonUtil.extractValidString(actionConfig \ "equals").getOrElse("equals cannot be blank in 'lookup' action."),
       fieldsToSelect = 
         (actionConfig \ "fieldsToSelect").children.map{e => JsonUtil.extractString(e) },
       onPass = new SubActionList(actionConfig \ "onPass", actionFactory),

@@ -9,7 +9,7 @@
                     "config": {
                         "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
                         "where": "KEYFIELD",
-                        "fieldsToSelect": [
+                        "select": [
                           "EnhField1",
                           "EnhField2",
                           "EnhField3"

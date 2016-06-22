@@ -30,7 +30,7 @@
             "lookupDB": "dw_dev",
             "lookupTable": "affiliate",
             "where": "ods_affiliate_id",
-            "fieldsToSelect": [
+            "select": [
               "affiliate_id"
             ]
           }
@@ -68,7 +68,7 @@
             "lookupDB": "dw_dev",
             "lookupTable": "web_page_type",
             "where": "web_page_type_id",
-            "fieldsToSelect": [
+            "select": [
               "web_page_type_name",
               "web_page_type_desc"
             ]
@@ -98,7 +98,7 @@
             "lookupDB": "dw_dev",
             "lookupTable": "affiliate",
             "where": "ods_affiliate_id",
-            "fieldsToSelect": [
+            "select": [
               "branding_name", 
               "official_name"
             ]

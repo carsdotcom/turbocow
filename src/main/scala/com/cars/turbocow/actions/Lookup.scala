@@ -20,7 +20,7 @@ class Lookup(
   val lookupTable: Option[String],
   val where: String,
   val equals: String,
-  val fieldsToSelect: List[String],
+  val select: List[String],
   val onPass: SubActionList = new SubActionList,
   val onFail: SubActionList = new SubActionList
 ) extends Action {
@@ -32,23 +32,23 @@ class Lookup(
     sb.append(s""", lookupDB(${lookupDB.getOrElse("<NONE>")})""")
     sb.append(s""", lookupTable(${lookupTable.getOrElse("<NONE>")})""")
     sb.append(s""", where($where)""")
-    sb.append(s""", fieldsToSelect = """)
-    fieldsToSelect.foreach{ f => sb.append(f + ",") }
+    sb.append(s""", select = """)
+    select.foreach{ f => sb.append(f + ",") }
     sb.append(s""", onPass = ${onPass.toString}""")
     sb.append(s""", onFail = ${onFail.toString}""")
     sb.append("}")
     sb.toString
   }
 
-  val fields = if(fieldsToSelect.length > 1) {
+  val fields = if(select.length > 1) {
     val tableName = lookupTable match {
       case None => ""
       case some => "`" + some.get + "."
     }
-    tableName + fieldsToSelect.mkString("`," + tableName)
+    tableName + select.mkString("`," + tableName)
   }
-  else if(fieldsToSelect.length == 1){
-    fieldsToSelect(0)
+  else if(select.length == 1){
+    select(0)
   }
   else ""
 
@@ -61,12 +61,12 @@ class Lookup(
     else
       throw new Exception(s"couldn't find lookupDB($lookupDB) or lookupTable($lookupTable)")
 
-  // get all the fields needed in this table (fieldsToSelect + where), without dups
+  // get all the fields needed in this table (select + where), without dups
   val allFields = { 
     if (where != null && where.nonEmpty) {
-      fieldsToSelect :+ where
+      select :+ where
     }
-    else fieldsToSelect
+    else select
   }.distinct
 
   /** Perform the lookup
@@ -109,7 +109,7 @@ class Lookup(
             // TODOTODO if getting this value fails..... ?
 
             // todo what if not there, todo check the enriched record first
-            fieldsToSelect.map{ field => 
+            select.map{ field => 
               val resultOpt = tc.lookup(
                 where, 
                 lookupValue.get.toString,
@@ -155,7 +155,7 @@ class Lookup(
 
             context.scratchPad.setResult("lookup", s"""Field '$where' exists in table '$dbAndTable':  '${lookupValue.getOrElse("")}'""")
 
-            fieldsToSelect.map{ selectField => 
+            select.map{ selectField => 
               val fieldVal = (dimRecord.get \ selectField).extract[String]
               (selectField, fieldVal)
             }
@@ -188,8 +188,8 @@ object Lookup
       lookupTable = JsonUtil.extractOption[String](actionConfig \ "lookupTable"),
       where = JsonUtil.extractString(actionConfig \ "where"),
       equals = JsonUtil.extractValidString(actionConfig \ "equals").getOrElse("equals cannot be blank in 'lookup' action."),
-      fieldsToSelect = 
-        (actionConfig \ "fieldsToSelect").children.map{e => JsonUtil.extractString(e) },
+      select = 
+        (actionConfig \ "select").children.map{e => JsonUtil.extractString(e) },
       onPass = new SubActionList(actionConfig \ "onPass", actionFactory),
       onFail = new SubActionList(actionConfig \ "onFail", actionFactory)
     )

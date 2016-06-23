@@ -799,41 +799,80 @@ class ActionEngineSpec
     //  recordMap.get("EnhField3") should be (None)
     //}
 
-    //it("should throw an exception when parsing the reject action inside process()") {
-    //
-    //  val e = intercept[Exception]{
-    //    val enriched: Array[Map[String, String]] = ActionEngine.process(
-    //      "./src/test/resources/input-integration-AA.json", // 'AA' in AField
-    //      """{
-    //           "activityType": "impressions",
-    //           "items": [
-    //             {
-    //               "actions":[
-    //                 {
-    //                   "actionType":"lookup",
-    //                   "config": {
-    //                     "select": [
-    //                       "EnhField1",
-    //                       "EnhField2",
-    //                       "EnhField3"
-    //                     ],
-    //                     "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
-    //                     "where": "KEYFIELD",
-    //                     "equals": "AField"
-    //                   }
-    //                 },
-    //                 {
-    //                   "actionType": "reject",
-    //                 }
-    //               ]
-    //             }
-    //           ]
-    //         }""".stripMargin,
-    //      sc).collect()
-    //  }    
-    //
-    //  e.toString should be ("'reject' actions need a config section if they are at the top level of the action list.")
-    //}
+    it("should throw an exception when parsing the reject action with no config") {
+    
+      val e = intercept[Exception] {
+        ActionEngine.process(
+          "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+          """{
+               "activityType": "impressions",
+               "items": [
+                 {
+                   "actions":[
+                     {
+                       "actionType":"lookup",
+                       "config": {
+                         "select": [
+                           "EnhField1",
+                           "EnhField2",
+                           "EnhField3"
+                         ],
+                         "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                         "where": "KEYFIELD",
+                         "equals": "AField"
+                       }
+                     },
+                     {
+                       "actionType": "reject"
+                     }
+                   ]
+                 }
+               ]
+             }""".stripMargin,
+          sc)
+      }
+      e.getMessage should be ("'reject' actions should have either a 'reason' or 'reasonFrom' fields.  (Add one)")
+    }
+
+    it("should throw an exception when parsing a reject action with both reason fields") {
+    
+      val e = intercept[Exception] {
+        ActionEngine.process(
+          "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+          """{
+               "activityType": "impressions",
+               "items": [
+                 {
+                   "actions":[
+                     {
+                       "actionType":"lookup",
+                       "config": {
+                         "select": [
+                           "EnhField1",
+                           "EnhField2",
+                           "EnhField3"
+                         ],
+                         "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                         "where": "KEYFIELD",
+                         "equals": "AField"
+                       }
+                     },
+                     {
+                       "actionType": "reject",
+                       "config": {
+                         "reason": "Blah",
+                         "reasonFrom": "Blah Blah"
+                       }
+                     }
+                   ]
+                 }
+               ]
+             }""".stripMargin,
+          sc)
+      }
+    
+      e.getMessage should be ("'reject' actions should not have both 'reason' and 'reasonFrom' fields.  (Pick only one)")
+    }
 
   }
 

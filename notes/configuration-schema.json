@@ -99,7 +99,7 @@
 
             // How to access the hive table to do the lookup.  If 
             // "fromFile" is specified, these fields are ignored.
-            "lookupDB": "als_search",
+            "fromDB": "als_search",
             "lookupTable": "local_offer_group",
             // -------------------------------------------------------
 

@@ -16,7 +16,7 @@ import scala.io.Source
 
 class Lookup(
   val fromFile: Option[String],
-  val lookupDB: Option[String],
+  val fromDB: Option[String],
   val lookupTable: Option[String],
   val where: String,
   val equals: String,
@@ -29,7 +29,7 @@ class Lookup(
     
     val sb = new StringBuffer
     sb.append(s"""Lookup:{fromFile(${fromFile.getOrElse("<NONE>")})""")
-    sb.append(s""", lookupDB(${lookupDB.getOrElse("<NONE>")})""")
+    sb.append(s""", fromDB(${fromDB.getOrElse("<NONE>")})""")
     sb.append(s""", lookupTable(${lookupTable.getOrElse("<NONE>")})""")
     sb.append(s""", where($where)""")
     sb.append(s""", select = """)
@@ -69,10 +69,10 @@ class Lookup(
   val dbAndTable = 
     if (fromFile.nonEmpty)
       fromFile.get
-    else if (lookupDB.nonEmpty && lookupTable.nonEmpty) 
-      s"${lookupDB.get}.${lookupTable.get}"
+    else if (fromDB.nonEmpty && lookupTable.nonEmpty) 
+      s"${fromDB.get}.${lookupTable.get}"
     else
-      throw new Exception(s"couldn't find lookupDB($lookupDB) or lookupTable($lookupTable)")
+      throw new Exception(s"couldn't find fromDB($fromDB) or lookupTable($lookupTable)")
 
   // get all the fields needed in this table (select + where), without dups
   val allFields = { 
@@ -108,12 +108,12 @@ class Lookup(
           }
           else {  // cache is not empty
 
-            lookupDB.getOrElse{ throw new Exception("TODO - reject this because lookupDB not found in config") }
+            fromDB.getOrElse{ throw new Exception("TODO - reject this because fromDB not found in config") }
             lookupTable.getOrElse{ throw new Exception("TODO - reject this because lookupTable not found in config") }
 
-            val lookupDBAndTable = dbAndTable
-            val tableCacheOpt = caches.get(lookupDBAndTable)
-            tableCacheOpt.getOrElse{ throw new Exception("couldn't find cached lookup table for: "+lookupDBAndTable) }
+            val fromDBAndTable = dbAndTable
+            val tableCacheOpt = caches.get(fromDBAndTable)
+            tableCacheOpt.getOrElse{ throw new Exception("couldn't find cached lookup table for: "+fromDBAndTable) }
                                    
             // get the table cache and do lookup
             val tc = tableCacheOpt.get
@@ -197,7 +197,7 @@ object Lookup
 
     new Lookup(
       fromFile = JsonUtil.extractOption[String](actionConfig \ "fromFile"),
-      lookupDB = JsonUtil.extractOption[String](actionConfig \ "lookupDB"),
+      fromDB = JsonUtil.extractOption[String](actionConfig \ "fromDB"),
       lookupTable = JsonUtil.extractOption[String](actionConfig \ "lookupTable"),
       where = JsonUtil.extractString(actionConfig \ "where"),
       equals = JsonUtil.extractValidString(actionConfig \ "equals").getOrElse("equals cannot be blank in 'lookup' action."),

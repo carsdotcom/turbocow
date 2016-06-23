@@ -755,49 +755,49 @@ class ActionEngineSpec
     //  recordMap.get("CField") should be (Some("10"))
     //  recordMap.get("DField") should be (Some("11"))
     //}
-    //
-    //it("should add nothing to the enriched record if lookup fails and no onFail is specified") {
-    //  val enriched: Array[Map[String, String]] = ActionEngine.process(
-    //    "./src/test/resources/input-integration-AA.json", // 'AA' in AField
-    //    """{
-    //         "activityType": "impressions",
-    //         "items": [
-    //           {
-    //             "actions":[
-    //               {
-    //                 "actionType":"lookup",
-    //                 "config": {
-    //                   "select": [
-    //                     "EnhField1",
-    //                     "EnhField2",
-    //                     "EnhField3"
-    //                   ],
-    //                   "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
-    //                   "where": "KEYFIELD",
-    //                   "equals": "AField"
-    //                 }
-    //               }
-    //             ]
-    //           }
-    //         ]
-    //       }""".stripMargin,
-    //    sc).collect()
-    //
-    //  enriched.size should be (1) // always one because there's only one json input object
-    //  //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-    //
-    //  // test the record
-    //  val recordMap = enriched.head
-    //  recordMap.size should be (1)
-    //  recordMap.get("reasonForReject") should be (None)
-    //  recordMap.get("AField") should be (None)
-    //  recordMap.get("BField") should be (None)
-    //  recordMap.get("CField") should be (None)
-    //  recordMap.get("DField") should be (None)
-    //  recordMap.get("EnhField1") should be (None)
-    //  recordMap.get("EnhField2") should be (None)
-    //  recordMap.get("EnhField3") should be (None)
-    //}
+    
+    it("should add nothing to the enriched record if lookup fails and no onFail is specified") {
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+        """{
+             "activityType": "impressions",
+             "items": [
+               {
+                 "actions":[
+                   {
+                     "actionType":"lookup",
+                     "config": {
+                       "select": [
+                         "EnhField1",
+                         "EnhField2",
+                         "EnhField3"
+                       ],
+                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "where": "KEYFIELD",
+                       "equals": "AField"
+                     }
+                   }
+                 ]
+               }
+             ]
+           }""".stripMargin,
+        sc).collect()
+    
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+    
+      // test the record
+      val recordMap = enriched.head
+      recordMap.size should be (0)
+      recordMap.get("reasonForReject") should be (None)
+      recordMap.get("AField") should be (None)
+      recordMap.get("BField") should be (None)
+      recordMap.get("CField") should be (None)
+      recordMap.get("DField") should be (None)
+      recordMap.get("EnhField1") should be (None)
+      recordMap.get("EnhField2") should be (None)
+      recordMap.get("EnhField3") should be (None)
+    }
 
     it("should throw an exception when parsing the reject action with no config") {
     

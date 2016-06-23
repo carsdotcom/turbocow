@@ -27,12 +27,12 @@
           "actionType":"lookup",
 
           "config":{
-            "lookupDB": "dw_dev",
-            "lookupTable": "affiliate",
-            "where": "ods_affiliate_id",
             "select": [
               "affiliate_id"
-            ]
+            ],
+            "fromDB": "dw_dev",
+            "lookupTable": "affiliate",
+            "where": "ods_affiliate_id"
           }
         }
 
@@ -65,13 +65,13 @@
           "actionType":"lookup",
    
           "config":{
-            "lookupDB": "dw_dev",
-            "lookupTable": "web_page_type",
-            "where": "web_page_type_id",
             "select": [
               "web_page_type_name",
               "web_page_type_desc"
-            ]
+            ],
+            "fromDB": "dw_dev",
+            "lookupTable": "web_page_type",
+            "where": "web_page_type_id"
           }
         }
       ]
@@ -95,13 +95,13 @@
           "actionType":"lookup",
 
           "config":{
-            "lookupDB": "dw_dev",
-            "lookupTable": "affiliate",
-            "where": "ods_affiliate_id",
             "select": [
               "branding_name", 
               "official_name"
-            ]
+            ],
+            "fromDB": "dw_dev",
+            "lookupTable": "affiliate",
+            "where": "ods_affiliate_id"
           }
         }
     

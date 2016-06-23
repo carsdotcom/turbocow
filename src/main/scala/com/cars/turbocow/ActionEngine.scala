@@ -145,13 +145,13 @@ object ActionEngine
       val allIndexFields = lookupList.map{ _.where }.distinct
 
       // Make sure all the DBs and Tables match:
-      lookupList.foreach{ lookup => if (lookup.dbAndTable != refLookup.dbAndTable) throw new Exception(s"the database and table did not match: refLookup.lookupDB(${refLookup.lookupDB}), refLookup.lookupTable(${refLookup.lookupTable}), refLookup.dbAndTable(${refLookup.dbAndTable}), lookup.lookupDB(${lookup.lookupDB}), lookup.lookupTable(${lookup.lookupTable}), lookup.dbAndTable(${lookup.dbAndTable})")}
+      lookupList.foreach{ lookup => if (lookup.dbAndTable != refLookup.dbAndTable) throw new Exception(s"the database and table did not match: refLookup.fromDB(${refLookup.fromDB}), refLookup.lookupTable(${refLookup.lookupTable}), refLookup.dbAndTable(${refLookup.dbAndTable}), lookup.fromDB(${lookup.fromDB}), lookup.lookupTable(${lookup.lookupTable}), lookup.dbAndTable(${lookup.dbAndTable})")}
 
       // return a name->TableCache pair)
       (tableAndName, 
         HiveTableCache(
           hiveContext,
-          refLookup.lookupDB, 
+          refLookup.fromDB, 
           tableName = refLookup.lookupTable, 
           keyFields = allIndexFields,
           fieldsToSelect = allFieldsToSelect

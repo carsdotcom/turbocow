@@ -41,16 +41,18 @@ object AvroOutputWriter
     schemaPath: String,
     sc: SparkContext ) = {
 
-    val schema = getAvroSchema(schemaPath, sc)
+    // get the list of field names from avro schema
+    val outputFields: List[String] = getAvroSchema(schemaPath, sc)
 
-    // Loop through enriched record fields
+    // Loop through enriched record fields, and extract the value of each field 
+    // in the order of outputFields list (so the order matches the Avro schema).
     val rowRDD = rdd.map { i =>
-      val av = schema.head.map(column => i.get(column).getOrElse(null)).toList
+      val av: List[String] = outputFields.map(column => i.get(column).getOrElse(null))
       Row.fromSeq(av)
     }
 
     // create a dataframe of RDD[row] and Avro schema
-    val structTypeSchema = StructType(schema(0).map(column => StructField(column, StringType, true))) // Parse AvroSchema as Instance of StructType
+    val structTypeSchema = StructType(outputFields.map(column => StructField(column, StringType, true))) // Parse AvroSchema as Instance of StructType
     val sqlContext = new SQLContext(sc)
     val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema).repartition(10)
 
@@ -69,28 +71,18 @@ object AvroOutputWriter
   def getAvroSchema(
     hdfsPath : String, 
     sc: SparkContext): 
-    Array[Array[String]] = {
+    List[String] = {
 
-    val jsonRDD = sc.textFile(hdfsPath)
-    val oneLineAvroSchema = jsonRDD.collect().mkString("")
-    val lineRDD = sc.parallelize(List(oneLineAvroSchema))
-    val parseJsonRDD = lineRDD.map { record =>
-      implicit val jsonFormats = org.json4s.DefaultFormats
-      parse(record)
-    }
-    val fieldsList = parseJsonRDD.collect().map(eachline => {
+    val jsonSchema = sc.textFile(hdfsPath).collect().mkString("")
+    val parsedSchema = parse(jsonSchema)
 
-      implicit val formats = org.json4s.DefaultFormats
+    implicit val formats = org.json4s.DefaultFormats
 
-      //collect fields array from avro schema
-      val fieldsArray = (eachline \ "fields").children
+    // collect fields list from avro schema
+    val fields = (parsedSchema \ "fields").children
 
-      //make array from all field names from avro schema
-      val b = fieldsArray.map(eachChild =>
-        (eachChild \ "name").extract[String])
-      b.toArray
-    })
-    fieldsList
+    // extract just the names
+    fields.map{ eachChild => (eachChild \ "name").extract[String] }
   }
 }
 

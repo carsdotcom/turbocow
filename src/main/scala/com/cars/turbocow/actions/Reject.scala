@@ -21,6 +21,10 @@ class Reject(
   if (ValidString(reasonFrom).nonEmpty && ValidString(rejectionReason).nonEmpty) 
     throw new Exception("'reject' actions should not have both 'reason' and 'reasonFrom' fields.  (Pick only one)")
 
+  // must have at least one:
+  if (ValidString(reasonFrom).isEmpty && ValidString(rejectionReason).isEmpty) 
+    throw new Exception("'reject' actions should have either a 'reason' or 'reasonFrom' fields.  (Add one)")
+
   /** alt constructor with a JValue
     * If there is a configuration section for this reject action, it will 
     * override anything passed in the constructor.

@@ -834,6 +834,42 @@ class ActionEngineSpec
       e.getMessage should be ("'reject' actions should have either a 'reason' or 'reasonFrom' fields.  (Add one)")
     }
 
+    it("should throw an exception when parsing the reject action with an empty config") {
+    
+      val e = intercept[Exception] {
+        ActionEngine.process(
+          "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+          """{
+               "activityType": "impressions",
+               "items": [
+                 {
+                   "actions":[
+                     {
+                       "actionType":"lookup",
+                       "config": {
+                         "select": [
+                           "EnhField1",
+                           "EnhField2",
+                           "EnhField3"
+                         ],
+                         "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                         "where": "KEYFIELD",
+                         "equals": "AField"
+                       }
+                     },
+                     {
+                       "actionType": "reject",
+                       "config": {}
+                     }
+                   ]
+                 }
+               ]
+             }""".stripMargin,
+          sc)
+      }
+      e.getMessage should be ("'reject' actions should have either a 'reason' or 'reasonFrom' fields.  (Add one)")
+    }
+
     it("should throw an exception when parsing a reject action with both reason fields") {
     
       val e = intercept[Exception] {

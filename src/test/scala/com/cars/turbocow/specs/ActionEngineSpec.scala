@@ -569,14 +569,14 @@ class ActionEngineSpec
                    {
                      "actionType":"lookup",
                      "config": {
-                       "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-                       "where": "KEYFIELD",
-                       "equals": "AField",
                        "select": [
                          "EnhField1",
                          "EnhField2",
                          "EnhField3"
-                       ]
+                       ],
+                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "where": "KEYFIELD",
+                       "equals": "AField"
                      }
                    }
                  ]
@@ -603,14 +603,14 @@ class ActionEngineSpec
                    {
                      "actionType":"lookup",
                      "config": {
-                       "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-                       "where": "KEYFIELD",
-                       "equals": "AField",
                        "select": [
                          "EnhField1",
                          "EnhField2",
                          "EnhField3"
                        ],
+                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "where": "KEYFIELD",
+                       "equals": "AField",
                        "onFail": [
                          { 
                            "actionType": "reject",
@@ -653,13 +653,13 @@ class ActionEngineSpec
                    {
                      "actionType":"lookup",
                      "config": {
-                       "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-                       "where": "KEYFIELD",
-                       "equals": "AField", 
                        "select": [
                          "EnhField1",
                          "EnhField2"
                        ],
+                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "where": "KEYFIELD",
+                       "equals": "AField", 
                        "onFail": [
                           {
                             "actionType": "reject",
@@ -673,12 +673,12 @@ class ActionEngineSpec
                    {
                      "actionType":"lookup",
                      "config": {
-                       "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-                       "where": "KEYFIELD",
-                       "equals": "AField", 
                        "select": [
                          "EnhField3"
                        ],
+                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "where": "KEYFIELD",
+                       "equals": "AField", 
                        "onFail": [
                           {
                             "actionType": "reject",
@@ -713,18 +713,18 @@ class ActionEngineSpec
     //         "activityType": "impressions",
     //         "items": [
     //           {
-    //             "source": [ "AField" ], 
     //             "actions":[
     //               {
     //                 "actionType":"lookup",
     //                 "config": {
-    //                   "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-    //                   "where": "KEYFIELD",
     //                   "select": [
     //                     "EnhField1",
     //                     "EnhField2",
     //                     "EnhField3"
     //                   ],
+    //                   "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+    //                   "where": "KEYFIELD",
+    //                   "equals": "AField",
     //                   "onFail": [
     //                      {
     //                        "actionType": "reject",
@@ -763,18 +763,18 @@ class ActionEngineSpec
     //         "activityType": "impressions",
     //         "items": [
     //           {
-    //             "source": [ "AField" ], 
     //             "actions":[
     //               {
     //                 "actionType":"lookup",
     //                 "config": {
-    //                   "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-    //                   "where": "KEYFIELD",
     //                   "select": [
     //                     "EnhField1",
     //                     "EnhField2",
     //                     "EnhField3"
-    //                   ]
+    //                   ],
+    //                   "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+    //                   "where": "KEYFIELD",
+    //                   "equals": "AField"
     //                 }
     //               }
     //             ]
@@ -808,18 +808,18 @@ class ActionEngineSpec
     //           "activityType": "impressions",
     //           "items": [
     //             {
-    //               "source": [ "AField" ], 
     //               "actions":[
     //                 {
     //                   "actionType":"lookup",
     //                   "config": {
-    //                     "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-    //                     "where": "KEYFIELD",
     //                     "select": [
     //                       "EnhField1",
     //                       "EnhField2",
     //                       "EnhField3"
-    //                     ]
+    //                     ],
+    //                     "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+    //                     "where": "KEYFIELD",
+    //                     "equals": "AField"
     //                   }
     //                 },
     //                 {

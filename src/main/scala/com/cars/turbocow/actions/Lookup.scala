@@ -15,7 +15,7 @@ import Lookup._
 import scala.io.Source
 
 class Lookup(
-  val lookupFile: Option[String],
+  val fromFile: Option[String],
   val lookupDB: Option[String],
   val lookupTable: Option[String],
   val where: String,
@@ -28,7 +28,7 @@ class Lookup(
   override def toString() = {
     
     val sb = new StringBuffer
-    sb.append(s"""Lookup:{lookupFile(${lookupFile.getOrElse("<NONE>")})""")
+    sb.append(s"""Lookup:{fromFile(${fromFile.getOrElse("<NONE>")})""")
     sb.append(s""", lookupDB(${lookupDB.getOrElse("<NONE>")})""")
     sb.append(s""", lookupTable(${lookupTable.getOrElse("<NONE>")})""")
     sb.append(s""", where($where)""")
@@ -40,6 +40,18 @@ class Lookup(
     sb.toString
   }
 
+  /*
+  val dbAndTableNames = from.split('.')
+  if (fromIsDB)
+  val dbName: Option[String] = 
+    if (!fromIsDB) None
+    else Option(dbAndTableNames.head)
+
+  val tableName: Option[String] = 
+    if (!fromIsDB) None
+    else Option(dbAndTableNames.last)
+  */
+
   val fields = if(select.length > 1) {
     val tableName = lookupTable match {
       case None => ""
@@ -48,14 +60,15 @@ class Lookup(
     tableName + select.mkString("`," + tableName)
   }
   else if(select.length == 1){
-    select(0)
+    select.head
   }
   else ""
 
-  // "db.table", or "lookupFile"... todo rename....
+  // "db.table", or "fromFile"
+  // todo - separate object for 'fromFile' lookup, or remove once hdfs/hive testing works
   val dbAndTable = 
-    if (lookupFile.nonEmpty)
-      lookupFile.get
+    if (fromFile.nonEmpty)
+      fromFile.get
     else if (lookupDB.nonEmpty && lookupTable.nonEmpty) 
       s"${lookupDB.get}.${lookupTable.get}"
     else
@@ -85,7 +98,7 @@ class Lookup(
     val enrichedUpdates = sourceFields.flatMap{ field => 
 
       // search in the table for this key
-      lookupFile match {
+      fromFile match {
         case None => { // do hdfs "lookup"
         
           val caches = context.tableCaches
@@ -124,7 +137,7 @@ class Lookup(
         case _ => { // local file lookup
         
           // look up local file and parse as json.
-          val configAST = parse(Source.fromFile(lookupFile.get).getLines.mkString)
+          val configAST = parse(Source.fromFile(fromFile.get).getLines.mkString)
 
           // get value of source field from the input JSON:
           val lookupValue = JsonUtil.extractOption[String](inputRecord \ sourceFields.head)
@@ -183,7 +196,7 @@ object Lookup
     Lookup = {
 
     new Lookup(
-      lookupFile = JsonUtil.extractOption[String](actionConfig \ "lookupFile"),
+      fromFile = JsonUtil.extractOption[String](actionConfig \ "fromFile"),
       lookupDB = JsonUtil.extractOption[String](actionConfig \ "lookupDB"),
       lookupTable = JsonUtil.extractOption[String](actionConfig \ "lookupTable"),
       where = JsonUtil.extractString(actionConfig \ "where"),

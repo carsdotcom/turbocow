@@ -50,27 +50,27 @@ class LookupSpec extends UnitSpec {
       implicit val formats = org.json4s.DefaultFormats
       val configStr = """
         {
-        	"activityType": "impressions",
-        	"items": [
-        		{
-        			"name": "lookup test", 
-        			"actions":[
-        				{
-        					"actionType":"lookup",
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "lookup test", 
+              "actions":[
+                {
+                  "actionType":"lookup",
                   "config": {
-                    "lookupFile": "./src/test/resources/testdimension-table-for-lookup.json",
-                    "where": "KEYFIELD",
-                    "equals": "AField",
                     "select": [
                       "EnhField1",
                       "EnhField2",
                       "EnhField3"
-                    ]
+                    ],
+                    "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                    "where": "KEYFIELD",
+                    "equals": "AField"
                   }
-        				}
-        			]
-        		}
-        	]
+                }
+              ]
+            }
+          ]
         }
       """
 
@@ -87,7 +87,7 @@ class LookupSpec extends UnitSpec {
 
       // create the action and test all fields after construction:
       val action = Lookup(actionConfig, None)
-      action.lookupFile.get should be ("./src/test/resources/testdimension-table-for-lookup.json")
+      action.fromFile.get should be ("./src/test/resources/testdimension-table-for-lookup.json")
       action.lookupDB should be (None)
       action.lookupTable should be (None)
       action.where should be ("KEYFIELD")

@@ -4,7 +4,6 @@
     {
       "source": ["front_door_affiliate_pty_id"],
       "actions": [
-
         {
           "actionType":"custom-add-enriched-fields",
           "config": [

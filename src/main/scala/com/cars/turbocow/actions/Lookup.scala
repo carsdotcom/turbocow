@@ -17,7 +17,7 @@ import scala.io.Source
 class Lookup(
   val fromFile: Option[String],
   val fromDB: Option[String],
-  val lookupTable: Option[String],
+  val fromTable: Option[String],
   val where: String,
   val equals: String,
   val select: List[String],
@@ -30,7 +30,7 @@ class Lookup(
     val sb = new StringBuffer
     sb.append(s"""Lookup:{fromFile(${fromFile.getOrElse("<NONE>")})""")
     sb.append(s""", fromDB(${fromDB.getOrElse("<NONE>")})""")
-    sb.append(s""", lookupTable(${lookupTable.getOrElse("<NONE>")})""")
+    sb.append(s""", fromTable(${fromTable.getOrElse("<NONE>")})""")
     sb.append(s""", where($where)""")
     sb.append(s""", select = """)
     select.foreach{ f => sb.append(f + ",") }
@@ -53,7 +53,7 @@ class Lookup(
   */
 
   val fields = if(select.length > 1) {
-    val tableName = lookupTable match {
+    val tableName = fromTable match {
       case None => ""
       case some => "`" + some.get + "."
     }
@@ -69,10 +69,10 @@ class Lookup(
   val dbAndTable = 
     if (fromFile.nonEmpty)
       fromFile.get
-    else if (fromDB.nonEmpty && lookupTable.nonEmpty) 
-      s"${fromDB.get}.${lookupTable.get}"
+    else if (fromDB.nonEmpty && fromTable.nonEmpty) 
+      s"${fromDB.get}.${fromTable.get}"
     else
-      throw new Exception(s"couldn't find fromDB($fromDB) or lookupTable($lookupTable)")
+      throw new Exception(s"couldn't find fromDB($fromDB) or fromTable($fromTable)")
 
   // get all the fields needed in this table (select + where), without dups
   val allFields = { 
@@ -109,7 +109,7 @@ class Lookup(
           else {  // cache is not empty
 
             fromDB.getOrElse{ throw new Exception("TODO - reject this because fromDB not found in config") }
-            lookupTable.getOrElse{ throw new Exception("TODO - reject this because lookupTable not found in config") }
+            fromTable.getOrElse{ throw new Exception("TODO - reject this because fromTable not found in config") }
 
             val fromDBAndTable = dbAndTable
             val tableCacheOpt = caches.get(fromDBAndTable)
@@ -198,7 +198,7 @@ object Lookup
     new Lookup(
       fromFile = JsonUtil.extractOption[String](actionConfig \ "fromFile"),
       fromDB = JsonUtil.extractOption[String](actionConfig \ "fromDB"),
-      lookupTable = JsonUtil.extractOption[String](actionConfig \ "lookupTable"),
+      fromTable = JsonUtil.extractOption[String](actionConfig \ "fromTable"),
       where = JsonUtil.extractString(actionConfig \ "where"),
       equals = JsonUtil.extractValidString(actionConfig \ "equals").getOrElse("equals cannot be blank in 'lookup' action."),
       select = 

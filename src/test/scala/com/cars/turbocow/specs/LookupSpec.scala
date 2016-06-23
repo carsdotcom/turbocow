@@ -89,7 +89,7 @@ class LookupSpec extends UnitSpec {
       val action = Lookup(actionConfig, None)
       action.fromFile.get should be ("./src/test/resources/testdimension-table-for-lookup.json")
       action.fromDB should be (None)
-      action.lookupTable should be (None)
+      action.fromTable should be (None)
       action.where should be ("KEYFIELD")
       action.equals should be ("AField")
       action.select should be (List("EnhField1", "EnhField2", "EnhField3"))

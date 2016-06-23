@@ -31,7 +31,7 @@
               "affiliate_id"
             ],
             "fromDB": "dw_dev",
-            "lookupTable": "affiliate",
+            "fromTable": "affiliate",
             "where": "ods_affiliate_id"
           }
         }
@@ -70,7 +70,7 @@
               "web_page_type_desc"
             ],
             "fromDB": "dw_dev",
-            "lookupTable": "web_page_type",
+            "fromTable": "web_page_type",
             "where": "web_page_type_id"
           }
         }
@@ -100,7 +100,7 @@
               "official_name"
             ],
             "fromDB": "dw_dev",
-            "lookupTable": "affiliate",
+            "fromTable": "affiliate",
             "where": "ods_affiliate_id"
           }
         }

@@ -95,10 +95,10 @@
             // the lookup is done in (what is assumed to be) a JSON array of 
             // records (simulating an input record).  
             // This will be mostly used in tests.
-            "lookupFile": "./path/to/a/local/file",
+            "fromFile": "./path/to/a/local/file",
 
             // How to access the hive table to do the lookup.  If 
-            // "lookupFile" is specified, these fields are ignored.
+            // "fromFile" is specified, these fields are ignored.
             "lookupDB": "als_search",
             "lookupTable": "local_offer_group",
             // -------------------------------------------------------

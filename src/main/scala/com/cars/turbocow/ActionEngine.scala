@@ -107,7 +107,7 @@ object ActionEngine
     
       sa.actions.flatMap{ 
     
-        case lookup: Lookup => lookup.lookupFile match { 
+        case lookup: Lookup => lookup.fromFile match { 
           case s: Some[String] => None // for now (Todo implement caching for local files too)
           case None => {
             Some( 

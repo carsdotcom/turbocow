@@ -11,13 +11,16 @@ val json4SVer = "3.2.10" // don't use >= 3.3 due to conflicts
 val sparkVer = "1.5.0" // NOTE this is due to cloudera (CDH 5.5.1)
 //val sparkVer = "1.6.1" // for testing
 
+// Always fork the jvm (test and run)
+fork := true
+
 libraryDependencies ++= Seq(
 
    // spark
   "org.apache.spark" %% "spark-core" % sparkVer,
   "org.apache.spark" %% "spark-sql" % sparkVer,
   "org.apache.spark" %% "spark-hive" % sparkVer,
-  "com.databricks" %% "spark-avro" % "0.1",
+  "com.databricks" %% "spark-avro" % "2.0.1",
 
   // java libs
   "joda-time" % "joda-time" % "2.7",

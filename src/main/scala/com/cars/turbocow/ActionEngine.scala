@@ -44,7 +44,7 @@ object ActionEngine
     sc: SparkContext,
     hiveContext : Option[HiveContext] = None,
     actionFactory: ActionFactory = new ActionFactory ): 
-    RDD[Map[String, String]]= {
+    RDD[Map[String, String]] = {
 
     // Parse the config.  Creates a list of Items.
     val driverItems = actionFactory.createSourceActions(config)
@@ -86,6 +86,9 @@ object ActionEngine
       if (actionContext.rejectionReasons.nonEmpty) {
         // add any rejection reasons to the enriched record
         enrichedMap = enrichedMap + ("reasonForReject"-> actionContext.rejectionReasons.toString)
+
+        // copy in all the fields from the input record.
+        enrichedMap = addAllFieldsToEnriched(ast, enrichedMap)
       }
 
       // (For now, just return the enriched data)
@@ -161,5 +164,38 @@ object ActionEngine
     tcMap
   }
 
+
+  /** Add all fields from input record (as parsed AST) to the enriched map.
+    * 
+    * @param inputRecordAST the input record as parsed JSON AST
+    * @param enrichedMap the current enriched record
+    * 
+    * @return the new enriched map
+    */
+  def addAllFieldsToEnriched(
+    inputRecordAST: JValue, 
+    enrichedMap: Map[String, String]): 
+    Map[String, String] = {
+
+    val inputMap: Map[String, Option[String]] = inputRecordAST match { 
+      case JObject(o) => o.toMap.map{ case (k,v) => (k, JsonUtil.extractOptionString(v)) }
+      case _ => throw new Exception("The input record must be a JSON object (not an array or other type).")
+      // TODO double check the ALS code so that it always outputs an object.
+    }
+
+    val inputToEnrichedMap = inputMap.flatMap{ case(k, v) => 
+      // if key is not in the enriched map, add it.
+      val enrichedOpt = enrichedMap.get(k)
+      if (enrichedOpt.isEmpty) { // not found
+        Some((k, v.getOrElse("")))
+      }
+      else { // otherwise don't add it
+        None
+      }
+    } 
+
+    // return the merged maps
+    inputToEnrichedMap ++ enrichedMap
+  }
 }
 

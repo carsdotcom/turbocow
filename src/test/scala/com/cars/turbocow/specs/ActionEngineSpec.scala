@@ -6,11 +6,18 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.hive.HiveContext
+import org.apache.spark.sql.{Row, SQLContext}
 
 import scala.io.Source
 import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
+
+import com.databricks.spark.avro._
+
+import scala.util.{Try, Success, Failure}
+
+import java.io.File
+import java.nio.file.Files
 
 class ActionEngineSpec 
   extends UnitSpec 
@@ -21,6 +28,7 @@ class ActionEngineSpec
   //val conf = new SparkConf().setAppName("ActionEngineSpec").setMaster("local[1]")
   val conf = new SparkConf().setAppName("ActionEngineSpec").setMaster("local[2]")
   val sc = new SparkContext(conf)
+  val sqlContext = new SQLContext(sc)
 
   // before all tests have run
   override def beforeAll() = {
@@ -632,7 +640,6 @@ class ActionEngineSpec
     
       // test the record
       val recordMap = enriched.head
-      recordMap.size should be (1)
       val reasonOpt = recordMap.get("reasonForReject")
       reasonOpt.isEmpty should be (false)
       reasonOpt.get should be ("Invalid KEYFIELD: 'AA'")
@@ -700,61 +707,10 @@ class ActionEngineSpec
     
       // test the record
       val recordMap = enriched.head
-      recordMap.size should be (1)
       val reasonOpt = recordMap.get("reasonForReject")
       reasonOpt.isEmpty should be (false)
       reasonOpt.get should be ("Invalid KEYFIELD: 'AA'; some reason text")
     }
-    
-    //it("should output the entire input record if at least one action calls reject") {
-    //  val enriched: Array[Map[String, String]] = ActionEngine.process(
-    //    "./src/test/resources/input-integration-AA.json", // 'AA' in AField
-    //    """{
-    //         "activityType": "impressions",
-    //         "items": [
-    //           {
-    //             "actions":[
-    //               {
-    //                 "actionType":"lookup",
-    //                 "config": {
-    //                   "select": [
-    //                     "EnhField1",
-    //                     "EnhField2",
-    //                     "EnhField3"
-    //                   ],
-    //                   "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
-    //                   "where": "KEYFIELD",
-    //                   "equals": "AField",
-    //                   "onFail": [
-    //                      {
-    //                        "actionType": "reject",
-    //                        "config": {
-    //                          "reasonFrom": "lookup"
-    //                        }
-    //                      }
-    //                   ]
-    //                 }
-    //               }
-    //             ]
-    //           }
-    //         ]
-    //       }""".stripMargin,
-    //    sc).collect()
-    //
-    //  enriched.size should be (1) // always one because there's only one json input object
-    //  //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-    //
-    //  // test the record
-    //  val recordMap = enriched.head
-    //  recordMap.size should be (1)
-    //  val reasonOpt = recordMap.get("reasonForReject")
-    //  reasonOpt.isEmpty should be (false)
-    //  reasonOpt.get should be ("Invalid KEYFIELD: 'AA'")
-    //  recordMap.get("AField") should be (Some("AA"))
-    //  recordMap.get("BField") should be (Some("B"))
-    //  recordMap.get("CField") should be (Some("10"))
-    //  recordMap.get("DField") should be (Some("11"))
-    //}
     
     it("should add nothing to the enriched record if lookup fails and no onFail is specified") {
       val enriched: Array[Map[String, String]] = ActionEngine.process(
@@ -910,6 +866,71 @@ class ActionEngineSpec
       e.getMessage should be ("'reject' actions should not have both 'reason' and 'reasonFrom' fields.  (Pick only one)")
     }
 
+    it("should output the entire input record if at least one action calls reject") 
+    {
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+        """{
+             "activityType": "impressions",
+             "items": [
+               {
+                 "actions":[
+                   {
+                     "actionType":"lookup",
+                     "config": {
+                       "select": [
+                         "EnhField1",
+                         "EnhField2",
+                         "EnhField3"
+                       ],
+                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "where": "KEYFIELD",
+                       "equals": "AField",
+                       "onFail": [
+                          {
+                            "actionType": "reject",
+                            "config": {
+                              "reasonFrom": "lookup"
+                            }
+                          }
+                       ]
+                     }
+                   }
+                 ]
+               }
+             ]
+           }""".stripMargin,
+        sc).collect()
+    
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+    
+      // test the record
+      val recordMap = enriched.head
+      recordMap.size should be (5)
+      recordMap.get("reasonForReject") should be (Some("Invalid KEYFIELD: 'AA'"))
+      recordMap.get("AField") should be (Some("AA"))
+      recordMap.get("BField") should be (Some("B"))
+      recordMap.get("CField") should be (Some("10"))
+      recordMap.get("DField") should be (Some("11"))
+    }
+
+    it("should output all input fields but also any enriched fields from action lists BEFORE the rejection") {
+      //todo
+    }
+
+    it("should output all input fields but also any enriched fields from action lists AFTER the rejection") {
+      //todo
+    }
+
+    it("should stop processing on an action list if the rejection calls for it") {
+      //todo
+    }
+
+    it("should not stop processing on an action list by default") {
+      // todo 
+    }
+
   }
 
   describe("getAllLookupActions") {
@@ -963,6 +984,58 @@ class ActionEngineSpec
       }
     }
   }
+
+  describe("AvroOutputWriter") {
+    it("should only output the fields in the schema regardless of what is in the input RDD") {
+      val enriched: RDD[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration.json",
+        """{
+            "activityType": "impressions",
+            "items": [
+              {
+                "actions":[{
+                    "actionType":"simple-copy",
+                    "config": {
+                      "inputSource": [ "AField", "BField" ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        """,
+        sc).persist()
+  
+      // this should be the enriched record:
+
+      val enrichedAll = enriched.collect()
+      enrichedAll.size should be (1) // always one because there's only one json input object
+      enrichedAll.head.size should be (2)
+      enrichedAll.head.get("AField") should be (Some("A"))
+      enrichedAll.head.get("BField") should be (Some("B"))
+
+      // now write to avro
+      //val tempFile = File.createTempFile("testoutput-", ".avro", null).deleteOnExit()
+      val outputDir = { 
+        val dir = Files.createTempDirectory("testoutput-")
+        new File(dir.toString).delete()
+        dir.toString
+      }
+      println("%%%%%%%%%%%%%%%%%%%%%%%%% outputDir = "+outputDir.toString)
+
+      // write
+      AvroOutputWriter.write(enriched, List("BField"), outputDir.toString, sc)
+
+      // now read what we wrote
+      val rows: Array[Row] = sqlContext.read.avro(outputDir.toString).collect()
+      rows.size should be (1) // one row only
+      val row = rows.head
+      row.size should be (1) // only one field in that row
+      Try( row.getAs[String]("AField") ).isFailure should be (true)
+      Try( row.getAs[String]("BField") ) should be (Success("B"))
+    }
+  }
+
 }
 
   

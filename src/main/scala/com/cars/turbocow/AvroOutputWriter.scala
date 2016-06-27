@@ -29,30 +29,49 @@ import scala.collection.mutable.ListBuffer
 
 object AvroOutputWriter
 {
-  /** Output data to avro
+  /** Output data to avro using a specific Avro schema file.
     * 
     * @param rdd RDD to write out
     * @param outputDir the dir to write to (hdfs:// typically)
     * @param schemaPath path to schema file
+    * @param sc spark context
     */
   def write(
     rdd: RDD[Map[String, String]], 
-    outputDir: String, 
     schemaPath: String,
-    sc: SparkContext ) = {
+    outputDir: String, 
+    sc: SparkContext ): 
+    Unit = {
 
     // get the list of field names from avro schema
-    val outputFields: List[String] = getAvroSchema(schemaPath, sc)
+    val schema: List[String] = getAvroSchema(schemaPath, sc)
+
+    write(rdd, schema, outputDir, sc)
+  }
+
+  /** Output data to avro - with list of fields for the schema (useful for testing)
+    * 
+    * @param rdd RDD to write out
+    * @param outputDir the dir to write to (hdfs:// typically)
+    * @param schema list of fields to write
+    * @param sc spark context
+    */
+  def write(
+    rdd: RDD[Map[String, String]], 
+    schema: List[String],
+    outputDir: String, 
+    sc: SparkContext ):
+    Unit = {
 
     // Loop through enriched record fields, and extract the value of each field 
-    // in the order of outputFields list (so the order matches the Avro schema).
+    // in the order of schema list (so the order matches the Avro schema).
     val rowRDD = rdd.map { i =>
-      val av: List[String] = outputFields.map(column => i.get(column).getOrElse(null))
+      val av: List[String] = schema.map(column => i.get(column).getOrElse(null))
       Row.fromSeq(av)
     }
 
     // create a dataframe of RDD[row] and Avro schema
-    val structTypeSchema = StructType(outputFields.map(column => StructField(column, StringType, true))) // Parse AvroSchema as Instance of StructType
+    val structTypeSchema = StructType(schema.map(column => StructField(column, StringType, true))) // Parse AvroSchema as Instance of StructType
     val sqlContext = new SQLContext(sc)
     val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema).repartition(10)
 

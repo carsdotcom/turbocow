@@ -915,8 +915,73 @@ class ActionEngineSpec
       recordMap.get("DField") should be (Some("11"))
     }
 
-    it("should output all input fields but also any enriched fields from action lists BEFORE the rejection") {
-      //todo
+    it("should output all input fields but also any enriched fields from action lists BEFORE the rejection") 
+    {
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+        """{
+             "activityType": "impressions",
+             "items": [
+               {
+                 "actions":[
+                   {
+                     "actionType":"add-enriched-fields",
+                     "config": [
+                       {
+                         "key": "X",
+                         "value": "XVal"
+                       },
+                       {
+                         "key": "Y",
+                         "value": "YVal"
+                       }
+                     ]
+                   }
+                 ]
+               },
+               {
+                 "actions":[
+                   {
+                     "actionType":"lookup",
+                     "config": {
+                       "select": [
+                         "EnhField1",
+                         "EnhField2",
+                         "EnhField3"
+                       ],
+                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "where": "KEYFIELD",
+                       "equals": "AField",
+                       "onFail": [
+                          {
+                            "actionType": "reject",
+                            "config": {
+                              "reasonFrom": "lookup"
+                            }
+                          }
+                       ]
+                     }
+                   }
+                 ]
+               }
+             ]
+           }""".stripMargin,
+        sc).collect()
+    
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+    
+      // test the record
+      val recordMap = enriched.head
+      recordMap.size should be (7)
+      recordMap.get("reasonForReject") should be (Some("Invalid KEYFIELD: 'AA'"))
+      recordMap.get("AField") should be (Some("AA"))
+      recordMap.get("BField") should be (Some("B"))
+      recordMap.get("CField") should be (Some("10"))
+      recordMap.get("DField") should be (Some("11"))
+      // these should be there from before the rejection:
+      recordMap.get("X") should be (Some("XVal"))
+      recordMap.get("Y") should be (Some("YVal"))
     }
 
     it("should output all input fields but also any enriched fields from action lists AFTER the rejection") {

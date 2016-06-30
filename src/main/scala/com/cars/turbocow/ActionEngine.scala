@@ -76,9 +76,9 @@ object ActionEngine
       // enrichment actions.  Later it will be converted to Avro format and saved.
       var enrichedMap: Map[String, String] = new HashMap[String, String]
 
-      // For every action in the list
-      items.value.foreach{ action =>
-        val result = action.perform(ast, enrichedMap, actionContext)
+      // For every item, process its actionlist.
+      items.value.foreach{ item =>
+        val result = item.perform(ast, enrichedMap, actionContext)
         enrichedMap = enrichedMap ++ result.enrichedUpdates
       }
 

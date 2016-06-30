@@ -25,7 +25,24 @@ trait Action extends Serializable
 /** This is what is returned from perform()
   */
 case class PerformResult(
-  enrichedUpdates: Map[String, String] = Map.empty[String, String]
+  // The updates to the enriched map.  Any keys specified will overwrite the 
+  // current keys in the map.
+  enrichedUpdates: Map[String, String] = Map.empty[String, String],
+
+  // If true, the engine will short-circuit and exit the processing of this action list,
+  // moving on to the next.
+  stopProcessingActionList: Boolean = false
 )
+{
+
+  /** Combine this PerformResult with another.  (merges the maps together, 
+    * and if stopProcessing is true, keeps it true.)
+    */
+  def combineWith(other: PerformResult): PerformResult = {
+    PerformResult(
+      enrichedUpdates ++ other.enrichedUpdates, 
+      stopProcessingActionList || other.stopProcessingActionList)
+  }
+}
 
 

@@ -6,7 +6,7 @@ package com.cars.turbocow
 case class ActionContext(
 
   // Table caches:  Dataframe Rows converted into a Map for ease of lookup
-  tableCaches: Map[String, TableCache],
+  tableCaches: Map[String, TableCache] = Map.empty[String, TableCache],
 
   // The collected list of all rejection reasons determined while processing an action
   rejectionReasons: RejectionCollection = new RejectionCollection(),

@@ -146,11 +146,13 @@
         // --------------------------------------------------------------------
         // Reject 
         // 
-        // One type of 'reason' field is required, but they are mutually exclusive;
-        // so don't enter more than one:
         {
           "actionType": "reject",
           "config": {
+
+            //-------------------------------------------
+            // One type of 'reason' field is required, but they are mutually exclusive;
+            // so don't enter more than one:
 
             // Hard code the reason in the json.  This won't be modified by the
             // program or the framework at all.
@@ -161,6 +163,13 @@
             // or fails).
             // For example, use the below in the onFail section of a lookup action:
             "reasonFrom": "lookup"
+            //-------------------------------------------
+
+            // Stop processing the action list.  The default is true as shown,
+            // but if false is set here, the action list will continue processing
+            // after the rejection.
+            // Use with care.
+            "stopProcessingActionList": true
           }
         }
       ]

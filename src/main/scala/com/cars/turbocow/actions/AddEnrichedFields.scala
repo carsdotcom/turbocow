@@ -2,14 +2,17 @@ package com.cars.turbocow
 
 import org.json4s._
 
-class AddEnrichedFields(actionConfig: JValue) extends Action
+class AddEnrichedFields(kvList: List[(String, String)]) extends Action
 {
-
-  // create list of key-value tuples from the config
-  val kvList = actionConfig.children.map{ jObj =>
-    implicit val formats = org.json4s.DefaultFormats
-    ( (jObj \ "key").extract[String], (jObj \ "value").extract[String] )
-  }
+  /** Construct with a JValue "config"
+    */
+  def this(actionConfig: JValue) = this(
+    // create list of key-value tuples from the config
+    actionConfig.children.map{ jObj =>
+      implicit val formats = org.json4s.DefaultFormats
+      ( (jObj \ "key").extract[String], (jObj \ "value").extract[String] )
+    }
+  )
 
   /** Perform the action
     */

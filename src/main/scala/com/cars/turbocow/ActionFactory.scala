@@ -33,19 +33,15 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
     // transform to a list of SourceActions:
     itemsList.map{ item =>
 
-      // get source fields
-      val sourceList = (item \ "source").toOption match {
-        case Some(jval) => jval.children.map( _.values.toString)
-        case _ => List.empty[String]
-      }
+      // get name
+      val name = JsonUtil.extractOptionString(item \ "name")
 
       // get destination - is None if null, "", or missing
       val destination = JsonUtil.extractValidString(item \ "destination")
 
       val actions = createActionList(item \ "actions")
 
-      SourceAction( sourceList, actions )
-      // TODO: SourceAction( sourceList, destination, actions )
+      SourceAction( actions, name )
     }
   }
 

@@ -87,7 +87,6 @@ class ActionEngineSpec
         sc).collect()
   
       enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
       enriched.head.size should be (1)
       enriched.head.get("AField") should be (Some("A"))
     }
@@ -969,7 +968,6 @@ class ActionEngineSpec
         sc).collect()
     
       enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
     
       // test the record
       val recordMap = enriched.head
@@ -1038,7 +1036,6 @@ class ActionEngineSpec
         sc).collect()
     
       enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
     
       // test the record
       val recordMap = enriched.head
@@ -1053,13 +1050,105 @@ class ActionEngineSpec
       recordMap.get("Y") should be (Some("YVal"))
     }
 
-    it("should stop processing on an action list if the rejection calls for it") {
-      //todo
+    it("should stop processing on an action list by default") 
+    {
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+        """{
+             "activityType": "impressions",
+             "items": [
+               {
+                 "actions":[
+                   {
+                     "actionType":"reject",
+                     "config": {
+                       "reason": "because"
+                     }
+                   },
+                   {
+                     "actionType":"add-enriched-fields",
+                     "config": [
+                       {
+                         "key": "X",
+                         "value": "XVal"
+                       },
+                       {
+                         "key": "Y",
+                         "value": "YVal"
+                       }
+                     ]
+                   }
+                 ]
+               }
+             ]
+           }""".stripMargin,
+        sc).collect()
+    
+      enriched.size should be (1) // always one because there's only one json input object
+    
+      // test the record
+      val recordMap = enriched.head
+      recordMap.size should be (5)
+      recordMap.get("reasonForReject") should be (Some("because"))
+      recordMap.get("AField") should be (Some("AA"))
+      recordMap.get("BField") should be (Some("B"))
+      recordMap.get("CField") should be (Some("10"))
+      recordMap.get("DField") should be (Some("11"))
     }
 
-    it("should not stop processing on an action list by default") {
-      // todo 
+    it("should not stop processing on an action list if specified in the config")
+    {
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+        """{
+             "activityType": "impressions",
+             "items": [
+               {
+                 "actions":[
+                   {
+                     "actionType":"reject",
+                     "config": {
+                       "reason": "because",
+                       "stopProcessingActionList": false
+                     }
+                   },
+                   {
+                     "actionType":"add-enriched-fields",
+                     "config": [
+                       {
+                         "key": "X",
+                         "value": "XVal"
+                       },
+                       {
+                         "key": "Y",
+                         "value": "YVal"
+                       }
+                     ]
+                   }
+                 ]
+               }
+             ]
+           }""".stripMargin,
+        sc).collect()
+    
+      enriched.size should be (1) // always one because there's only one json input object
+    
+      // test the record
+      val recordMap = enriched.head
+      println("MMMMMMMMMMMMMMMMMMMMMM recordMap = "+recordMap)
+
+      recordMap.size should be (7)
+      recordMap.get("reasonForReject") should be (Some("because"))
+      recordMap.get("AField") should be (Some("AA"))
+      recordMap.get("BField") should be (Some("B"))
+      recordMap.get("CField") should be (Some("10"))
+      recordMap.get("DField") should be (Some("11"))
+      // should be processed
+      recordMap.get("X") should be (Some("XVal"))
+      recordMap.get("Y") should be (Some("YVal"))
     }
+
+    // todo - stop/not stop tests for subactions in lookup
 
   }
 
@@ -1076,14 +1165,12 @@ class ActionEngineSpec
       )
       val sourceActions = List(
         SourceAction(
-          source = List("inputField0"), 
           actions = List(
             testLookups(0),
             testLookups(1)
           )
         ),
         SourceAction(
-          source = List("inputField1"), 
           actions = List(
             testLookups(2),
             testLookups(3),
@@ -1165,7 +1252,6 @@ class ActionEngineSpec
       Try( row.getAs[String]("BField") ) should be (Success("B"))
     }
   }
-
 }
 
   

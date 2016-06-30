@@ -14,7 +14,8 @@ import scala.io.Source
 
 class Reject(
   val reasonFrom: Option[String] = None, 
-  val rejectionReason: Option[String] = None)
+  val rejectionReason: Option[String] = None,
+  val stopProcessingActionList: Boolean = Reject.defaultStopProcessing)
   extends Action {
 
   // can't have both:
@@ -47,6 +48,12 @@ class Reject(
         }
         case JNothing | JNull => None
         case _ => None
+      },
+      stopProcessingActionList = actionConfig match {
+        case jobj: JObject => {
+          JsonUtil.extractOptionalBool(jobj \ "stopProcessingActionList", Reject.defaultStopProcessing)
+        }
+        case _ => Reject.defaultStopProcessing
       }
     )
   }
@@ -73,8 +80,12 @@ class Reject(
     if (reason.nonEmpty)
       context.rejectionReasons.add(reason.get)
 
-    PerformResult()
+    PerformResult(Map.empty[String, String], stopProcessingActionList)
   }
   
 }
 
+object Reject 
+{
+  val defaultStopProcessing = true
+}

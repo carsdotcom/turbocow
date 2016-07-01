@@ -93,9 +93,7 @@ class Lookup(
 
     implicit val jsonFormats = org.json4s.DefaultFormats
 
-    val sourceFields = List(equals) // todo refactor the below to not use a list
-
-    val enrichedUpdates = sourceFields.flatMap{ field => 
+    val result: PerformResult = {
 
       // search in the table for this key
       fromFile match {
@@ -103,8 +101,7 @@ class Lookup(
         
           val caches = context.tableCaches
           if (caches.isEmpty) {
-            // return empty map - can't look up into nonexistent tables!  (todo - reject or throw?)
-            Map.empty[String, String]
+            PerformResult()
           }
           else {  // cache is not empty
 
@@ -117,22 +114,21 @@ class Lookup(
                                    
             // get the table cache and do lookup
             val tc = tableCacheOpt.get
-            // TODOTODO this is forced to a fixed type... how to resolve?
-            val lookupValue = JsonUtil.extractOption[String](inputRecord \ sourceFields.head)
+            val lookupValue = JsonUtil.extractOption[String](inputRecord \ equals)
             // TODOTODO if getting this value fails..... ?
 
-            // todo what if not there, todo check the enriched record first
-            select.map{ field => 
-              val resultOpt = tc.lookup(
-                where, 
-                lookupValue.get.toString,
-                field)
-              if (resultOpt.isEmpty) Map.empty[String, String]
-              else Map(field -> resultOpt.get)
-            }.reduce( _ ++ _ ) // combine all maps into one
+            // todo what if the select fields are not there
+            PerformResult(
+              select.map{ field => 
+                val resultOpt: Option[String] = tc.lookup(
+                  where, 
+                  lookupValue.get.toString,
+                  field)
+                if (resultOpt.isEmpty) Map.empty[String, String]
+                else Map(field -> resultOpt.get)
+              }.reduce( _ ++ _ ) // combine all maps into one
+            )
           }
-
-          //TODO - change status accepted or rejected
         }
         case _ => { // local file lookup
         
@@ -140,7 +136,7 @@ class Lookup(
           val configAST = parse(Source.fromFile(fromFile.get).getLines.mkString)
 
           // get value of source field from the input JSON:
-          val lookupValue = JsonUtil.extractOption[String](inputRecord \ sourceFields.head)
+          val lookupValue = JsonUtil.extractOption[String](inputRecord \ equals)
 
           val dimRecord: Option[JValue] = 
             if( lookupValue.isEmpty ) None
@@ -153,34 +149,25 @@ class Lookup(
             val rejectReason = s"""Invalid $where: '${lookupValue.getOrElse("")}'"""
             context.scratchPad.setResult("lookup", rejectReason)
 
-            if (onFail.actions.isEmpty) {
-              // return an empty list of tuples (that will be converted to an empty map later)
-              List.empty[Tuple2[String, String]]
-            }
-            else { // have onFail actions.  Run them all.
-              // todo add this to SubActionList?
-              onFail.actions.map{ action => 
-                action.perform(inputRecord, currentEnrichedMap, context).enrichedUpdates.toList
-              }.foldLeft( List.empty[Tuple2[String, String]] )( _ ++ _ )
-            }
+            onFail.perform(inputRecord, currentEnrichedMap, context)
           }
           else { // ok, found it
 
             context.scratchPad.setResult("lookup", s"""Field '$where' exists in table '$dbAndTable':  '${lookupValue.getOrElse("")}'""")
 
-            select.map{ selectField => 
+            val enrichedAdditions = select.map{ selectField => 
               val fieldVal = (dimRecord.get \ selectField).extract[String]
               (selectField, fieldVal)
-            }
+            }.toMap
 
-            // todotodo run onPass actions
+            onPass.perform(inputRecord, currentEnrichedMap ++ enrichedAdditions, context)
           }
         }
       }
+    }
 
-    }.toMap
-
-    PerformResult(enrichedUpdates)
+    // return result
+    result
   }
 
 }

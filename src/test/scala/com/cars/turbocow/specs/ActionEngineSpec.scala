@@ -675,7 +675,11 @@ class ActionEngineSpec
                           }
                        ]
                      }
-                   },
+                   }
+                 ]
+               },
+               {
+                 "actions":[
                    {
                      "actionType":"lookup",
                      "config": {
@@ -1135,8 +1139,6 @@ class ActionEngineSpec
     
       // test the record
       val recordMap = enriched.head
-      println("MMMMMMMMMMMMMMMMMMMMMM recordMap = "+recordMap)
-
       recordMap.size should be (7)
       recordMap.get("reasonForReject") should be (Some("because"))
       recordMap.get("AField") should be (Some("AA"))
@@ -1148,7 +1150,82 @@ class ActionEngineSpec
       recordMap.get("Y") should be (Some("YVal"))
     }
 
-    // todo - stop/not stop tests for subactions in lookup
+    it("should stop processing on sub-actions as well as higher-level actions")
+    {
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration.json",
+        """{
+             "activityType": "impressions",
+             "items": [
+               {
+                 "actions":[
+                   {
+                     "actionType":"lookup",
+                     "config": {
+                       "select": [
+                         "EnhField1"
+                       ],
+                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "where": "KEYFIELD",
+                       "equals": "AField",
+                       "onPass": [
+                         {
+                           "actionType": "reject",
+                           "config": {
+                             "reason": "because"
+                           }
+                         },
+                         {
+                           "actionType":"add-enriched-fields",
+                           "config": [
+                             {
+                               "key": "SubX",
+                               "value": "XVal"
+                             }
+                           ]
+                         }
+                       ]
+                     }
+                   },
+                   {
+                     "actionType":"add-enriched-fields",
+                     "config": [
+                       {
+                         "key": "TopX",
+                         "value": "XVal"
+                       }
+                     ]
+                   }
+                 ]
+               }
+             ]
+           }""".stripMargin,
+        sc).collect()
+    
+      enriched.size should be (1) // always one because there's only one json input object
+    
+      // test the record
+      val recordMap = enriched.head
+      println("MMMMMMMMMMMMMMMMMMMMMM recordMap = "+recordMap)
+
+      recordMap should be (
+        Map(
+          ("reasonForReject"-> "because"),
+          ("AField"-> "A"),
+          ("BField"-> "B"),
+          ("CField"-> "10"),
+          ("DField"-> "11"),
+          ("EField"-> ""),
+          ("EnhField1"-> "1")
+        )
+      )
+    }
+
+    it("should continue processing on sub-actions as well as higher-level actions (if requested)")
+    {
+      // todo
+    }
+
 
   }
 

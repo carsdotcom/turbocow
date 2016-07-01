@@ -1223,9 +1223,76 @@ class ActionEngineSpec
 
     it("should continue processing on sub-actions as well as higher-level actions (if requested)")
     {
-      // todo
-    }
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration.json",
+        """{
+             "activityType": "impressions",
+             "items": [
+               {
+                 "actions":[
+                   {
+                     "actionType":"lookup",
+                     "config": {
+                       "select": [
+                         "EnhField1"
+                       ],
+                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "where": "KEYFIELD",
+                       "equals": "AField",
+                       "onPass": [
+                         {
+                           "actionType": "reject",
+                           "config": {
+                             "reason": "because",
+                             "stopProcessingActionList": false
+                           }
+                         },
+                         {
+                           "actionType":"add-enriched-fields",
+                           "config": [
+                             {
+                               "key": "SubX",
+                               "value": "XVal"
+                             }
+                           ]
+                         }
+                       ]
+                     }
+                   },
+                   {
+                     "actionType":"add-enriched-fields",
+                     "config": [
+                       {
+                         "key": "TopX",
+                         "value": "XVal"
+                       }
+                     ]
+                   }
+                 ]
+               }
+             ]
+           }""".stripMargin,
+        sc).collect()
+    
+      enriched.size should be (1) // always one because there's only one json input object
+    
+      // test the record
+      val recordMap = enriched.head
 
+      recordMap should be (
+        Map(
+          ("reasonForReject"-> "because"),
+          ("AField"-> "A"),
+          ("BField"-> "B"),
+          ("CField"-> "10"),
+          ("DField"-> "11"),
+          ("EField"-> ""),
+          ("EnhField1"-> "1"),
+          ("SubX"-> "XVal"),  // subX and topX should be there
+          ("TopX"-> "XVal")
+        )
+      )
+    }
 
   }
 

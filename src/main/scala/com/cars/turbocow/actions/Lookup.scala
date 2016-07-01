@@ -21,8 +21,8 @@ class Lookup(
   val where: String,
   val equals: String,
   val select: List[String],
-  val onPass: SubActionList = new SubActionList,
-  val onFail: SubActionList = new SubActionList
+  val onPass: ActionList = new ActionList,
+  val onFail: ActionList = new ActionList
 ) extends Action {
 
   override def toString() = {
@@ -190,8 +190,8 @@ object Lookup
       equals = JsonUtil.extractValidString(actionConfig \ "equals").getOrElse("equals cannot be blank in 'lookup' action."),
       select = 
         (actionConfig \ "select").children.map{e => JsonUtil.extractString(e) },
-      onPass = new SubActionList(actionConfig \ "onPass", actionFactory),
-      onFail = new SubActionList(actionConfig \ "onFail", actionFactory)
+      onPass = new ActionList(actionConfig \ "onPass", actionFactory),
+      onFail = new ActionList(actionConfig \ "onFail", actionFactory)
     )
   }
 

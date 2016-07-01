@@ -5,7 +5,8 @@ import org.json4s._
 
 import scala.annotation.tailrec
 
-class SubActionList(
+// TODO rename to ActionList
+class ActionList(
   val actions: List[Action] = List.empty[Action]
 )
 extends Action 

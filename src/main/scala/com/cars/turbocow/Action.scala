@@ -20,6 +20,10 @@ trait Action extends Serializable
     currentEnrichedMap: Map[String, String],
     context: ActionContext): 
     PerformResult
+
+  // TODO - Nageswar
+  //def getEnrichedOrInputField(fieldName: String, inputRecord: JValue, enrichedMap: Map[]): String = { } 
+
 }
 
 /** This is what is returned from perform()

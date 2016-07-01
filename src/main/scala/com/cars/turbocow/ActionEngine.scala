@@ -63,6 +63,8 @@ object ActionEngine
       // For every item, process its actionlist.
       items.value.foreach{ item =>
         val result = item.perform(ast, enrichedMap, actionContext)
+        // Note that the 'stopProcessingActionList' field is ignored and not
+        // passed on to the next action list.
         enrichedMap = enrichedMap ++ result.enrichedUpdates
       }
 

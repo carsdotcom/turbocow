@@ -1294,7 +1294,6 @@ class ActionEngineSpec
   describe("getAllLookupActions") {
     it("should create a map with all the lookup actions separated into a list") {
 
-      // create sourceactions list:
       val testLookups = List(
         new Lookup(None, Some("db"), Some("tableA"), "whereA", "sourceField", List("enrichedField0")),
         new Lookup(None, Some("db"), Some("tableB"), "whereB", "sourceField", List("enrichedField1")),
@@ -1302,14 +1301,14 @@ class ActionEngineSpec
         new Lookup(None, Some("db"), Some("tableA"), "whereA2", "sourceField", List("enrichedField2")),
         new Lookup(None, Some("db"), Some("tableA"), "whereA", "sourceField", List("enrichedField3"))
       )
-      val sourceActions = List(
-        SourceAction(
+      val items = List(
+        Item(
           actions = List(
             testLookups(0),
             testLookups(1)
           )
         ),
-        SourceAction(
+        Item(
           actions = List(
             testLookups(2),
             testLookups(3),
@@ -1318,7 +1317,7 @@ class ActionEngineSpec
         ) 
       )
 
-      val gotLookups: Map[String, List[Lookup]] = ActionEngine.getAllLookupActions(sourceActions)
+      val gotLookups: Map[String, List[Lookup]] = ActionEngine.getAllLookupActions(items)
 
       gotLookups.size should be (2)
       gotLookups.foreach{ case(tableName, lookupList) =>

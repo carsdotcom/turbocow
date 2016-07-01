@@ -31,9 +31,8 @@ object ActionEngine
     RDD[Map[String, String]] = {
 
     // Parse the config.  Creates a list of Items.
-    val driverItems = actionFactory.createSourceActions(config)
-    val items: Broadcast[List[SourceAction]] = sc.broadcast(driverItems)
-    //println("sourceActions = "+sourceActions)
+    val driverItems = actionFactory.createItems(config)
+    val items: Broadcast[List[Item]] = sc.broadcast(driverItems)
 
     // Cache all the tables as specified in the items, then broadcast
     val tableCachesDriver: Map[String, TableCache] = cacheTables(driverItems, hiveContext)
@@ -82,17 +81,17 @@ object ActionEngine
     }
   }
 
-  /** Scan a list of SourceActions and return a map of dbAndTable to list of 
+  /** Scan a list of Items and return a map of dbAndTable to list of 
     * all Lookup actions on that table.
     * 
-    * @param  sourceActions to search through for Lookup actions
+    * @param  items to search through for Lookup actions
     * @return map of dbAndTable name to list of Lookup actions that utilize that 
     *                table
     */
-  def getAllLookupActions(sourceActions: List[SourceAction]): 
-    Map[String, List[Lookup]] = {
+  def getAllLookupActions(items: List[Item]):
+  Map[String, List[Lookup]] = {
   
-    val lookupsPerTable = sourceActions.flatMap{ sa => 
+    val lookupsPerTable = items.flatMap{ sa => 
     
       sa.actions.flatMap{ 
     
@@ -116,11 +115,11 @@ object ActionEngine
     * 
     */
   def cacheTables(
-    sourceActions: List[SourceAction], 
+    items: List[Item],
     hiveContext: Option[HiveContext]): 
     Map[String, TableCache] = {
 
-    val allLookups: Map[String, List[Lookup]] = getAllLookupActions(sourceActions)
+    val allLookups: Map[String, List[Lookup]] = getAllLookupActions(items)
 
     // transform the lookups list into a TableCache.
     val tcMap = allLookups.map{ case(tableAndName, lookupList) =>
@@ -155,7 +154,6 @@ object ActionEngine
     * 
     * @param inputRecordAST the input record as parsed JSON AST
     * @param enrichedMap the current enriched record
-    * 
     * @return the new enriched map
     */
   def addAllFieldsToEnriched(

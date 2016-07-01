@@ -2,8 +2,7 @@ package com.cars.turbocow
 
 import com.cars.turbocow.actions.ActionList
 
-// TODO rename this to "Item"
-case class SourceAction(
+case class Item(
   override val actions: List[Action] = List.empty[Action],
   name: Option[String] = None
 ) extends ActionList

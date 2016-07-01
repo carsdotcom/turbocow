@@ -2,7 +2,7 @@ package com.cars.turbocow
 
 import org.json4s.JValue
 
-/** ActionCreator - creates all of the SourceActions based on the config file.
+/** ActionCreator - creates all of the actions to run based on the config file.
   *
   */
 trait ActionCreator {

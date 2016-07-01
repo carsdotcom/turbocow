@@ -4,7 +4,7 @@ import com.cars.turbocow.actions.ActionList
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
-/** ActionFactory - creates all of the SourceActions based on the config file.
+/** ActionFactory - creates all of the actions to run based on the config file.
   * 
   * @param customActionCreators a list of custom ActionCreator objects to be 
   *        used, in order, before checking against the standard framework 
@@ -18,10 +18,9 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
     */
   def this(singleActionCreator: ActionCreator) = this(List(singleActionCreator))
 
-  /** Create the list of SourceAction objects based on the config file.
+  /** Create the list of Item objects based on the config file.
     */
-
-  def createSourceActions(configJson: String): List[SourceAction] = {
+  def createItems(configJson: String): List[Item] = {
 
     implicit val jsonFormats = org.json4s.DefaultFormats
 
@@ -30,7 +29,7 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
 
     val itemsList = (configAST \ "items").children
 
-    // transform to a list of SourceActions:
+    // transform to a list of Items:
     itemsList.map{ item =>
 
       // get name
@@ -41,7 +40,7 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
 
       val actions = createActionList(item \ "actions")
 
-      SourceAction( actions, name )
+      Item( actions, name )
     }
   }
 

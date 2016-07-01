@@ -35,7 +35,7 @@ class ActionFactorySpec extends UnitSpec {
   //////////////////////////////////////////////////////////////////////////////
 
   val resourcesDir = "./src/test/resources/"
-  describe("ActionListFactory.createSourceActions")  // ------------------------------------------------
+  describe("ActionListFactory.createItems")  // ------------------------------------------------
   {
     it("should successfully parse a 1-action config file") {
 
@@ -55,7 +55,7 @@ class ActionFactorySpec extends UnitSpec {
         	]
         }
       """
-      val itemList: List[SourceAction] = actionFactory.createSourceActions(config)
+      val itemList: List[Item] = actionFactory.createItems(config)
       itemList.size should be (1)
       itemList.head.actions.size should be (1)
 
@@ -84,7 +84,7 @@ class ActionFactorySpec extends UnitSpec {
           ]
         }
       """
-      val itemList: List[SourceAction] = actionFactory.createSourceActions(config)
+      val itemList: List[Item] = actionFactory.createItems(config)
       itemList.size should be (1)
       itemList.head.actions.size should be (2)
 
@@ -124,7 +124,7 @@ class ActionFactorySpec extends UnitSpec {
         	]
         }
       """
-      val itemList: List[SourceAction] = actionFactory.createSourceActions(config)
+      val itemList: List[Item] = actionFactory.createItems(config)
       itemList.size should be (2)
 
       // check first item (head)
@@ -166,7 +166,7 @@ class ActionFactorySpec extends UnitSpec {
         	]
         }
       """
-      val itemList: List[SourceAction] = actionFactory.createSourceActions(config)
+      val itemList: List[Item] = actionFactory.createItems(config)
       itemList.size should be (1)
 
       // check first item (head)

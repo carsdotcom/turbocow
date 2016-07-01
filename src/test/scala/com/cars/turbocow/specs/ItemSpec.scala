@@ -14,7 +14,7 @@ import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 
 
-class SourceActionSpec 
+class ItemSpec
   extends UnitSpec 
   //with MockitoSugar 
 {
@@ -44,7 +44,7 @@ class SourceActionSpec
     {
       val inputRecord = parse("""{ "AField": "A", "BField": "B" }""")  
       val actionList = List.empty[Action]
-      val sa = SourceAction( actionList )
+      val sa = Item( actionList )
       val result = sa.perform(inputRecord, Map.empty[String, String], ActionContext())
 
       result.enrichedUpdates should be (Map.empty[String, String])
@@ -55,7 +55,7 @@ class SourceActionSpec
     {
       val inputRecord = parse("""{ "AField": "A", "BField": "B" }""")  
       val actionList = List( new AddEnrichedFields( List( ("key", "val") ) ) )
-      val sa = SourceAction( actionList )
+      val sa = Item( actionList )
 
       sa.actions.size should be (1)
 

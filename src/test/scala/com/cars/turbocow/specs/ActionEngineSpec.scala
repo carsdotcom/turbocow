@@ -748,14 +748,7 @@ class ActionEngineSpec
       // test the record
       val recordMap = enriched.head
       recordMap.size should be (0)
-      recordMap.get("reasonForReject") should be (None)
-      recordMap.get("AField") should be (None)
-      recordMap.get("BField") should be (None)
-      recordMap.get("CField") should be (None)
-      recordMap.get("DField") should be (None)
-      recordMap.get("EnhField1") should be (None)
-      recordMap.get("EnhField2") should be (None)
-      recordMap.get("EnhField3") should be (None)
+      recordMap should be (Map.empty[String, String])
     }
 
     it("should throw an exception when parsing the reject action with no config") {
@@ -1098,6 +1091,8 @@ class ActionEngineSpec
       recordMap.get("BField") should be (Some("B"))
       recordMap.get("CField") should be (Some("10"))
       recordMap.get("DField") should be (Some("11"))
+      recordMap.get("X") should be (None) // (not really necessary)
+      recordMap.get("Y") should be (None)
     }
 
     it("should not stop processing on an action list if specified in the config")

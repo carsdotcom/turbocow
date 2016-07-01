@@ -1,14 +1,15 @@
 package com.cars.turbocow.actions
 
-import com.cars.turbocow.{Action, ActionFactory, JsonUtil, PerformResult}
-
+import com.cars.turbocow._
 import org.json4s._
-import org.json4s.jackson.JsonMethods._
+
+import scala.annotation.tailrec
 
 class SubActionList(
   val actions: List[Action] = List.empty[Action]
 )
-extends Serializable //with Action
+extends Action 
+with Serializable
 {
   /** create actions list for sub actions.
     * You MUST have an actionFactory if parsing actions in onPass/onFail.  
@@ -33,21 +34,42 @@ extends Serializable //with Action
     )
   }
 
-  /** Performs all actions.  
-    *
+  /** Run through all actions and perform each in order.
     */
-    // see 
-//  def perform(
-//    inputRecord: JValue, 
-//    currentEnrichedMap: Map[String, String],
-//    context: ActionContext): 
-//    PerformResult = {
-//
-//    PerformResult( 
-//      actions.map{ action => 
-//        action.perform(sourceFields, inputRecord, currentEnrichedMap, context).enrichedUpdates.toList
-//      }.foldLeft( List.empty[Tuple2[String, String]] )( _ ++ _ )
-//    )
-//  }
+  override def perform(
+    inputRecord: JValue, 
+    currentEnrichedMap: Map[String, String],
+    context: ActionContext): 
+    PerformResult = {
+
+    var enrichedMap = currentEnrichedMap
+    
+    /** Recursively process an action list.  Allows for short-circuiting due to
+      * returning stopProcessingActionList==true.
+      */    
+    @tailrec
+    def recursivePerform(
+      actions: List[Action],
+      prevResult: PerformResult,
+      inputRecord: JValue, 
+      context: ActionContext): 
+      PerformResult = {
+
+      val action = actions.headOption
+      if (action.isEmpty) {
+        prevResult
+      }
+      else {
+        val result = action.get.perform(inputRecord, prevResult.enrichedUpdates, context)
+
+        val actionsLeft = 
+          if (result.stopProcessingActionList) List.empty[Action]
+          else actions.tail
+
+        recursivePerform(actionsLeft, prevResult.combineWith(result), inputRecord, context)
+      }
+    }
+    recursivePerform(actions, PerformResult(currentEnrichedMap), inputRecord, context)
+  }
 }
 

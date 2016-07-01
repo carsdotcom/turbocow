@@ -1,6 +1,6 @@
 package com.cars.turbocow
 
-import com.cars.turbocow.actions.SubActionList
+import com.cars.turbocow.actions.ActionList
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 

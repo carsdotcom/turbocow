@@ -3,9 +3,16 @@ name := "turbocow"
 // required for publish-local, in order to properly set groupId and organization in the POM:
 organization := "com.cars.bigdata"
 
-version := "0.4"
+// Set the version.  Doing it this way makes it accessible later on via the val.
+val ver = "0.3.990"
+version := ver
 
-scalaVersion := "2.10.6" // this is because of spark
+// Set scalaVersion.   Doing it this way makes it accessible later on via the val.
+val scalaVer = "2.10.6" // this is because of spark
+scalaVersion := scalaVer
+
+// Get just the Major.Minor version of scala for use elsewhere
+val scalaVerMM = scalaVer.toString.split('.').take(2).mkString(".")
 
 val json4SVer = "3.2.10" // don't use >= 3.3 due to conflicts
 val sparkVer = "1.5.0" // NOTE this is due to cloudera (CDH 5.5.1)
@@ -13,6 +20,46 @@ val sparkVer = "1.5.0" // NOTE this is due to cloudera (CDH 5.5.1)
 
 // Always fork the jvm (test and run)
 fork := true
+
+// Set this so we can run publish the POM and not error.
+// Note that it gives deprecation warnings if you don't clean first.
+val publishDir = "target/out"
+publishTo := Some(Resolver.file("file", new File(publishDir)))
+
+// Custom task to publish to Artifactory without username and password.
+// Requires an API key that has write access to the repo, stored in an environment 
+// variable called "ARTIFACTORY_KEY".
+// Also requires 'curl' to be available (linux, cygwin/git-bash on windows, etc.)
+val publishToArtifactory = taskKey[Unit]("publish the jar and POM to Artifactory.")
+publishToArtifactory := {
+  
+  // Publish must be called to create the POM.
+  publish.value
+  
+  import sys.process._
+  import scala.language.postfixOps
+
+  val artKey = sys.env.getOrElse("ARTIFACTORY_KEY", throw new Exception("Couldn't find environment variable ARTIFACTORY_KEY."))
+  if (artKey.trim.isEmpty) throw new Exception("ARTIFACTORY_KEY environment variable was empty.")
+  println("artKey = "+artKey)
+  println("scalaVerMM = "+scalaVerMM)
+  
+  val pomFile = s"./target/scala-$scalaVerMM/turbocow_$scalaVerMM-$ver.pom"
+  println("Pushing up the POM file:  "+pomFile)
+  Seq("curl", "-v", 
+    "-H", s"X-JFrog-Art-Api: $artKey", 
+    "-T", pomFile, 
+    s"https://repository.cars.com/artifactory/cars-data-local/com/cars/bigdata/turbocow_$scalaVerMM/$ver/turbocow_$scalaVerMM-$ver.pom"
+  ).!!
+  
+  val jarFile = s"./target/scala-$scalaVerMM/turbocow_$scalaVerMM-$ver.jar"
+  println("Pushing up the JAR file:  "+jarFile)
+  Seq("curl", "-v", 
+    "-H", s"X-JFrog-Art-Api: $artKey", 
+    "-T", jarFile, 
+    s"https://repository.cars.com/artifactory/cars-data-local/com/cars/bigdata/turbocow_$scalaVerMM/$ver/turbocow_$scalaVerMM-$ver.jar"
+  ).!!
+}
 
 libraryDependencies ++= Seq(
 

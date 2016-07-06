@@ -3,7 +3,7 @@ name := "turbocow"
 // required for publish-local, in order to properly set groupId and organization in the POM:
 organization := "com.cars.bigdata"
 
-version := "0.3"
+version := "0.4"
 
 scalaVersion := "2.10.6" // this is because of spark
 

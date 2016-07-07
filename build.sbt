@@ -80,6 +80,10 @@ libraryDependencies ++= Seq(
   //"org.scalactic" %% "scalactic" % "2.2.6" % "test",
   "org.scalatest" %% "scalatest" % "2.2.6" % "test",
   "org.mockito" % "mockito-all" % "1.10.19" % "test"
+
+  // Note that this causes errors with the "-oF" test option below so it's 
+  // disabled until I really need something in here:
+  //"com.holdenkarau" %% "spark-testing-base" % (sparkVer + "_0.3.3") % "test"
 )
 
 // Print full stack traces in tests:

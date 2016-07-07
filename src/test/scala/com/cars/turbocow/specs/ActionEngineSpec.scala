@@ -19,16 +19,12 @@ import scala.util.{Try, Success, Failure}
 import java.io.File
 import java.nio.file.Files
 
+import SparkTestContext._
+
 class ActionEngineSpec 
   extends UnitSpec 
   //with MockitoSugar 
 {
-
-  // initialise spark context
-  //val conf = new SparkConf().setAppName("ActionEngineSpec").setMaster("local[1]")
-  val conf = new SparkConf().setAppName("ActionEngineSpec").setMaster("local[2]")
-  val sc = new SparkContext(conf)
-  val sqlContext = new SQLContext(sc)
 
   // before all tests have run
   override def beforeAll() = {
@@ -49,9 +45,6 @@ class ActionEngineSpec
   // after all tests have run
   override def afterAll() = {
     super.afterAll()
-
-    // stop spark
-    sc.stop()
   }
 
   /** Helper fn
@@ -1382,7 +1375,7 @@ class ActionEngineSpec
       AvroOutputWriter.write(enriched, List("BField"), outputDir.toString, sc)
 
       // now read what we wrote
-      val rows: Array[Row] = sqlContext.read.avro(outputDir.toString).collect()
+      val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
       rows.size should be (1) // one row only
       val row = rows.head
       row.size should be (1) // only one field in that row
@@ -1390,6 +1383,29 @@ class ActionEngineSpec
       Try( row.getAs[String]("BField") ) should be (Success("B"))
     }
   }
+
+/*
+  describe("hive test") {
+    it("should work locally") {
+      import org.apache.spark.sql.hive.HiveContext
+
+      val hiveCtx = new HiveContext(sc)
+
+      val inputDF = hiveCtx.read.json("./src/test/resources/testdimension-multirow.json")
+      inputDF.registerTempTable("dimtable")
+
+      val rows = hiveCtx.sql("SELECT * FROM dimtable").collect
+
+      println("here is the rowsDF from rowsDF.collect: ")
+      rows.foreach{ r=> println(r.toString) }
+
+      rows.size should be (3)
+      rows(0).getAs[String]("KEYFIELD") should be ("A")
+      rows(1).getAs[String]("KEYFIELD") should be ("B1")
+      rows(2).getAs[String]("KEYFIELD") should be ("B2")
+    }
+  }
+*/
 }
 
-  
+ 

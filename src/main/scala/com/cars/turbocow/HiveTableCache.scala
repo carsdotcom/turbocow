@@ -5,7 +5,10 @@ import scala.util.Try
 import org.apache.spark.sql.Row
 
 /** Class to encompass a cached dataframe in memory.  Stored as a key -> Row
-  * map.  Key can be any type (it must be supported by hive though).
+  * maps.  Each map is accessed by the field name of the key to search on.
+  * The key can be any type (it must be supported by hive though).
+  *
+  * IN other words: Map[ KeyField[String], Map[ Key[Any], Row ] ]
   * 
   */
 class HiveTableCache(
@@ -16,30 +19,34 @@ class HiveTableCache(
   // companion object apply() instead.
   tableMap.headOption.getOrElse(throw new Exception("tableMap must not be empty!"))
 
-  /** Do a lookup.
+  /** Do a lookup.  
     * 
+    * @return 
+    *  None - if the index field is not found or if the key is invalid
+    *  Some(Map[String, Option[String]) if key found.  Keys are the 'select' list items,
+    *  and if the requested field exists in the lookup table, the value is a Some.
     */
   override def lookup(
-    where: String,
-    lookupValue: Any,
-    select: String // field to select
-  ): Option[String] = {
+    keyField: String,
+    keyValue: Any,
+    select: List[String]
+  ): Option[Map[String, Option[String]]] = {
 
-    // todo log this error instead?  Below, on error, we just return None
-    val map = tableMap.getOrElse(where, throw new Exception(s"""couldn't find HiveTableCache indexed on field: "$where)"""))
+    // If we can't find this index's map, we just return None
+    val map = tableMap.getOrElse(keyField, return None)
 
-    val rowOpt = map.get(lookupValue)
-    //println("RRRRRRRRRRRRRRRR lookupValue = "+lookupValue)
+    val row = map.getOrElse(keyValue, return None)
+    //println("RRRRRRRRRRRRRRRR keyValue = "+keyValue)
     //tableMap.foreach{ case (k, v) => println(s"RRRRRR key($k), value($v)") }
     //println("RRRRRRRRRRRRRRRR rowOpt = "+rowOpt)
 
-    val foundValue = 
-      if (rowOpt.isEmpty) None
-      else {
-        Try(rowOpt.get.getAs[String](select).trim).toOption
-      }
-    //println("FFFFFFFFFFFFFFFF foundValue = "+foundValue)
-    foundValue
+    // Return a map.  If the select field is not found, set the field in the returned 
+    // map to None.
+    Option(
+      select.map{ field => 
+        (field, Try(row.getAs[String](field).trim).toOption)
+      }.toMap
+    )
   }
 }
 
@@ -48,20 +55,19 @@ class HiveTableCache(
   */
 object HiveTableCache
 {
+
   /** Alternate constructor
     */
   def apply(
     hiveContext: Option[HiveContext],
-    databaseName: Option[String],
-    tableName: Option[String],
+    dbTableName: String,
     keyFields: List[String],
     fieldsToSelect: List[String]
   ): HiveTableCache = {
 
     // check all the input
     hiveContext.getOrElse(throw new Exception("hiveContext was null!"))
-    ValidString(databaseName).getOrElse(throw new Exception("databaseName was not a valid string!"))
-    ValidString(tableName).getOrElse(throw new Exception("tableName was not a valid string!"))
+    ValidString(dbTableName).getOrElse(throw new Exception("dbTableName was not a valid string!"))
     keyFields.foreach{ kf => ValidString(kf).getOrElse(throw new Exception("a keyField was not a valid string!: "+keyFields)) }
     fieldsToSelect.headOption.getOrElse(throw new Exception("fieldsToSelect must not be empty!"))
     fieldsToSelect.foreach{ f => ValidString(f).getOrElse(throw new Exception("a fieldToSelect was not a valid string!: "+fieldsToSelect)) }
@@ -70,7 +76,7 @@ object HiveTableCache
     val fields = (keyFields ++ fieldsToSelect).distinct.mkString(",")
     val query = s"""
       SELECT $fields
-        FROM ${databaseName.get}.${tableName.get}
+        FROM ${dbTableName}
     """
     val df = hiveContext.get.sql(query)
     //println("SSSSSSSSSSSSSSSSSSS showing df:")
@@ -99,6 +105,34 @@ object HiveTableCache
     val tableMap = otherMaps + (keyFields.head-> refMap)
 
     new HiveTableCache(tableMap)
+  }
+
+  /** Alternate constructor - lets you specify the JSON file from which to read
+    * the data and register a temporary hive table.
+    * 
+    * This function is meant to be used while testing.
+    */
+  def apply(
+    hiveContext: Option[HiveContext],
+    dbTableName: String,
+    keyFields: List[String],
+    fieldsToSelect: List[String],
+    jsonRecordsFile: Option[String] // one line per record, only each line is valid json.  Can be local or hdfs, I suppose
+  ): HiveTableCache = {
+
+    if (jsonRecordsFile.nonEmpty) {
+
+      // check these two vars:
+      hiveContext.getOrElse(throw new Exception("hiveContext was null!"))
+      ValidString(dbTableName).getOrElse(throw new Exception("dbTableName was not a valid string!"))
+
+      // Register the temp table
+      val inputDF = hiveContext.get.read.json(jsonRecordsFile.get)
+      inputDF.registerTempTable(dbTableName)
+    }
+
+    // Call the other constructor
+    apply(hiveContext, dbTableName, keyFields, fieldsToSelect)
   }
 }
 

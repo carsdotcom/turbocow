@@ -9,18 +9,18 @@ import org.json4s.JsonAST.JNothing
 import org.json4s.jackson.JsonMethods._
 import com.cars.turbocow.ActionFactory
 import com.cars.turbocow.PerformResult
+import com.cars.turbocow._
 
 import Lookup._
 
 import scala.io.Source
 
 class Lookup(
+  val select: List[String],
+  val fromDBTable: String,
   val fromFile: Option[String],
-  val fromDB: Option[String],
-  val fromTable: Option[String],
   val where: String,
   val equals: String,
-  val select: List[String],
   val onPass: ActionList = new ActionList,
   val onFail: ActionList = new ActionList
 ) extends Action {
@@ -28,51 +28,44 @@ class Lookup(
   override def toString() = {
     
     val sb = new StringBuffer
-    sb.append(s"""Lookup:{fromFile(${fromFile.getOrElse("<NONE>")})""")
-    sb.append(s""", fromDB(${fromDB.getOrElse("<NONE>")})""")
-    sb.append(s""", fromTable(${fromTable.getOrElse("<NONE>")})""")
-    sb.append(s""", where($where)""")
+    sb.append(s"""Lookup:{""")
     sb.append(s""", select = """)
     select.foreach{ f => sb.append(f + ",") }
+    sb.append(s""", fromDBTable(${fromDBTable})""")
+    sb.append(s""", fromFile(${fromFile.getOrElse("<NONE>")})""")
+    sb.append(s""", where($where)""")
     sb.append(s""", onPass = ${onPass.toString}""")
     sb.append(s""", onFail = ${onFail.toString}""")
     sb.append("}")
     sb.toString
   }
 
-  /*
-  val dbAndTableNames = from.split('.')
-  if (fromIsDB)
-  val dbName: Option[String] = 
-    if (!fromIsDB) None
-    else Option(dbAndTableNames.head)
+  // Extract separate database and table names from fromDBTable:
+  private val split = fromDBTable.split('.')
+  val dbName: Option[String] = ValidString(
+    if (split.size > 1) 
+      Option(split.head) 
+    else 
+      None
+  )
+  val tableName = ValidString(
+    if (split.size > 1) 
+      Option(split.tail.mkString(".")) 
+    else if (split.size==1) 
+      Option(split(0)) 
+    else 
+      None
+  ).getOrElse("Problem with 'lookup': couldn't determine table name from 'fromDBTable'.")
 
-  val tableName: Option[String] = 
-    if (!fromIsDB) None
-    else Option(dbAndTableNames.last)
-  */
-
+  // The select fields separated by commas:
   val fields = if(select.length > 1) {
-    val tableName = fromTable match {
-      case None => ""
-      case some => "`" + some.get + "."
-    }
-    tableName + select.mkString("`," + tableName)
+    val table = "`" + tableName + "."
+    table + select.mkString("`," + table) + "`"
   }
   else if(select.length == 1){
     select.head
   }
   else ""
-
-  // "db.table", or "fromFile"
-  // todo - separate object for 'fromFile' lookup, or remove once hdfs/hive testing works
-  val dbAndTable = 
-    if (fromFile.nonEmpty)
-      fromFile.get
-    else if (fromDB.nonEmpty && fromTable.nonEmpty) 
-      s"${fromDB.get}.${fromTable.get}"
-    else
-      throw new Exception(s"couldn't find fromDB($fromDB) or fromTable($fromTable)")
 
   // get all the fields needed in this table (select + where), without dups
   val allFields = { 
@@ -81,6 +74,19 @@ class Lookup(
     }
     else select
   }.distinct
+
+  /** Get the lookup requirements
+    */
+  override def getLookupRequirements: Option[CachedLookupRequirement] = {
+    Option(
+      CachedLookupRequirement(
+        fromDBTable, 
+        List(where),
+        select,
+        fromFile
+      )
+    ) 
+  }
 
   /** Perform the lookup
     *
@@ -93,81 +99,43 @@ class Lookup(
 
     implicit val jsonFormats = org.json4s.DefaultFormats
 
-    val result: PerformResult = {
+    // get value of source field from the input JSON:
+    val lookupValueOpt = JsonUtil.extractOption[String](inputRecord \ equals)
+    // TODOTODO if getting this value fails.....  - lookup will fail.....
 
-      // search in the table for this key
-      fromFile match {
-        case None => { // do hdfs "lookup"
-        
-          val caches = context.tableCaches
-          if (caches.isEmpty) {
-            PerformResult()
-          }
-          else {  // cache is not empty
+    // Get the table caches
+    val caches = context.tableCaches
+    if (caches.isEmpty) return PerformResult()
 
-            fromDB.getOrElse{ throw new Exception("TODO - reject this because fromDB not found in config") }
-            fromTable.getOrElse{ throw new Exception("TODO - reject this because fromTable not found in config") }
+    // get the table cache and do lookup
+    val tableCacheOpt = caches.get(fromDBTable)
+    tableCacheOpt.getOrElse{ throw new Exception("Lookup.perform:  couldn't find cached lookup table for: "+fromDBTable) } // TODOTODO how to avoid exception??
+    val tc = tableCacheOpt.get
 
-            val fromDBAndTable = dbAndTable
-            val tableCacheOpt = caches.get(fromDBAndTable)
-            tableCacheOpt.getOrElse{ throw new Exception("couldn't find cached lookup table for: "+fromDBAndTable) }
-                                   
-            // get the table cache and do lookup
-            val tc = tableCacheOpt.get
-            val lookupValue = JsonUtil.extractOption[String](inputRecord \ equals)
-            // TODOTODO if getting this value fails..... ?
+    // Get the selected fields out of the table
+    val selectedFields: Option[Map[String, Option[String]]] = 
+      tc.lookup(where, lookupValueOpt.getOrElse(null), select)
 
-            // todo what if the select fields are not there
-            PerformResult(
-              select.map{ field => 
-                val resultOpt: Option[String] = tc.lookup(
-                  where, 
-                  lookupValue.get.toString,
-                  field)
-                if (resultOpt.isEmpty) Map.empty[String, String]
-                else Map(field -> resultOpt.get)
-              }.reduce( _ ++ _ ) // combine all maps into one
-            )
-          }
-        }
-        case _ => { // local file lookup
-        
-          // look up local file and parse as json.
-          val configAST = parse(Source.fromFile(fromFile.get).getLines.mkString)
+    if (selectedFields.isEmpty || selectedFields.get.isEmpty) { // failed to find table or record
 
-          // get value of source field from the input JSON:
-          val lookupValue = JsonUtil.extractOption[String](inputRecord \ equals)
+      // Set the failure reason in the scratchpad for pickup later and 
+      // possible rejection.
+      val rejectReason = s"""Invalid $where: '${lookupValueOpt.getOrElse("")}'"""
+      context.scratchPad.setResult("lookup", rejectReason)
 
-          val dimRecord: Option[JValue] = 
-            if( lookupValue.isEmpty ) None
-            else configAST.children.find( record => (record \ where) == JString(lookupValue.get) )
-
-          if (dimRecord.isEmpty) { // failed
-
-            // Set the failure reason in the scratchpad for pickup later and 
-            // possible rejection.
-            val rejectReason = s"""Invalid $where: '${lookupValue.getOrElse("")}'"""
-            context.scratchPad.setResult("lookup", rejectReason)
-
-            onFail.perform(inputRecord, currentEnrichedMap, context)
-          }
-          else { // ok, found it
-
-            context.scratchPad.setResult("lookup", s"""Field '$where' exists in table '$dbAndTable':  '${lookupValue.getOrElse("")}'""")
-
-            val enrichedAdditions = select.map{ selectField => 
-              val fieldVal = (dimRecord.get \ selectField).extract[String]
-              (selectField, fieldVal)
-            }.toMap
-
-            onPass.perform(inputRecord, currentEnrichedMap ++ enrichedAdditions, context)
-          }
-        }
-      }
+      onFail.perform(inputRecord, currentEnrichedMap, context)
     }
+    else { // ok, found it
 
-    // return result
-    result
+      context.scratchPad.setResult("lookup", s"""Field '$where' exists in table '$fromDBTable':  '${lookupValueOpt.getOrElse("")}'""")
+
+      val enrichedAdditions = selectedFields.get.flatMap{ case(key, value) => 
+        if (value.isEmpty) None
+        else Some( (key, value.get) )
+      }.toMap
+
+      onPass.perform(inputRecord, currentEnrichedMap ++ enrichedAdditions, context)
+    }
   }
 
 }
@@ -183,13 +151,12 @@ object Lookup
     Lookup = {
 
     new Lookup(
-      fromFile = JsonUtil.extractOption[String](actionConfig \ "fromFile"),
-      fromDB = JsonUtil.extractOption[String](actionConfig \ "fromDB"),
-      fromTable = JsonUtil.extractOption[String](actionConfig \ "fromTable"),
-      where = JsonUtil.extractString(actionConfig \ "where"),
-      equals = JsonUtil.extractValidString(actionConfig \ "equals").getOrElse("equals cannot be blank in 'lookup' action."),
       select = 
         (actionConfig \ "select").children.map{e => JsonUtil.extractString(e) },
+      fromDBTable = JsonUtil.extractValidString(actionConfig \ "fromDBTable").getOrElse(throw new Exception("'lookup' action has empty 'fromDBTable' config item.")),
+      fromFile = JsonUtil.extractOption[String](actionConfig \ "fromFile"),
+      where = JsonUtil.extractString(actionConfig \ "where"),
+      equals = JsonUtil.extractValidString(actionConfig \ "equals").getOrElse("equals cannot be blank in 'lookup' action."),
       onPass = new ActionList(actionConfig \ "onPass", actionFactory),
       onFail = new ActionList(actionConfig \ "onFail", actionFactory)
     )

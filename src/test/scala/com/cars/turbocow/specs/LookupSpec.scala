@@ -8,6 +8,7 @@ import com.cars.turbocow.actions._
 import org.apache.spark.sql.hive._
 
 import scala.io.Source
+import SparkTestContext._
 
 // Fix for Scalatest on Gradle:  (from http://stackoverflow.com/questions/18823855/cant-run-scalatest-with-gradle)
 // Alternately, try using https://github.com/maiflai/gradle-scalatest
@@ -63,7 +64,8 @@ class LookupSpec extends UnitSpec {
                       "EnhField2",
                       "EnhField3"
                     ],
-                    "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                    "fromDBTable": "testTable",
+                    "fromFile": "./src/test/resources/testdimension-multirow.json",
                     "where": "KEYFIELD",
                     "equals": "AField"
                   }
@@ -87,12 +89,98 @@ class LookupSpec extends UnitSpec {
 
       // create the action and test all fields after construction:
       val action = Lookup(actionConfig, None)
-      action.fromFile.get should be ("./src/test/resources/testdimension-table-for-lookup.json")
-      action.fromDB should be (None)
-      action.fromTable should be (None)
+      action.fromDBTable should be ("testTable")
+      action.fromFile should be (Some("./src/test/resources/testdimension-multirow.json"))
       action.where should be ("KEYFIELD")
       action.equals should be ("AField")
       action.select should be (List("EnhField1", "EnhField2", "EnhField3"))
+    }
+
+  }
+
+  describe("Lookup action") {
+
+    it("should successfully process one lookup") {
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration.json",
+        """{
+             "activityType": "impressions",
+             "items": [
+               {
+                 "actions":[
+                   {
+                     "actionType":"lookup",
+                     "config": {
+                       "select": [
+                         "EnhField1",
+                         "EnhField2",
+                         "EnhField3"
+                       ],
+                       "fromDBTable": "testTable",
+                       "fromFile": "./src/test/resources/testdimension-multirow.json",
+                       "where": "KEYFIELD",
+                       "equals": "AField"
+                     }
+                   }
+                 ]
+               }
+             ]
+           }""".stripMargin,
+        sc,
+        Option(hiveCtx) ).collect()
+  
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+      enriched.head("EnhField1") should be ("1")
+      enriched.head("EnhField2") should be ("2")
+      enriched.head("EnhField3") should be ("3")
+    }
+
+    it("should correctly reject a record when the lookup fails") {
+      val enriched: Array[Map[String, String]] = ActionEngine.process(
+        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+        """{
+             "activityType": "impressions",
+             "items": [
+               {
+                 "actions":[
+                   {
+                     "actionType":"lookup",
+                     "config": {
+                       "select": [
+                         "EnhField1",
+                         "EnhField2",
+                         "EnhField3"
+                       ],
+                       "fromDBTable": "testTable",
+                       "fromFile": "./src/test/resources/testdimension-multirow.json",
+                       "where": "KEYFIELD",
+                       "equals": "AField",
+                       "onFail": [
+                         { 
+                           "actionType": "reject",
+                           "config": {
+                             "reasonFrom": "lookup"
+                           }
+                         }
+                       ]
+                     }
+                   }
+                 ]
+               }
+             ]
+           }""",
+        sc, 
+        Option(hiveCtx) ).collect()
+    
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+    
+      // test the record
+      val recordMap = enriched.head
+      val reasonOpt = recordMap.get("reasonForReject")
+      reasonOpt.isEmpty should be (false)
+      reasonOpt.get should be ("Invalid KEYFIELD: 'AA'")
     }
 
   }

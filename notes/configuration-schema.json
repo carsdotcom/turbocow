@@ -91,16 +91,18 @@
 
             // -------------------------------------------------------
             // "FROM ..."
-            // If this field is present, the next two fields are ignored and
-            // the lookup is done in (what is assumed to be) a JSON array of 
-            // records (simulating an input record).  
-            // This will be mostly used in tests.
-            "fromFile": "./path/to/a/local/file",
+            // How to access the hive table to do the lookup.  
+            // Usually this should be in the form "databaseName.tableName",
+            // but may be just "tableName" if running tests with a test 
+            // hive table.
+            "fromDBTable": "als_search.local_offer_group",
 
-            // How to access the hive table to do the lookup.  If 
-            // "fromFile" is specified, these fields are ignored.
-            "fromDB": "als_search",
-            "fromTable": "local_offer_group",
+            // (Optional) If this FROM field is used, a temporary table will be 
+            // registered with Hive and created from the specified file.  (This 
+            // field will probably only be used during tests.)  The file must 
+            // follow a specific format; see the wiki for more details: 
+            // https://confluence.cars.com/display/HAD/Testing+Spark+Applications+That+Use+Hive
+            "fromFile": "./path/to/a/local/file.json",
             // -------------------------------------------------------
 
             // "WHERE ..."

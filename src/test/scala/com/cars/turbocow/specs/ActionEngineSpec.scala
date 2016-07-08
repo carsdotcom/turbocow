@@ -556,88 +556,6 @@ class ActionEngineSpec
     }
   }
 
-  describe("lookup action") {
-
-    it("should successfully process one lookup") {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration.json",
-        """{
-             "activityType": "impressions",
-             "items": [
-               {
-                 "actions":[
-                   {
-                     "actionType":"lookup",
-                     "config": {
-                       "select": [
-                         "EnhField1",
-                         "EnhField2",
-                         "EnhField3"
-                       ],
-                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
-                       "where": "KEYFIELD",
-                       "equals": "AField"
-                     }
-                   }
-                 ]
-               }
-             ]
-           }""".stripMargin,
-        sc).collect()
-  
-      enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head("EnhField1") should be ("1")
-      enriched.head("EnhField2") should be ("2")
-      enriched.head("EnhField3") should be ("3")
-    }
-
-    it("should correctly reject a record when the lookup fails") {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
-        """{
-             "activityType": "impressions",
-             "items": [
-               {
-                 "actions":[
-                   {
-                     "actionType":"lookup",
-                     "config": {
-                       "select": [
-                         "EnhField1",
-                         "EnhField2",
-                         "EnhField3"
-                       ],
-                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
-                       "where": "KEYFIELD",
-                       "equals": "AField",
-                       "onFail": [
-                         { 
-                           "actionType": "reject",
-                           "config": {
-                             "reasonFrom": "lookup"
-                           }
-                         }
-                       ]
-                     }
-                   }
-                 ]
-               }
-             ]
-           }""",
-        sc).collect()
-    
-      enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-    
-      // test the record
-      val recordMap = enriched.head
-      val reasonOpt = recordMap.get("reasonForReject")
-      reasonOpt.isEmpty should be (false)
-      reasonOpt.get should be ("Invalid KEYFIELD: 'AA'")
-    }
-  }
-
   describe("reject action") {
 
     it("should collect the rejection reasons if more than one action calls reject") 
@@ -656,7 +574,8 @@ class ActionEngineSpec
                          "EnhField1",
                          "EnhField2"
                        ],
-                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "fromDBTable": "testTable",
+                       "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField", 
                        "onFail": [
@@ -679,7 +598,8 @@ class ActionEngineSpec
                        "select": [
                          "EnhField3"
                        ],
-                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "fromDBTable": "testTable",
+                       "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField", 
                        "onFail": [
@@ -696,7 +616,7 @@ class ActionEngineSpec
                }
              ]
            }""".stripMargin,
-        sc).collect()
+        sc, Some(hiveCtx)).collect()
     
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -724,7 +644,8 @@ class ActionEngineSpec
                          "EnhField2",
                          "EnhField3"
                        ],
-                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "fromDBTable": "testTable",
+                       "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField"
                      }
@@ -733,7 +654,7 @@ class ActionEngineSpec
                }
              ]
            }""".stripMargin,
-        sc).collect()
+        sc, Some(hiveCtx)).collect()
     
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -762,7 +683,8 @@ class ActionEngineSpec
                            "EnhField2",
                            "EnhField3"
                          ],
-                         "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                         "fromDBTable": "testTable",
+                         "fromFile": "./src/test/resources/testdimension-multirow.json",
                          "where": "KEYFIELD",
                          "equals": "AField"
                        }
@@ -774,7 +696,7 @@ class ActionEngineSpec
                  }
                ]
              }""".stripMargin,
-          sc)
+          sc, Some(hiveCtx)).collect()
       }
       e.getMessage should be ("'reject' actions should have either a 'reason' or 'reasonFrom' fields.  (Add one)")
     }
@@ -797,7 +719,8 @@ class ActionEngineSpec
                            "EnhField2",
                            "EnhField3"
                          ],
-                         "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                         "fromDBTable": "testTable",
+                         "fromFile": "./src/test/resources/testdimension-multirow.json",
                          "where": "KEYFIELD",
                          "equals": "AField"
                        }
@@ -810,7 +733,7 @@ class ActionEngineSpec
                  }
                ]
              }""".stripMargin,
-          sc)
+        sc, Some(hiveCtx)).collect()
       }
       e.getMessage should be ("'reject' actions should have either a 'reason' or 'reasonFrom' fields.  (Add one)")
     }
@@ -833,7 +756,8 @@ class ActionEngineSpec
                            "EnhField2",
                            "EnhField3"
                          ],
-                         "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                         "fromDBTable": "testTable",
+                         "fromFile": "./src/test/resources/testdimension-multirow.json",
                          "where": "KEYFIELD",
                          "equals": "AField"
                        }
@@ -849,7 +773,7 @@ class ActionEngineSpec
                  }
                ]
              }""".stripMargin,
-          sc)
+        sc, Some(hiveCtx)).collect()
       }
     
       e.getMessage should be ("'reject' actions should not have both 'reason' and 'reasonFrom' fields.  (Pick only one)")
@@ -872,7 +796,8 @@ class ActionEngineSpec
                          "EnhField2",
                          "EnhField3"
                        ],
-                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "fromDBTable": "testTable",
+                       "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField",
                        "onFail": [
@@ -889,7 +814,7 @@ class ActionEngineSpec
                }
              ]
            }""".stripMargin,
-        sc).collect()
+        sc, Some(hiveCtx)).collect()
     
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
@@ -938,7 +863,8 @@ class ActionEngineSpec
                          "EnhField2",
                          "EnhField3"
                        ],
-                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "fromDBTable": "testTable",
+                       "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField",
                        "onFail": [
@@ -955,7 +881,7 @@ class ActionEngineSpec
                }
              ]
            }""".stripMargin,
-        sc).collect()
+        sc, Some(hiveCtx)).collect()
     
       enriched.size should be (1) // always one because there's only one json input object
     
@@ -989,7 +915,8 @@ class ActionEngineSpec
                          "EnhField2",
                          "EnhField3"
                        ],
-                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "fromDBTable": "testTable",
+                       "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField",
                        "onFail": [
@@ -1023,7 +950,7 @@ class ActionEngineSpec
                }
              ]
            }""".stripMargin,
-        sc).collect()
+        sc, Some(hiveCtx)).collect()
     
       enriched.size should be (1) // always one because there's only one json input object
     
@@ -1153,7 +1080,8 @@ class ActionEngineSpec
                        "select": [
                          "EnhField1"
                        ],
-                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "fromDBTable": "testTable",
+                       "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField",
                        "onPass": [
@@ -1188,7 +1116,7 @@ class ActionEngineSpec
                }
              ]
            }""".stripMargin,
-        sc).collect()
+        sc, Some(hiveCtx)).collect()
     
       enriched.size should be (1) // always one because there's only one json input object
     
@@ -1224,7 +1152,8 @@ class ActionEngineSpec
                        "select": [
                          "EnhField1"
                        ],
-                       "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                       "fromDBTable": "testTable",
+                       "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField",
                        "onPass": [
@@ -1260,7 +1189,7 @@ class ActionEngineSpec
                }
              ]
            }""".stripMargin,
-        sc).collect()
+        sc, Some(hiveCtx)).collect()
     
       enriched.size should be (1) // always one because there's only one json input object
     
@@ -1282,55 +1211,6 @@ class ActionEngineSpec
       )
     }
 
-  }
-
-  describe("getAllLookupActions") {
-    it("should create a map with all the lookup actions separated into a list") {
-
-      val testLookups = List(
-        new Lookup(None, Some("db"), Some("tableA"), "whereA", "sourceField", List("enrichedField0")),
-        new Lookup(None, Some("db"), Some("tableB"), "whereB", "sourceField", List("enrichedField1")),
-        new Lookup(None, Some("db"), Some("tableA"), "whereA", "sourceField", List("enrichedField1")),
-        new Lookup(None, Some("db"), Some("tableA"), "whereA2", "sourceField", List("enrichedField2")),
-        new Lookup(None, Some("db"), Some("tableA"), "whereA", "sourceField", List("enrichedField3"))
-      )
-      val items = List(
-        Item(
-          actions = List(
-            testLookups(0),
-            testLookups(1)
-          )
-        ),
-        Item(
-          actions = List(
-            testLookups(2),
-            testLookups(3),
-            testLookups(4)
-          )
-        ) 
-      )
-
-      val gotLookups: Map[String, List[Lookup]] = ActionEngine.getAllLookupActions(items)
-
-      gotLookups.size should be (2)
-      gotLookups.foreach{ case(tableName, lookupList) =>
-
-        tableName match {
-          case "db.tableA" => {
-            lookupList.size should be (4)
-            lookupList(0) should be (testLookups(0))
-            lookupList(1) should be (testLookups(2))
-            lookupList(2) should be (testLookups(3))
-            lookupList(3) should be (testLookups(4))
-          }
-          case "db.tableB" => {
-            lookupList.size should be (1)
-            lookupList.head should be (testLookups(1))
-          }
-          case _ => fail
-        }
-      }
-    }
   }
 
   describe("AvroOutputWriter") {
@@ -1381,6 +1261,56 @@ class ActionEngineSpec
       row.size should be (1) // only one field in that row
       Try( row.getAs[String]("AField") ).isFailure should be (true)
       Try( row.getAs[String]("BField") ) should be (Success("B"))
+    }
+  }
+
+  describe("getAllLookupRequirements") {
+    it("should create a map with all the lookup requirements for each table in a map") {
+
+      val testLookups = List(
+        new Lookup(List("Select0"), "db.tableA", None, "whereA", "sourceField"),
+        new Lookup(List("Select1"), "db.tableB", None, "whereB", "sourceField"),
+        new Lookup(List("Select2"), "db.tableA", None, "whereA", "sourceField"),
+        new Lookup(List("Select3"), "db.tableA", None, "whereA2", "sourceField"),
+        new Lookup(List("Select4"), "db.tableA", None, "whereA3", "sourceField"),
+        new Lookup(List("Select5", "Select5.1"), "db.tableB", None, "whereB", "sourceField")
+      )
+      val items = List(
+        Item(
+          actions = List(
+            testLookups(0),
+            testLookups(1)
+          )
+        ),
+        Item(
+          actions = List(
+            testLookups(2),
+            testLookups(3),
+            testLookups(4),
+            testLookups(5)
+          )
+        ) 
+      )
+
+      val reqs: List[CachedLookupRequirement] = ActionEngine.getAllLookupRequirements(items)
+
+      reqs.size should be (2)
+      reqs.foreach{ req =>
+
+        req.dbTableName match {
+          case "db.tableA" => {
+            val keyFields = List("whereA", "whereA2", "whereA3")
+            req.keyFields.sorted should be (keyFields.sorted)
+            req.selectFields.sorted should be ((keyFields ++ List("Select0", "Select2", "Select3", "Select4")).sorted)
+          }
+          case "db.tableB" => {
+            val keyFields = List("whereB")
+            req.keyFields.sorted should be (List("whereB").sorted)
+            req.selectFields.sorted should be ((keyFields ++ List("Select1", "Select5", "Select5.1")).sorted)
+          }
+          case _ => fail
+        }
+      }
     }
   }
 

@@ -13,6 +13,7 @@ import org.scalatest.mock.MockitoSugar
 import org.mockito.Mockito._
 
 import com.databricks.spark.avro._
+import org.apache.spark.sql.hive.HiveContext
 
 import scala.util.{Try, Success, Failure}
 
@@ -25,6 +26,7 @@ class ActionEngineSpec
   extends UnitSpec 
   //with MockitoSugar 
 {
+  val testTable = "testTable"
 
   // before all tests have run
   override def beforeAll() = {
@@ -38,7 +40,7 @@ class ActionEngineSpec
 
   // after each test has run
   override def afterEach() = {
-    //myAfterEach()
+    if (hiveCtx.tableNames.contains(testTable)) hiveCtx.dropTempTable(testTable)
     super.afterEach()
   }
 
@@ -562,7 +564,7 @@ class ActionEngineSpec
     {
       val enriched: Array[Map[String, String]] = ActionEngine.process(
         "./src/test/resources/input-integration-AA.json", // 'AA' in AField
-        """{
+        s"""{
              "activityType": "impressions",
              "items": [
                {
@@ -574,7 +576,7 @@ class ActionEngineSpec
                          "EnhField1",
                          "EnhField2"
                        ],
-                       "fromDBTable": "testTable",
+                       "fromDBTable": "$testTable",
                        "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField", 
@@ -598,7 +600,7 @@ class ActionEngineSpec
                        "select": [
                          "EnhField3"
                        ],
-                       "fromDBTable": "testTable",
+                       "fromDBTable": "$testTable",
                        "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField", 
@@ -631,7 +633,7 @@ class ActionEngineSpec
     it("should add nothing to the enriched record if lookup fails and no onFail is specified") {
       val enriched: Array[Map[String, String]] = ActionEngine.process(
         "./src/test/resources/input-integration-AA.json", // 'AA' in AField
-        """{
+        s"""{
              "activityType": "impressions",
              "items": [
                {
@@ -644,7 +646,7 @@ class ActionEngineSpec
                          "EnhField2",
                          "EnhField3"
                        ],
-                       "fromDBTable": "testTable",
+                       "fromDBTable": "$testTable",
                        "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField"
@@ -670,7 +672,7 @@ class ActionEngineSpec
       val e = intercept[Exception] {
         ActionEngine.process(
           "./src/test/resources/input-integration-AA.json", // 'AA' in AField
-          """{
+          s"""{
                "activityType": "impressions",
                "items": [
                  {
@@ -683,7 +685,7 @@ class ActionEngineSpec
                            "EnhField2",
                            "EnhField3"
                          ],
-                         "fromDBTable": "testTable",
+                         "fromDBTable": "$testTable",
                          "fromFile": "./src/test/resources/testdimension-multirow.json",
                          "where": "KEYFIELD",
                          "equals": "AField"
@@ -706,7 +708,7 @@ class ActionEngineSpec
       val e = intercept[Exception] {
         ActionEngine.process(
           "./src/test/resources/input-integration-AA.json", // 'AA' in AField
-          """{
+          s"""{
                "activityType": "impressions",
                "items": [
                  {
@@ -719,7 +721,7 @@ class ActionEngineSpec
                            "EnhField2",
                            "EnhField3"
                          ],
-                         "fromDBTable": "testTable",
+                         "fromDBTable": "$testTable",
                          "fromFile": "./src/test/resources/testdimension-multirow.json",
                          "where": "KEYFIELD",
                          "equals": "AField"
@@ -743,7 +745,7 @@ class ActionEngineSpec
       val e = intercept[Exception] {
         ActionEngine.process(
           "./src/test/resources/input-integration-AA.json", // 'AA' in AField
-          """{
+          s"""{
                "activityType": "impressions",
                "items": [
                  {
@@ -756,7 +758,7 @@ class ActionEngineSpec
                            "EnhField2",
                            "EnhField3"
                          ],
-                         "fromDBTable": "testTable",
+                         "fromDBTable": "$testTable",
                          "fromFile": "./src/test/resources/testdimension-multirow.json",
                          "where": "KEYFIELD",
                          "equals": "AField"
@@ -783,7 +785,7 @@ class ActionEngineSpec
     {
       val enriched: Array[Map[String, String]] = ActionEngine.process(
         "./src/test/resources/input-integration-AA.json", // 'AA' in AField
-        """{
+        s"""{
              "activityType": "impressions",
              "items": [
                {
@@ -796,7 +798,7 @@ class ActionEngineSpec
                          "EnhField2",
                          "EnhField3"
                        ],
-                       "fromDBTable": "testTable",
+                       "fromDBTable": "$testTable",
                        "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField",
@@ -833,7 +835,7 @@ class ActionEngineSpec
     {
       val enriched: Array[Map[String, String]] = ActionEngine.process(
         "./src/test/resources/input-integration-AA.json", // 'AA' in AField
-        """{
+        s"""{
              "activityType": "impressions",
              "items": [
                {
@@ -863,7 +865,7 @@ class ActionEngineSpec
                          "EnhField2",
                          "EnhField3"
                        ],
-                       "fromDBTable": "testTable",
+                       "fromDBTable": "$testTable",
                        "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField",
@@ -902,7 +904,7 @@ class ActionEngineSpec
     {
       val enriched: Array[Map[String, String]] = ActionEngine.process(
         "./src/test/resources/input-integration-AA.json", // 'AA' in AField
-        """{
+        s"""{
              "activityType": "impressions",
              "items": [
                {
@@ -915,7 +917,7 @@ class ActionEngineSpec
                          "EnhField2",
                          "EnhField3"
                        ],
-                       "fromDBTable": "testTable",
+                       "fromDBTable": "$testTable",
                        "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField",
@@ -1069,7 +1071,7 @@ class ActionEngineSpec
     {
       val enriched: Array[Map[String, String]] = ActionEngine.process(
         "./src/test/resources/input-integration.json",
-        """{
+        s"""{
              "activityType": "impressions",
              "items": [
                {
@@ -1080,7 +1082,7 @@ class ActionEngineSpec
                        "select": [
                          "EnhField1"
                        ],
-                       "fromDBTable": "testTable",
+                       "fromDBTable": "$testTable",
                        "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField",
@@ -1141,7 +1143,7 @@ class ActionEngineSpec
     {
       val enriched: Array[Map[String, String]] = ActionEngine.process(
         "./src/test/resources/input-integration.json",
-        """{
+        s"""{
              "activityType": "impressions",
              "items": [
                {
@@ -1152,7 +1154,7 @@ class ActionEngineSpec
                        "select": [
                          "EnhField1"
                        ],
-                       "fromDBTable": "testTable",
+                       "fromDBTable": "$testTable",
                        "fromFile": "./src/test/resources/testdimension-multirow.json",
                        "where": "KEYFIELD",
                        "equals": "AField",
@@ -1264,7 +1266,7 @@ class ActionEngineSpec
     }
   }
 
-  describe("getAllLookupRequirements") {
+  describe("getAllFrom") {
     it("should create a map with all the lookup requirements for each table in a map") {
 
       val testLookups = List(
@@ -1292,7 +1294,7 @@ class ActionEngineSpec
         ) 
       )
 
-      val reqs: List[CachedLookupRequirement] = ActionEngine.getAllLookupRequirements(items)
+      val reqs: List[CachedLookupRequirement] = CachedLookupRequirement.getAllFrom(items)
 
       reqs.size should be (2)
       reqs.foreach{ req =>

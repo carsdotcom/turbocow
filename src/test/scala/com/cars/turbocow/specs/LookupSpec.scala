@@ -10,9 +10,6 @@ import org.apache.spark.sql.hive._
 import scala.io.Source
 import SparkTestContext._
 
-// Fix for Scalatest on Gradle:  (from http://stackoverflow.com/questions/18823855/cant-run-scalatest-with-gradle)
-// Alternately, try using https://github.com/maiflai/gradle-scalatest
-//@org.junit.runner.RunWith(classOf[org.scalatest.junit.JUnitRunner])
 class LookupSpec extends UnitSpec {
 
   // before all tests have run
@@ -46,7 +43,7 @@ class LookupSpec extends UnitSpec {
 
   describe("Lookup constructor")  // ------------------------------------------------
   {
-    it("should parse a file correctly") {
+    it("should parse the config correctly (without a fromFile)") {
 
       implicit val formats = org.json4s.DefaultFormats
       val configStr = """
@@ -61,8 +58,51 @@ class LookupSpec extends UnitSpec {
                   "config": {
                     "select": [
                       "EnhField1",
-                      "EnhField2",
-                      "EnhField3"
+                      "EnhField2"
+                    ],
+                    "fromDBTable": "testTable",
+                    "where": "KEYFIELD",
+                    "equals": "AField"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      """
+
+      val configAST = parse(configStr)
+      val actionsList = ((configAST \ "items").children.head \ "actions")
+      actionsList.children.size should be (1)
+
+      // create the action and test all fields after construction:
+      val actionConfig = actionsList.children.head \ "config"
+      actionConfig should not be (JNothing)
+
+      val action = Lookup(actionConfig, None)
+      action.fromDBTable should be ("testTable")
+      action.fromFile should be (None)
+      action.where should be ("KEYFIELD")
+      action.equals should be ("AField")
+      action.select should be (List("EnhField1", "EnhField2"))
+    }
+
+    it("should parse the config correctly with a fromFile") {
+
+      implicit val formats = org.json4s.DefaultFormats
+      val configStr = """
+        {
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "lookup test", 
+              "actions":[
+                {
+                  "actionType":"lookup",
+                  "config": {
+                    "select": [
+                      "EnhField1",
+                      "EnhField2"
                     ],
                     "fromDBTable": "testTable",
                     "fromFile": "./src/test/resources/testdimension-multirow.json",
@@ -80,22 +120,17 @@ class LookupSpec extends UnitSpec {
       val actionsList = ((configAST \ "items").children.head \ "actions")
       actionsList.children.size should be (1)
 
-      val sourceList = ((configAST \ "items").children.head \ "source").children.toList.map{ jval =>
-        JsonUtil.extractString(jval)
-      }
-
+      // create the action and test all fields after construction:
       val actionConfig = actionsList.children.head \ "config"
       actionConfig should not be (JNothing)
 
-      // create the action and test all fields after construction:
       val action = Lookup(actionConfig, None)
       action.fromDBTable should be ("testTable")
       action.fromFile should be (Some("./src/test/resources/testdimension-multirow.json"))
       action.where should be ("KEYFIELD")
       action.equals should be ("AField")
-      action.select should be (List("EnhField1", "EnhField2", "EnhField3"))
+      action.select should be (List("EnhField1", "EnhField2"))
     }
-
   }
 
   describe("Lookup action") {

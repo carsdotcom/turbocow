@@ -22,7 +22,7 @@ case class CachedLookupRequirement(
   def combineWith(other: CachedLookupRequirement): CachedLookupRequirement = {
     if (dbTableName != other.dbTableName) throw new Exception("combining fields from different tables!")
     if (jsonRecordsFile != other.jsonRecordsFile) throw new Exception("combining fields from different jsonRecordsFile(s)!")
-    CachedLookupRequirement(dbTableName, allKeyFields(other), allNeededFields(other))
+    CachedLookupRequirement(dbTableName, allKeyFields(other), allNeededFields(other), jsonRecordsFile)
   }
 
 }

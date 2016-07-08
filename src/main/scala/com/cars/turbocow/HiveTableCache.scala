@@ -8,11 +8,11 @@ import org.apache.spark.sql.Row
   * maps.  Each map is accessed by the field name of the key to search on.
   * The key can be any type (it must be supported by hive though).
   *
-  * IN other words: Map[ KeyField[String], Map[ Key[Any], Row ] ]
+  * In other words: Map[ KeyField[String], Map[ Key[Any], Row ] ]
   * 
   */
 class HiveTableCache(
-  tableMap: Map[String, Map[Any, Row]] )
+  val tableMap: Map[String, Map[Any, Row]] )
   extends TableCache {
 
   // check the table.  This is normally not how to construct this.  Use the 
@@ -146,7 +146,7 @@ object HiveTableCache
     hiveContext: Option[HiveContext]): 
     Map[String, TableCache] = {
 
-    val allRequirements: List[CachedLookupRequirement] = TableCache.getAllLookupRequirements(items)
+    val allRequirements: List[CachedLookupRequirement] = CachedLookupRequirement.getAllFrom(items)
 
     // Return map of all table names to HiveTableCaches.
     allRequirements.map{ req => (

@@ -35,7 +35,8 @@ object ActionEngine
     val items: Broadcast[List[Item]] = sc.broadcast(driverItems)
 
     // Cache all the tables as specified in the items, then broadcast
-    val tableCachesDriver: Map[String, TableCache] = cacheTables(driverItems, hiveContext)
+    val tableCachesDriver: Map[String, TableCache] = 
+      HiveTableCache.cacheTables(driverItems, hiveContext)
     val tableCaches = sc.broadcast(tableCachesDriver)
 
     // Get the input file
@@ -79,31 +80,6 @@ object ActionEngine
       // (For now, just return the enriched data)
       enrichedMap
     }
-  }
-
-  /** Create local caches of all of the tables in the action list.
-    * 
-    * @return map of dbTableName to TableCache
-    * 
-    */
-  def cacheTables(
-    items: List[Item],
-    hiveContext: Option[HiveContext]): 
-    Map[String, TableCache] = {
-
-    val allRequirements: List[CachedLookupRequirement] = TableCache.getAllLookupRequirements(items)
-
-    // Return map of all table names to HiveTableCaches.
-    allRequirements.map{ req => (
-      req.dbTableName, 
-      HiveTableCache(
-        hiveContext,
-        req.dbTableName,
-        keyFields = req.keyFields,
-        fieldsToSelect = req.allNeededFields,
-        req.jsonRecordsFile
-      )
-    )}.toMap
   }
 
   /** Add all fields from input record (as parsed AST) to the enriched map.

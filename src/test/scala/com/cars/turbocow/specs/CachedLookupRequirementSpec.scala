@@ -26,7 +26,7 @@ class CachedLookupRequirementSpec
   extends UnitSpec 
   //with MockitoSugar 
 {
-  val testTable = "testTable"
+  val testTable = "testtable"
 
   // before all tests have run
   override def beforeAll() = {

@@ -26,7 +26,7 @@ class ActionEngineSpec
   extends UnitSpec 
   //with MockitoSugar 
 {
-  val testTable = "testTable"
+  val testTable = "testtable"
 
   // before all tests have run
   override def beforeAll() = {
@@ -36,17 +36,18 @@ class ActionEngineSpec
   // before each test has run
   override def beforeEach() = {
     super.beforeEach()
+    if (hiveCtx.tableNames.contains(testTable)) hiveCtx.dropTempTable(testTable)
   }
 
   // after each test has run
   override def afterEach() = {
-    if (hiveCtx.tableNames.contains(testTable)) hiveCtx.dropTempTable(testTable)
     super.afterEach()
   }
 
   // after all tests have run
   override def afterAll() = {
     super.afterAll()
+    if (hiveCtx.tableNames.contains(testTable)) hiveCtx.dropTempTable(testTable)
   }
 
   /** Helper fn

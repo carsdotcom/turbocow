@@ -14,7 +14,7 @@ import scala.util.Try
 class HiveTableCacheSpec extends UnitSpec {
 
   var actionFactory: ActionFactory = null
-  val testTable = "testTable"
+  val testTable = "testtable"
 
   // before all tests have run
   override def beforeAll() = {
@@ -25,17 +25,18 @@ class HiveTableCacheSpec extends UnitSpec {
   override def beforeEach() = {
     super.beforeEach()
     actionFactory = new ActionFactory
+    if (hiveCtx.tableNames.contains(testTable)) hiveCtx.dropTempTable(testTable)
   }
 
   // after each test has run
   override def afterEach() = {
-    if (hiveCtx.tableNames.contains(testTable)) hiveCtx.dropTempTable(testTable)
     super.afterEach()
   }
 
   // after all tests have run
   override def afterAll() = {
     super.afterAll()
+    if (hiveCtx.tableNames.contains(testTable)) hiveCtx.dropTempTable(testTable)
   }
 
   //////////////////////////////////////////////////////////////////////////////

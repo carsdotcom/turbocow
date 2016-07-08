@@ -11,7 +11,7 @@
                           "EnhField2",
                           "EnhField3"
                          ],
-                        "fromFile": "./src/test/resources/testdimension-table-for-lookup.json",
+                        "fromFile": "./src/test/resources/testdimension-multirow.json",
                         "where": "KEYFIELD",
                         "equals": "AField",
                         "onPass": [

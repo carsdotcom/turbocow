@@ -24,6 +24,10 @@ trait Action extends Serializable
   // TODO - Nageswar
   //def getEnrichedOrInputField(fieldName: String, inputRecord: JValue, enrichedMap: Map[]): String = { } 
 
+  /** All actions need to be able to return their table-caching needs for 
+    * cached lookups.  The default is to return nothing.
+    */
+  def getLookupRequirements: Option[CachedLookupRequirement] = None
 }
 
 /** This is what is returned from perform()

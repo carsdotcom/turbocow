@@ -84,34 +84,38 @@ object ActionEngine
   /** Scan a list of Items and return a map of dbAndTable to list of 
     * all Lookup actions on that table.
     * 
-    * @param  items to search through for Lookup actions
-    * @return map of dbAndTable name to list of Lookup actions that utilize that 
-    *                table
+    * @param  items list to search through for actions needing cached lookup tables
+    * @return list of CachedLookupRequirements objects, one per table
     */
-  def getAllLookupActions(items: List[Item]):
-  Map[String, List[Lookup]] = {
-  
-    val lookupsPerTable = items.flatMap{ sa => 
-    
-      sa.actions.flatMap{ 
-    
-        case lookup: Lookup => lookup.fromFile match { 
-          case s: Some[String] => None // for now (Todo implement caching for local files too)
-          case None => {
-            Some( 
-              lookup.dbAndTable, 
-              lookup
-            )
-          }
-        }
-        case _ => None
-      }
-    }.groupBy(_._1).mapValues(_.map(_._2))
+  def getAllLookupRequirements(items: List[Item]):
+    List[CachedLookupRequirement] = {
 
-    lookupsPerTable
+    val allReqList: List[ (String, CachedLookupRequirement) ] = items.flatMap{ item =>
+      val actionReqs: List[CachedLookupRequirement] = item.actions.flatMap{ action =>
+        action.getLookupRequirements
+      }
+      actionReqs
+    }.map{ req => (req.dbTableName, req) }
+
+    val allReqsMap: Map[ String, List[CachedLookupRequirement]] = 
+      allReqList.groupBy{ _._1 }.map{ case(k, list) => (k, list.map{ _._2 } ) }
+
+    // combine to form one map of dbTableName to requirements.
+    // I feel like this last bit could be simplified.  TODO
+    val combinedRequirements: Map[String, CachedLookupRequirement] = allReqsMap.map{ case (dbTableName, reqList) =>
+      ( dbTableName,
+        reqList.reduceLeft{ (combined, e) =>
+          combined.combineWith(e)
+        } 
+      )
+    }
+
+    combinedRequirements.toList.map{ _._2 }
   }
 
   /** Create local caches of all of the tables in the action list.
+    * 
+    * @return map of dbTableName to TableCache
     * 
     */
   def cacheTables(
@@ -119,36 +123,20 @@ object ActionEngine
     hiveContext: Option[HiveContext]): 
     Map[String, TableCache] = {
 
-    val allLookups: Map[String, List[Lookup]] = getAllLookupActions(items)
+    val allRequirements: List[CachedLookupRequirement] = getAllLookupRequirements(items)
 
-    // transform the lookups list into a TableCache.
-    val tcMap = allLookups.map{ case(tableAndName, lookupList) =>
-
-      val refLookup = lookupList.head
-
-      // the list of ALL fields to get from the table
-      val allFieldsToSelect = lookupList.flatMap{ _.allFields }.distinct
-
-      // the list of all fields to use as 'indexing' keys
-      val allIndexFields = lookupList.map{ _.where }.distinct
-
-      // Make sure all the DBs and Tables match:
-      lookupList.foreach{ lookup => if (lookup.dbAndTable != refLookup.dbAndTable) throw new Exception(s"the database and table did not match: refLookup.fromDB(${refLookup.fromDB}), refLookup.fromTable(${refLookup.fromTable}), refLookup.dbAndTable(${refLookup.dbAndTable}), lookup.fromDB(${lookup.fromDB}), lookup.fromTable(${lookup.fromTable}), lookup.dbAndTable(${lookup.dbAndTable})")}
-
-      // return a name->TableCache pair)
-      (tableAndName, 
-        HiveTableCache(
-          hiveContext,
-          refLookup.fromDB, 
-          tableName = refLookup.fromTable, 
-          keyFields = allIndexFields,
-          fieldsToSelect = allFieldsToSelect
-        )
+    // Return map of all table names to HiveTableCaches.
+    allRequirements.map{ req => (
+      req.dbTableName, 
+      HiveTableCache(
+        hiveContext,
+        req.dbTableName,
+        keyFields = req.keyFields,
+        fieldsToSelect = req.allNeededFields,
+        req.jsonRecordsFile
       )
-    }
-    tcMap
+    )}.toMap
   }
-
 
   /** Add all fields from input record (as parsed AST) to the enriched map.
     * 

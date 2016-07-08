@@ -50,13 +50,14 @@ class HiveTableCache(
   }
 }
 
-/** Companion object.  Use this constructor so that we don't store the hiveContext
-  * in the object.  (It gets broadcast by spark)
+/** Companion object.  
   */
 object HiveTableCache
 {
 
-  /** Alternate constructor
+  /** Alternate constructor.
+    * Use this constructor so that we don't store the hiveContext
+    * in the object.  (It gets broadcast by spark)
     */
   def apply(
     hiveContext: Option[HiveContext],
@@ -78,6 +79,7 @@ object HiveTableCache
       SELECT $fields
         FROM ${dbTableName}
     """
+    println("HHHHHHHHHHHHHHH HiveContext.sql")
     val df = hiveContext.get.sql(query)
     //println("SSSSSSSSSSSSSSSSSSS showing df:")
     //df.show
@@ -134,6 +136,31 @@ object HiveTableCache
     // Call the other constructor
     apply(hiveContext, dbTableName, keyFields, fieldsToSelect)
   }
+
+  /** Create local caches of all of the tables in the action list.
+    * 
+    * @return map of dbTableName to TableCache
+    */
+  def cacheTables(
+    items: List[Item],
+    hiveContext: Option[HiveContext]): 
+    Map[String, TableCache] = {
+
+    val allRequirements: List[CachedLookupRequirement] = TableCache.getAllLookupRequirements(items)
+
+    // Return map of all table names to HiveTableCaches.
+    allRequirements.map{ req => (
+      req.dbTableName, 
+      HiveTableCache(
+        hiveContext,
+        req.dbTableName,
+        keyFields = req.keyFields,
+        fieldsToSelect = req.allNeededFields,
+        req.jsonRecordsFile
+      )
+    )}.toMap
+  }
+
 }
 
 

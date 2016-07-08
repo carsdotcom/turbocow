@@ -24,9 +24,11 @@ class Copy(copyConfigList: List[CopyConfigElement]) extends Action
         case Some(config) => {
           config.children.map{ confElement: JValue =>
             val inputSource = JsonUtil.extractValidString(confElement \ "inputSource")
-            inputSource.getOrElse("'copy' config has empty or missing 'inputSource'.  You must supply a 'inputSource' for each element in a 'copy' config array.")
+            inputSource.getOrElse(throw new Exception("'copy' config has empty or missing 'inputSource'.  You must supply a 'inputSource' for each element in a 'copy' config array."))
+
             val outputTarget = JsonUtil.extractValidString(confElement \ "outputTarget")
-            outputTarget.getOrElse("'copy' config has empty or missing 'outputTarget'.  You must supply a 'outputTarget' for each element in a 'copy' config array.")
+            outputTarget.getOrElse(throw new Exception("'copy' config has empty or missing 'outputTarget'.  You must supply a 'outputTarget' for each element in a 'copy' config array."))
+
             CopyConfigElement(inputSource.get, outputTarget.get)
           }
         }

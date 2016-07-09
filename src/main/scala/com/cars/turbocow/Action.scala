@@ -27,7 +27,7 @@ trait Action extends Serializable
   /** All actions need to be able to return their table-caching needs for 
     * cached lookups.  The default is to return nothing.
     */
-  def getLookupRequirements: Option[CachedLookupRequirement] = None
+  def getLookupRequirements: List[CachedLookupRequirement] = List.empty[CachedLookupRequirement]
 }
 
 /** This is what is returned from perform()

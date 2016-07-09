@@ -77,8 +77,8 @@ class Lookup(
 
   /** Get the lookup requirements
     */
-  override def getLookupRequirements: Option[CachedLookupRequirement] = {
-    Option(
+  override def getLookupRequirements: List[CachedLookupRequirement] = {
+    List(
       CachedLookupRequirement(
         fromDBTable, 
         List(where),

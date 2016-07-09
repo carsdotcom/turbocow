@@ -28,14 +28,16 @@ class HiveTableCache(
     */
   override def lookup(
     keyField: String,
-    keyValue: Any,
+    keyValue: String,
     select: List[String]
   ): Option[Map[String, Option[String]]] = {
 
     // If we can't find this index's map, we just return None
     val map = tableMap.getOrElse(keyField, return None)
 
-    val row = map.getOrElse(keyValue, return None)
+    // todo test coverage for differently-typed keys
+    val convertedKeyValue: Any = convertToCorrectLookupType(keyField, keyValue)
+    val row = map.getOrElse(convertedKeyValue, return None)
     //println("RRRRRRRRRRRRRRRR keyValue = "+keyValue)
     //tableMap.foreach{ case (k, v) => println(s"RRRRRR key($k), value($v)") }
     //println("RRRRRRRRRRRRRRRR rowOpt = "+rowOpt)
@@ -47,6 +49,23 @@ class HiveTableCache(
         (field, Try(row.getAs[String](field).trim).toOption)
       }.toMap
     )
+  }
+
+  /** convert the type
+    */
+  def convertToCorrectLookupType(keyField: String, keyValue: String): Any = {
+
+    // TODO test coverage
+    println("CCCCCCCCCCCCCCCCCCCCCCCC converting to.......")
+    val lookupTable = tableMap.get(keyField).getOrElse(return keyValue) // todo handle failure
+    lookupTable.head._1 match {
+      case a: Long => println("LONG"); keyValue.toLong
+      case a: Int => println("INT"); keyValue.toInt
+      case a: Double => println("DOUBLE"); keyValue.toDouble
+      case a: Float => println("FLOAT"); keyValue.toFloat
+      case a: String => println("STRING"); keyValue.toString
+      case a => println("(NOTHING)"); a
+    }
   }
 }
 
@@ -79,8 +98,9 @@ object HiveTableCache
       SELECT $fields
         FROM ${dbTableName}
     """
-    println("HHHHHHHHHHHHHHH HiveContext.sql")
+    //println("HiveContext.sql - query = "+query)
     val df = hiveContext.get.sql(query)
+    
     //println("SSSSSSSSSSSSSSSSSSS showing df:")
     //df.show
     //println("SSSSSSSSSSSSSSSSSSS showed df.")
@@ -106,7 +126,8 @@ object HiveTableCache
     // return otherMaps with the addition of the refmap
     val tableMap = otherMaps + (keyFields.head-> refMap)
 
-    new HiveTableCache(tableMap)
+    val htc = new HiveTableCache(tableMap)
+    htc
   }
 
   /** Alternate constructor - lets you specify the JSON file from which to read

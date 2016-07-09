@@ -1,10 +1,7 @@
 name := "turbocow"
 
-// required for publish-local, in order to properly set groupId and organization in the POM:
-organization := "com.cars.bigdata"
-
 // Set the version.  Doing it this way makes it accessible later on via the val.
-val ver = "0.6"
+val ver = "0.7"
 version := ver
 
 // Set scalaVersion.   Doing it this way makes it accessible later on via the val.
@@ -20,6 +17,9 @@ val sparkVer = "1.5.0" // NOTE this is due to cloudera (CDH 5.5.1)
 
 // Always fork the jvm (test and run)
 fork := true
+
+// required for publish-local, in order to properly set groupId and organization in the POM:
+organization := "com.cars.bigdata"
 
 // Set this so we can run publish the POM and not error.
 // Note that it gives deprecation warnings if you don't clean first.

@@ -18,7 +18,7 @@ trait TableCache extends Serializable {
     */
   def lookup(
     keyField: String,
-    keyValue: Any,
+    keyValue: String,
     select: List[String]
   ): Option[Map[String, Option[String]]]
 

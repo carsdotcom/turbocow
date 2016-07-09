@@ -114,7 +114,7 @@ class Lookup(
 
     // Get the selected fields out of the table
     val selectedFields: Option[Map[String, Option[String]]] = 
-      tc.lookup(where, lookupValueOpt.getOrElse(null), select)
+      tc.lookup(where, lookupValueOpt.getOrElse(""), select)
 
     if (selectedFields.isEmpty || selectedFields.get.isEmpty) { // failed to find table or record
 

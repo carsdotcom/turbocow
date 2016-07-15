@@ -9,7 +9,6 @@ class ActionList(
   val actions: List[Action] = List.empty[Action]
 )
 extends Action 
-with Serializable
 {
   /** create actions list for sub actions.
     * You MUST have an actionFactory if parsing actions in onPass/onFail.  

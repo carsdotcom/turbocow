@@ -1,6 +1,6 @@
 INSERT AFTER CALL TO ActionEngine.process!
 
-      import com.cars.turbocow.ClusterTestUtil => CTU
+      import com.cars.bigdata.turbocow.ClusterTestUtil => CTU
       ;{
         // TODO TEMP FOR TEST
         //(affiliate_id -> 550039O)

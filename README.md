@@ -29,7 +29,11 @@ In the "onPass" and "onFail" sections, you can run any action list.  You can eve
 
 Rejection is a separate action, but it has ramifications in the framework beyond its immediate effect in the action chain.  When a reject action runs... TODO
 
-### Publishing
+## Testing
+
+When testing, if you "`import SparkTestContext._`" you will get access to global spark, sql, and hive contexts to use in your tests.  Do not create new contexts.  This allows you to separate the tests into different files.  (Note, currently most tests are lumped into ActionEngineSpec.scala, but they will be separated out as time allows.)
+
+## Publishing
 
 1. Compile & test locally
 1. Run integration tests (or manual tests on cluster)

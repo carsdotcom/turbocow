@@ -31,7 +31,7 @@ Rejection is a separate action, but it has ramifications in the framework beyond
 
 ## Testing
 
-When testing, if you "`import SparkTestContext._`" you will get access to global spark, sql, and hive contexts to use in your tests.  Do not create new contexts.  This allows you to separate the tests into different files.  (Note, currently most tests are lumped into ActionEngineSpec.scala, but they will be separated out as time allows.)
+When testing, if you "`import test.SparkTestContext._`" you will get access to global spark, sql, and hive contexts to use in your tests.  Do not create new contexts.  This allows you to separate the tests into different files.  (Note, currently most tests are lumped into ActionEngineSpec.scala, but they will be separated out as time allows.)
 
 ## Publishing
 

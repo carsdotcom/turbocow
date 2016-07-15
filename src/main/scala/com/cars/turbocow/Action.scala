@@ -21,9 +21,6 @@ trait Action extends Serializable
     context: ActionContext): 
     PerformResult
 
-  // TODO - Nageswar
-  //def getEnrichedOrInputField(fieldName: String, inputRecord: JValue, enrichedMap: Map[]): String = { } 
-
   /** All actions need to be able to return their table-caching needs for 
     * cached lookups.  The default is to return nothing.
     */

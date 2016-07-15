@@ -1,4 +1,4 @@
-package com.cars.bigdata.turbocow
+package com.cars.bigdata.turbocow.test
 
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkConf

@@ -8,7 +8,7 @@ import com.cars.bigdata.turbocow.actions._
 import org.apache.spark.sql.hive._
 
 import scala.io.Source
-import SparkTestContext._
+import test.SparkTestContext._
 
 class LookupSpec extends UnitSpec {
 

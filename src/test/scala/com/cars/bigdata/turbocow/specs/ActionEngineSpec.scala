@@ -20,7 +20,7 @@ import scala.util.{Try, Success, Failure}
 import java.io.File
 import java.nio.file.Files
 
-import SparkTestContext._
+import test.SparkTestContext._
 
 class ActionEngineSpec 
   extends UnitSpec 

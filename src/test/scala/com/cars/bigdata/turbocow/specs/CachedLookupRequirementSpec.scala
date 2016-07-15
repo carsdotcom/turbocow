@@ -22,7 +22,7 @@ import org.json4s._
 import java.io.File
 import java.nio.file.Files
 
-import SparkTestContext._
+import test.SparkTestContext._
 
 class CachedLookupRequirementSpec 
   extends UnitSpec 

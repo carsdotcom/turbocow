@@ -3,7 +3,7 @@ package com.cars.bigdata.turbocow
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.Queue
 
-class ScratchPad()
+class ScratchPad extends Serializable()
 {
 
   // main storage is a k-v map, Any values

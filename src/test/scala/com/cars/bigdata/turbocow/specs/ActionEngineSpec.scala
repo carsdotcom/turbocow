@@ -558,7 +558,7 @@ class ActionEngineSpec
       enriched.head("enrichedF") should be ("FFF")
     }
   }
-
+  
   describe("reject action") {
 
     it("should collect the rejection reasons if more than one action calls reject") 

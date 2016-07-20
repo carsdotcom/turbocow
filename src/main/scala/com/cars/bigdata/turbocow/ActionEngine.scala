@@ -27,7 +27,8 @@ object ActionEngine
     config: String,
     sc: SparkContext,
     hiveContext : Option[HiveContext] = None,
-    actionFactory: ActionFactory = new ActionFactory ): 
+    actionFactory: ActionFactory = new ActionFactory,
+    initialScratchPad: ScratchPad = new ScratchPad):
     RDD[Map[String, String]] = {
 
     // Parse the config.  Creates a list of Items.
@@ -38,6 +39,8 @@ object ActionEngine
     val tableCachesDriver: Map[String, TableCache] = 
       HiveTableCache.cacheTables(driverItems, hiveContext)
     val tableCaches = sc.broadcast(tableCachesDriver)
+
+    val initialScratchPadBC = sc.broadcast(initialScratchPad)
 
     // Get the input file
     val inputJsonRDD = sc.textFile(inputDir)
@@ -54,7 +57,7 @@ object ActionEngine
     // for every impression, perform all actions from config file.
     flattenedImpressionsRDD.map{ ast =>
 
-      val actionContext = ActionContext(tableCaches.value)
+      val actionContext = ActionContext(tableCaches.value, scratchPad= initialScratchPadBC.value)
 
       // This is the output map, to be filled with the results of validation &
       // enrichment actions.  Later it will be converted to Avro format and saved.

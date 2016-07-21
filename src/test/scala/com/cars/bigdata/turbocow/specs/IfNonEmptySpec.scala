@@ -340,42 +340,10 @@ class IfNonEmptySpec extends UnitSpec {
       //  }
       //}
 
-      // instead mock it out by hand (see MockIfNonEmpty, above)
-
-      val actionConfig = """{
-        "fieldName": "A",
-        "onPass": [
-        {
-          "actionType": "null",
-          "config": { "name": "A PASS" }
-        }
-        ],
-        "onFail": [
-        {
-          "actionType": "null",
-          "config": { "name": "A FAIL" }
-        }
-        ]
-      }"""
-
-      val mockAction = new MockIfNonEmpty(parse(actionConfig), Some(new ActionFactory()))
-
-      // create action 'factory' that always returns the above mock:
-      val mockActionFactory = new ActionFactory() {
-        override def createAction(
-          actionType: String,
-          actionConfig: JValue):
-          Option[Action] = {
-      
-          actionType match {
-            case "if-non-empty" => Some(mockAction)
-            case _ => None
-          }
-        }
-      }
+      // instead fake-mock by adding an enriched field and checking it.
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "nonempty"}}"""),
+        List("""{ "activityMap": {"A": "notEmpty"}}"""),
         s"""{
           "activityType": "impressions",
           "items": [
@@ -384,17 +352,40 @@ class IfNonEmptySpec extends UnitSpec {
               "actions":[
                 {
                   "actionType":"if-non-empty",
-                  "config": $actionConfig
+                  "config": {
+                    "fieldName": "A",
+                    "onPass": [
+                      {
+                        "actionType": "add-enriched-field",
+                        "config": [
+                          {
+                            "key": "K",
+                            "value": "PASS"
+                          }
+                        ]
+                      }
+                    ],
+                    "onFail": [
+                      {
+                        "actionType": "add-enriched-field",
+                        "config": [
+                          {
+                            "key": "K",
+                            "value": "FAIL"
+                          }
+                        ]
+                      }
+                    ]
+                  }
                 }
               ]
             }
           ]
         }""",
-        sc,
-        actionFactory = mockActionFactory).collect()
+        sc).collect()
 
       enriched.size should be (1) // always
-      enriched.head should be (Map("performCount"->"1"))
+      enriched.head should be (Map("K"->"PASS"))
     }
 
   }

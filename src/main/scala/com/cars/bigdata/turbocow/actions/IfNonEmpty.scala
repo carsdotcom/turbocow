@@ -58,8 +58,13 @@ class IfNonEmpty(
 
     implicit val jsonFormats = org.json4s.DefaultFormats
 
-    PerformResult()
+    // get the test value
+    val testVal = ValidString(JsonUtil.extractOptionString(inputRecord \ fieldName))
 
+    // If found, it exists and is a nonzero length string
+    if (testVal.nonEmpty) onPass.perform(inputRecord, currentEnrichedMap, context)
+    // not found or is equal to ""
+    else onFail.perform(inputRecord, currentEnrichedMap, context)
   }
 
 }

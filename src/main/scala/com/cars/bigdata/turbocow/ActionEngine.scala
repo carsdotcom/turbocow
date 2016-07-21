@@ -1,5 +1,7 @@
 package com.cars.bigdata.turbocow
 
+import java.net.URI
+
 import com.cars.bigdata.turbocow.actions.Lookup
 import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
@@ -12,9 +14,12 @@ import scala.collection.immutable.HashMap
 
 object ActionEngine
 {
+
   /** Process a set of input files by running the actions specified in the config file.
+    * This is the process function that will mostly be called.
     *
-    * @param inputDir should be local file or HDFS Directory
+    * @param inputDir should be local file or HDFS Directory (start with "hdfs://"
+    *        for HDFS files or "/" for local files for testing)
     * @param config configuration file that describes how to process the input data
     * @param sc SparkContext
     * @param hiveContext the hive context, if any
@@ -22,8 +27,58 @@ object ActionEngine
     * 
     * @return RDD of enriched data records, where each record is a key-value map.
     */
-  def process(
-    inputDir: String,
+  def processDir(
+    inputDir: java.net.URI,
+    config: String,
+    sc: SparkContext,
+    hiveContext : Option[HiveContext] = None,
+    actionFactory: ActionFactory = new ActionFactory ): 
+    RDD[Map[String, String]] = {
+
+    // Get the input file
+    val inputJsonRDD = sc.textFile(inputDir.toString)
+
+    processRDD(inputJsonRDD, config, sc, hiveContext, actionFactory)
+  }
+
+  /** Process a set of JSON strings rather than reading from a directory.
+    * This will mostly be used during testing.
+    *
+    * @param inputJSON a sequence of json strings, one JSON record per element.
+    * @param config configuration file that describes how to process the input data
+    * @param sc SparkContext
+    * @param hiveContext the hive context, if any
+    * @param actionFactory the factory you want to utilize for creating Action objects
+    * 
+    * @return RDD of enriched data records, where each record is a key-value map.
+    */
+  def processJsonStrings(
+    inputJson: Seq[String],
+    config: String,
+    sc: SparkContext,
+    hiveContext : Option[HiveContext] = None,
+    actionFactory: ActionFactory = new ActionFactory ): 
+    RDD[Map[String, String]] = {
+
+    // Create RDD from the inputJson strings
+    val inputJsonRDD = sc.parallelize(inputJson)
+
+    processRDD(inputJsonRDD, config, sc, hiveContext, actionFactory)
+  }
+
+  /** Process a set of JSON strings rather than reading from a directory.
+    * This will likely never be called except from the two above process functions.
+    *
+    * @param inputJSONRDD an RDD of JSON Strings to process
+    * @param config configuration file that describes how to process the input data
+    * @param sc SparkContext
+    * @param hiveContext the hive context, if any
+    * @param actionFactory the factory you want to utilize for creating Action objects
+    * 
+    * @return RDD of enriched data records, where each record is a key-value map.
+    */
+  def processRDD(
+    inputJsonRDD: RDD[String],
     config: String,
     sc: SparkContext,
     hiveContext : Option[HiveContext] = None,
@@ -38,9 +93,6 @@ object ActionEngine
     val tableCachesDriver: Map[String, TableCache] = 
       HiveTableCache.cacheTables(driverItems, hiveContext)
     val tableCaches = sc.broadcast(tableCachesDriver)
-
-    // Get the input file
-    val inputJsonRDD = sc.textFile(inputDir)
 
     // parse the input json data
     val flattenedImpressionsRDD = inputJsonRDD.map( jsonString => {

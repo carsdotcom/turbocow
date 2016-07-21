@@ -201,23 +201,65 @@ class IfNonEmptySpec extends UnitSpec {
   }
 
   describe("perform()") {
-    it("should perform actions in onPass when test passes") {
-      fail()
+    val simpleConfig = parse(s"""{
+        "fieldName": "A",
+        "onPass": [ 
+          { 
+            "actionType": "null",
+            "config": { "name": "A PASS" }
+          }
+        ],
+        "onFail": [ 
+          { 
+            "actionType": "null",
+            "config": { "name": "A FAIL" }
+          }
+        ]
+      }""")
+
+    it("should only perform actions in onPass when test passes") {
+      val a = new IfNonEmpty(simpleConfig, Some(new ActionFactory()))
+      val onPassAction = getNullAction(a.onPass.actions.head)
+      val onFailAction = getNullAction(a.onFail.actions.head)
+      onPassAction.wasRun should be (false)
+      onFailAction.wasRun should be (false)
+
+      val result = a.perform(parse("""{"A": "X"}"""), Map.empty[String, String], ActionContext())
+
+      onPassAction.wasRun should be (true)
+      onFailAction.wasRun should be (false)
     }
-    it("should not perform actions in onFail when test passes") {
-      fail()
+
+    it("should only perform actions in onFail when test fails due to empty string") {
+      val a = new IfNonEmpty(simpleConfig, Some(new ActionFactory()))
+      val onPassAction = getNullAction(a.onPass.actions.head)
+      val onFailAction = getNullAction(a.onFail.actions.head)
+      onPassAction.wasRun should be (false)
+      onFailAction.wasRun should be (false)
+
+      val result = a.perform(parse("""{"A": ""}"""), Map.empty[String, String], ActionContext())
+
+      onPassAction.wasRun should be (false)
+      onFailAction.wasRun should be (true)
     }
-    it("should perform actions in onFail when test fails") {
-      fail()
-    }
-    it("should not perform actions in onPass when test fails") {
-      fail()
+
+    it("should only perform actions in onFail when test fails due to nonexistent field in input") {
+      val a = new IfNonEmpty(simpleConfig, Some(new ActionFactory()))
+      val onPassAction = getNullAction(a.onPass.actions.head)
+      val onFailAction = getNullAction(a.onFail.actions.head)
+      onPassAction.wasRun should be (false)
+      onFailAction.wasRun should be (false)
+
+      val result = a.perform(parse("""{"B": "BVal"}"""), Map.empty[String, String], ActionContext())
+
+      onPassAction.wasRun should be (false)
+      onFailAction.wasRun should be (true)
     }
   }
 
   describe("integration test") {
-    it("should TODO{
-      fail()
+    it("should run the action if specified") {
+      fail() // todo
     }
   }
 }

@@ -61,10 +61,14 @@ class IfNonEmpty(
     // get the test value
     val testVal = ValidString(JsonUtil.extractOptionString(inputRecord \ fieldName))
 
-    // If found, it exists and is a nonzero length string
-    if (testVal.nonEmpty) onPass.perform(inputRecord, currentEnrichedMap, context)
-    // not found or is equal to ""
-    else onFail.perform(inputRecord, currentEnrichedMap, context)
+    // If found, it exists and is a nonzero length string; it passes.  Run onPass.
+    if (testVal.nonEmpty) {
+      onPass.perform(inputRecord, currentEnrichedMap, context)
+    }
+    // If not found or is equal to "", it fails.  Run onFail.
+    else {
+      onFail.perform(inputRecord, currentEnrichedMap, context)
+    }
   }
 
 }

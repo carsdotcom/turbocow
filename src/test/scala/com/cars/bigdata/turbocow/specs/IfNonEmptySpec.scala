@@ -1,0 +1,225 @@
+package com.cars.bigdata.turbocow
+
+import org.json4s._
+import org.json4s.JsonDSL._
+import org.json4s.jackson.JsonMethods._
+import org.scalatest.junit.JUnitRunner
+import com.cars.bigdata.turbocow.actions._
+import org.apache.spark.sql.hive._
+
+import scala.io.Source
+import test.SparkTestContext._
+
+import scala.util.Try
+
+class IfNonEmptySpec extends UnitSpec {
+
+  // before all tests have run
+  override def beforeAll() = {
+    super.beforeAll()
+  }
+
+  // before each test has run
+  override def beforeEach() = {
+    super.beforeEach()
+  }
+
+  // after each test has run
+  override def afterEach() = {
+    //myAfterEach()
+    super.afterEach()
+  }
+
+  // after all tests have run
+  override def afterAll() = {
+    super.afterAll()
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  // Tests start
+  //////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  val resourcesDir = "./src/test/resources/"
+
+  def makeNullAL = new ActionList(List(new NullAction))
+
+  def getNullAction(action: Action): NullAction = action match {
+    case na: NullAction => na
+    case _ => fail()
+  }
+
+  describe("primary constructor") {
+    it("should succeed if both onPass and onFail are specified") {
+      val onPass = makeNullAL
+      val onFail = makeNullAL
+      val a = new IfNonEmpty(
+        fieldName = "A", 
+        onPass = onPass,
+        onFail = onFail
+      )
+      a.fieldName should be ("A")
+      a.onPass should be (onPass)
+      a.onFail should be (onFail)
+    }
+
+    it("should throw if fieldName is empty") {
+      intercept[Exception]( new IfNonEmpty("") )
+    }
+
+    it("should throw if fieldName is null") {
+      intercept[Exception]( new IfNonEmpty(null) )
+    }
+
+    it("should throw if neither onPass or onFail is specified") {
+      intercept[Exception]( new IfNonEmpty("fieldName") )
+    }
+
+    it("should not throw if onPass is there but onFail is missing") {
+      Try( new IfNonEmpty("fieldName", onPass=makeNullAL) ).isSuccess should be (true)
+    }
+
+    it("should not throw if onPass is missing but onFail is there") {
+      Try( new IfNonEmpty("fieldName", onFail=makeNullAL) ).isSuccess should be (true)
+    }
+
+    // todo add this test to ActionListSpec
+    it("should throw if onPass or onFail contains a null Action") {
+      intercept[Exception]( new IfNonEmpty("fn", onPass=new ActionList(List(new NullAction, null))))
+      intercept[Exception]( new IfNonEmpty("fn", onFail=new ActionList(List(new NullAction, null))))
+      intercept[Exception]( new IfNonEmpty("fn", onPass=new ActionList(List(null, new NullAction))))
+      intercept[Exception]( new IfNonEmpty("fn", onFail=new ActionList(List(null, new NullAction))))
+    }
+  }
+
+  describe("JSON constructor") {
+    it("should construct - happy path") {
+      val config = parse(s"""{
+        "fieldName": "A",
+        "onPass": [ 
+          { 
+            "actionType": "null",
+            "config": { "name": "A PASS" }
+          }
+        ],
+        "onFail": [ 
+          { 
+            "actionType": "null",
+            "config": { "name": "A FAIL" }
+          }
+        ]
+      }""")
+
+      val a = new IfNonEmpty(config, Some(new ActionFactory()))
+      a.fieldName should be ("A")
+      a.onPass.actions.size should be (1)
+      a.onFail.actions.size should be (1)
+      //a.onPass.actions should be (List[Action](new NullAction(Some("A PASS"))))
+      //a.onFail.actions should be (List[Action](new NullAction(Some("A FAIL"))))
+      val onPassAction = getNullAction(a.onPass.actions.head)
+      val onFailAction = getNullAction(a.onFail.actions.head)
+      onPassAction.name should be (Some("A PASS"))
+      onFailAction.name should be (Some("A FAIL"))
+
+      // Note, this fails too:
+      //List[Action](new NullAction(Some("A"))) should be (List[Action](new NullAction(Some("A"))))
+    }
+
+    it("should throw if fieldName is missing") {
+      val config = parse(s"""{
+        "onPass": [ 
+          { 
+            "actionType": "null",
+            "config": { "name": "A PASS" }
+          }
+        ],
+        "onFail": [ 
+          { 
+            "actionType": "null",
+            "config": { "name": "A FAIL" }
+          }
+        ]
+      }""")
+
+      intercept[Exception]( new IfNonEmpty(config, Some(new ActionFactory())) )
+    }
+
+    it("should succeed if onPass is missing") {
+      val config = parse(s"""{
+        "fieldName": "A",
+        "onFail": [ 
+          { 
+            "actionType": "null",
+            "config": { "name": "A FAIL" }
+          }
+        ]
+      }""")
+
+      Try( new IfNonEmpty(config, Some(new ActionFactory())) ).isSuccess should be (true)
+    }
+
+    it("should succeed if onFail is missing") {
+      val config = parse(s"""{
+        "fieldName": "A",
+        "onPass": [ 
+          { 
+            "actionType": "null",
+            "config": { "name": "A PASS" }
+          }
+        ]
+      }""")
+
+      Try( new IfNonEmpty(config, Some(new ActionFactory())) ).isSuccess should be (true)
+    }
+
+    it("should fail if both onPass & onFail are missing") {
+      val config = parse(s"""{
+        "fieldName": "A"
+      }""")
+      intercept[Exception]( new IfNonEmpty(config, Some(new ActionFactory())) )
+    }
+
+    it("should fail if there is no config section at all") {
+      val config = parse("""{"A":"A"}""") \ "jnothing"
+      intercept[Exception]( new IfNonEmpty(config, Some(new ActionFactory())) )
+    }
+
+  }
+
+
+  describe("getLookupRequirements") {
+    it("should return default requirements") {
+
+      // Null Action doesn't implement getLookupRequirements() so they should be
+      // the same:
+      val a = new IfNonEmpty("fieldname", makeNullAL)
+      val nullAction = new NullAction()
+
+      nullAction.getLookupRequirements should be (a.getLookupRequirements)
+    }
+  }
+
+  describe("perform()") {
+    it("should perform actions in onPass when test passes") {
+      fail()
+    }
+    it("should not perform actions in onFail when test passes") {
+      fail()
+    }
+    it("should perform actions in onFail when test fails") {
+      fail()
+    }
+    it("should not perform actions in onPass when test fails") {
+      fail()
+    }
+  }
+
+  describe("integration test") {
+    it("should TODO{
+      fail()
+    }
+  }
+}
+
+

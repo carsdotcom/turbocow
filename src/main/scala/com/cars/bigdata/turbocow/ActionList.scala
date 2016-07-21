@@ -10,6 +10,10 @@ class ActionList(
 )
 extends Action 
 {
+
+  // Can't have null actions
+  if (actions.filter{ _ == null }.nonEmpty) throw new Exception("""ActionList: can't have null actions in actions""")
+
   /** create actions list for sub actions.
     * You MUST have an actionFactory if parsing actions in onPass/onFail.  
     * Only pass in None if you are running a test.
@@ -32,6 +36,24 @@ extends Action
       }
     )
   }
+
+  ///** Compare two actionlists - todo this doesn't work
+  //  */
+  //override def equals(other: Any): Boolean = {
+  //  other match {
+  //    case otherAL: ActionList => {
+  //      val oIter = otherAL.actions.iterator
+  //      (
+  //        actions.size == otherAL.actions.size &&
+  //          actions.foldLeft(true) { (combined, e) =>
+  //            combined && oIter.hasNext && (e == oIter.next)
+  //          }
+  //      )
+  //    }
+  //    case _ => false
+  //  }
+  //}
+  
 
   /** Run through all actions and perform each in order.
     */

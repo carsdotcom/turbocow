@@ -93,7 +93,8 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
     val replaceNullWithRE = """replace-null-with-(.+)""".r
   
     actionType match {
-      case "add-enriched-fields" => Option(new AddEnrichedFields(actionConfig))
+      case "add-enriched-field" | 
+           "add-enriched-fields" => Option(new AddEnrichedFields(actionConfig))
       case "copy" => Option(new actions.Copy(actionConfig))
       case "if-non-empty" => Option(new actions.IfNonEmpty(actionConfig, Option(this)))
       case "lookup" => Option(actions.Lookup(actionConfig, Option(this)))

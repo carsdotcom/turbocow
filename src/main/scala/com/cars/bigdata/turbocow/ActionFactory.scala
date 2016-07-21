@@ -96,7 +96,7 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
       case "add-enriched-field" | 
            "add-enriched-fields" => Option(new AddEnrichedFields(actionConfig))
       case "copy" => Option(new actions.Copy(actionConfig))
-      case "if-non-empty" => Option(new actions.IfNonEmpty(actionConfig, Option(this)))
+      case "check-non-empty" => Option(new actions.CheckNonEmpty(actionConfig, Option(this)))
       case "lookup" => Option(actions.Lookup(actionConfig, Option(this)))
       case "null" => Option(new actions.NullAction(actionConfig))
       case "reject" => Option(new actions.Reject(actionConfig))

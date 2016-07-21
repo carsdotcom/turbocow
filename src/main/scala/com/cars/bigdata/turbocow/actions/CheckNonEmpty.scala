@@ -13,22 +13,22 @@ import com.cars.bigdata.turbocow._
 
 import scala.io.Source
 
-class IfNonEmpty(
-  val fieldName: String,
+class CheckNonEmpty(
+  val field: String,
   val onPass: ActionList = new ActionList,
   val onFail: ActionList = new ActionList
 ) extends Action {
 
-  ValidString(fieldName).getOrElse(throw new Exception("""IfNonEmpty: fieldName was nonexistent or empty ("")"""))
+  ValidString(field).getOrElse(throw new Exception("""CheckNonEmpty: field was nonexistent or empty ("")"""))
 
   // must have onPass or onFail, otherwise what's the point?
-  if (onPass.actions.isEmpty && onFail.actions.isEmpty) throw new Exception("""IfNonEmpty: expected at least one action in onPass or onFail""")
+  if (onPass.actions.isEmpty && onFail.actions.isEmpty) throw new Exception("""CheckNonEmpty: expected at least one action in onPass or onFail""")
 
   /** JSON constructor 
     */
   def this(config: JValue, actionFactory: Option[ActionFactory]) = {
     this(
-      JsonUtil.extractOptionString(config \ "fieldName").getOrElse(throw new Exception("""IfNonEmpty:  JSON configuration did not have a 'fieldName' object""")),
+      JsonUtil.extractOptionString(config \ "field").getOrElse(throw new Exception("""CheckNonEmpty:  JSON configuration did not have a 'field' object""")),
       new ActionList(config \ "onPass", actionFactory),
       new ActionList(config \ "onFail", actionFactory)
     )
@@ -39,8 +39,8 @@ class IfNonEmpty(
   override def toString() = {
     
     val sb = new StringBuffer
-    sb.append(s"""IfNonEmpty:{""")
-    sb.append(s"""fieldName = ${fieldName}""")
+    sb.append(s"""CheckNonEmpty:{""")
+    sb.append(s"""field = ${field}""")
     sb.append(s""", onPass = ${onPass.toString}""")
     sb.append(s""", onFail = ${onFail.toString}""")
     sb.append("}")
@@ -59,7 +59,7 @@ class IfNonEmpty(
     implicit val jsonFormats = org.json4s.DefaultFormats
 
     // get the test value
-    val testVal = ValidString(JsonUtil.extractOptionString(inputRecord \ fieldName))
+    val testVal = ValidString(JsonUtil.extractOptionString(inputRecord \ field))
 
     // If found, it exists and is a nonzero length string; it passes.  Run onPass.
     if (testVal.nonEmpty) {

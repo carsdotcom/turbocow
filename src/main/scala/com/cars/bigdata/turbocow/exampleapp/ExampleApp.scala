@@ -10,6 +10,7 @@ import java.text.SimpleDateFormat
 import com.cars.bigdata.turbocow._
 import com.cars.bigdata.turbocow.actions._
 
+import java.net.URI
 import scala.collection.immutable.HashMap
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.SparkContext
@@ -71,8 +72,8 @@ object ExampleApp {
       // `ods_affiliate_id` int, 
 
       val enrichedRDD: RDD[Map[String, String]] = 
-        ActionEngine.process(
-          inputFilePath,
+        ActionEngine.processDir(
+          new URI(inputFilePath),
           config,
           sc,
           hiveContext = Option(hiveContext),

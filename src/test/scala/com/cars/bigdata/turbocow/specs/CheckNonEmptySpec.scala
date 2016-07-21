@@ -13,26 +13,7 @@ import test.SparkTestContext._
 import scala.util.Try
 import org.mockito.Mockito._
 
-// note, I'm not sure this tests anything actually.  (TODO)
-class MockIfNonEmpty(
-  config: JValue,
-  actionFactory: Option[ActionFactory]
-) extends IfNonEmpty(config, actionFactory) {
-
-  var performCount = 0
-
-  override def perform(
-    inputRecord: JValue,
-    currentEnrichedMap: Map[String, String],
-    context: ActionContext):
-    PerformResult = {
-
-    performCount += 1
-    PerformResult(Map("performCount"->performCount.toString))
-  }
-}
-
-class IfNonEmptySpec extends UnitSpec {
+class CheckNonEmptySpec extends UnitSpec {
 
   // before all tests have run
   override def beforeAll() = {
@@ -75,42 +56,42 @@ class IfNonEmptySpec extends UnitSpec {
     it("should succeed if both onPass and onFail are specified") {
       val onPass = makeNullAL
       val onFail = makeNullAL
-      val a = new IfNonEmpty(
-        fieldName = "A", 
+      val a = new CheckNonEmpty(
+        field = "A", 
         onPass = onPass,
         onFail = onFail
       )
-      a.fieldName should be ("A")
+      a.field should be ("A")
       a.onPass should be (onPass)
       a.onFail should be (onFail)
     }
 
-    it("should throw if fieldName is empty") {
-      intercept[Exception]( new IfNonEmpty("") )
+    it("should throw if field is empty") {
+      intercept[Exception]( new CheckNonEmpty("") )
     }
 
-    it("should throw if fieldName is null") {
-      intercept[Exception]( new IfNonEmpty(null) )
+    it("should throw if field is null") {
+      intercept[Exception]( new CheckNonEmpty(null) )
     }
 
     it("should throw if neither onPass or onFail is specified") {
-      intercept[Exception]( new IfNonEmpty("fieldName") )
+      intercept[Exception]( new CheckNonEmpty("field") )
     }
 
     it("should not throw if onPass is there but onFail is missing") {
-      Try( new IfNonEmpty("fieldName", onPass=makeNullAL) ).isSuccess should be (true)
+      Try( new CheckNonEmpty("field", onPass=makeNullAL) ).isSuccess should be (true)
     }
 
     it("should not throw if onPass is missing but onFail is there") {
-      Try( new IfNonEmpty("fieldName", onFail=makeNullAL) ).isSuccess should be (true)
+      Try( new CheckNonEmpty("field", onFail=makeNullAL) ).isSuccess should be (true)
     }
 
     // todo add this test to ActionListSpec
     it("should throw if onPass or onFail contains a null Action") {
-      intercept[Exception]( new IfNonEmpty("fn", onPass=new ActionList(List(new NullAction, null))))
-      intercept[Exception]( new IfNonEmpty("fn", onFail=new ActionList(List(new NullAction, null))))
-      intercept[Exception]( new IfNonEmpty("fn", onPass=new ActionList(List(null, new NullAction))))
-      intercept[Exception]( new IfNonEmpty("fn", onFail=new ActionList(List(null, new NullAction))))
+      intercept[Exception]( new CheckNonEmpty("fn", onPass=new ActionList(List(new NullAction, null))))
+      intercept[Exception]( new CheckNonEmpty("fn", onFail=new ActionList(List(new NullAction, null))))
+      intercept[Exception]( new CheckNonEmpty("fn", onPass=new ActionList(List(null, new NullAction))))
+      intercept[Exception]( new CheckNonEmpty("fn", onFail=new ActionList(List(null, new NullAction))))
     }
   }
 
@@ -118,7 +99,7 @@ class IfNonEmptySpec extends UnitSpec {
 
     it("should construct - happy path") {
       val config = parse(s"""{
-        "fieldName": "A",
+        "field": "A",
         "onPass": [ 
           { 
             "actionType": "null",
@@ -133,8 +114,8 @@ class IfNonEmptySpec extends UnitSpec {
         ]
       }""")
 
-      val a = new IfNonEmpty(config, Some(new ActionFactory()))
-      a.fieldName should be ("A")
+      val a = new CheckNonEmpty(config, Some(new ActionFactory()))
+      a.field should be ("A")
       a.onPass.actions.size should be (1)
       a.onFail.actions.size should be (1)
       //a.onPass.actions should be (List[Action](new NullAction(Some("A PASS"))))
@@ -148,7 +129,7 @@ class IfNonEmptySpec extends UnitSpec {
       //List[Action](new NullAction(Some("A"))) should be (List[Action](new NullAction(Some("A"))))
     }
 
-    it("should throw if fieldName is missing") {
+    it("should throw if field is missing") {
       val config = parse(s"""{
         "onPass": [ 
           { 
@@ -164,12 +145,12 @@ class IfNonEmptySpec extends UnitSpec {
         ]
       }""")
 
-      intercept[Exception]( new IfNonEmpty(config, Some(new ActionFactory())) )
+      intercept[Exception]( new CheckNonEmpty(config, Some(new ActionFactory())) )
     }
 
     it("should succeed if onPass is missing") {
       val config = parse(s"""{
-        "fieldName": "A",
+        "field": "A",
         "onFail": [ 
           { 
             "actionType": "null",
@@ -178,12 +159,12 @@ class IfNonEmptySpec extends UnitSpec {
         ]
       }""")
 
-      Try( new IfNonEmpty(config, Some(new ActionFactory())) ).isSuccess should be (true)
+      Try( new CheckNonEmpty(config, Some(new ActionFactory())) ).isSuccess should be (true)
     }
 
     it("should succeed if onFail is missing") {
       val config = parse(s"""{
-        "fieldName": "A",
+        "field": "A",
         "onPass": [ 
           { 
             "actionType": "null",
@@ -192,19 +173,19 @@ class IfNonEmptySpec extends UnitSpec {
         ]
       }""")
 
-      Try( new IfNonEmpty(config, Some(new ActionFactory())) ).isSuccess should be (true)
+      Try( new CheckNonEmpty(config, Some(new ActionFactory())) ).isSuccess should be (true)
     }
 
     it("should fail if both onPass & onFail are missing") {
       val config = parse(s"""{
-        "fieldName": "A"
+        "field": "A"
       }""")
-      intercept[Exception]( new IfNonEmpty(config, Some(new ActionFactory())) )
+      intercept[Exception]( new CheckNonEmpty(config, Some(new ActionFactory())) )
     }
 
     it("should fail if there is no config section at all") {
       val config = parse("""{"A":"A"}""") \ "jnothing"
-      intercept[Exception]( new IfNonEmpty(config, Some(new ActionFactory())) )
+      intercept[Exception]( new CheckNonEmpty(config, Some(new ActionFactory())) )
     }
 
   }
@@ -216,7 +197,7 @@ class IfNonEmptySpec extends UnitSpec {
 
       // Null Action doesn't implement getLookupRequirements() so they should be
       // the same:
-      val a = new IfNonEmpty("fieldname", makeNullAL)
+      val a = new CheckNonEmpty("fieldname", makeNullAL)
       val nullAction = new NullAction()
 
       nullAction.getLookupRequirements should be (a.getLookupRequirements)
@@ -226,7 +207,7 @@ class IfNonEmptySpec extends UnitSpec {
   describe("perform()") {
 
     val simpleConfig = parse(s"""{
-        "fieldName": "A",
+        "field": "A",
         "onPass": [ 
           { 
             "actionType": "null",
@@ -242,7 +223,7 @@ class IfNonEmptySpec extends UnitSpec {
       }""")
 
     it("should only perform actions in onPass when test passes") {
-      val a = new IfNonEmpty(simpleConfig, Some(new ActionFactory()))
+      val a = new CheckNonEmpty(simpleConfig, Some(new ActionFactory()))
       val onPassAction = getNullAction(a.onPass.actions.head)
       val onFailAction = getNullAction(a.onFail.actions.head)
       onPassAction.wasRun should be (false)
@@ -255,7 +236,7 @@ class IfNonEmptySpec extends UnitSpec {
     }
 
     it("should only perform actions in onFail when test fails due to empty string") {
-      val a = new IfNonEmpty(simpleConfig, Some(new ActionFactory()))
+      val a = new CheckNonEmpty(simpleConfig, Some(new ActionFactory()))
       val onPassAction = getNullAction(a.onPass.actions.head)
       val onFailAction = getNullAction(a.onFail.actions.head)
       onPassAction.wasRun should be (false)
@@ -268,7 +249,7 @@ class IfNonEmptySpec extends UnitSpec {
     }
 
     it("should only perform actions in onFail when test fails due to nonexistent field in input") {
-      val a = new IfNonEmpty(simpleConfig, Some(new ActionFactory()))
+      val a = new CheckNonEmpty(simpleConfig, Some(new ActionFactory()))
       val onPassAction = getNullAction(a.onPass.actions.head)
       val onFailAction = getNullAction(a.onFail.actions.head)
       onPassAction.wasRun should be (false)
@@ -283,7 +264,7 @@ class IfNonEmptySpec extends UnitSpec {
 
   describe("integration") {
 
-    it("should create an IfNonEmpty type in the ActionFactory") {
+    it("should create an CheckNonEmpty type in the ActionFactory") {
       val factory = new ActionFactory()
       val items = factory.createItems("""{
         "activityType": "impressions",
@@ -292,9 +273,9 @@ class IfNonEmptySpec extends UnitSpec {
             "name": "test",
             "actions":[
               {
-                "actionType":"if-non-empty",
+                "actionType":"check-non-empty",
                 "config": {
-                  "fieldName": "A",
+                  "field": "A",
                   "onPass": [
                     {
                       "actionType": "null",
@@ -318,7 +299,7 @@ class IfNonEmptySpec extends UnitSpec {
       items.head.actions.size should be (1)
       val action = items.head.actions.head
       action match {
-        case a: IfNonEmpty => ;
+        case a: CheckNonEmpty => ;
         case _ => fail()
       }
     }
@@ -326,7 +307,7 @@ class IfNonEmptySpec extends UnitSpec {
     it("should run the action if specified in a configuration") {
 
       // using this fails - got NPE inside CachedLookupRequirement (!?)
-      //val mockIfNonEmpty = mock[IfNonEmpty]
+      //val mockCheckNonEmpty = mock[CheckNonEmpty]
       //val actionFactory = new ActionFactory() {
       //  override def createAction(
       //    actionType: String,
@@ -334,7 +315,7 @@ class IfNonEmptySpec extends UnitSpec {
       //    Option[Action] = {
       //
       //    actionType match {
-      //      case "if-non-empty" => Some(mockIfNonEmpty)
+      //      case "check-non-empty" => Some(mockCheckNonEmpty)
       //      case _ => None
       //    }
       //  }
@@ -351,9 +332,9 @@ class IfNonEmptySpec extends UnitSpec {
               "name": "test",
               "actions":[
                 {
-                  "actionType":"if-non-empty",
+                  "actionType":"check-non-empty",
                   "config": {
-                    "fieldName": "A",
+                    "field": "A",
                     "onPass": [
                       {
                         "actionType": "add-enriched-field",

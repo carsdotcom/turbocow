@@ -40,6 +40,74 @@
         },
 
         // --------------------------------------------------------------------
+        // Check does a check on a field and if it passes, runs some actions.
+        // If the check fails, it runs some other actions.
+        {
+          "actionType": "check",
+
+          "config": {
+
+            // The "left" operand in the check operation.  For unary checks
+            // (null, empty, etc.), this is the only operand required.
+            "left": "x",
+
+            // (Optional) Specify where to pull the left field from, either
+            // the inputRecord or the enriched record up to this point.
+            // If not specified, the default is to check the enriched record; 
+            // if not found there, it looks in the inputRecord.
+            "leftSource": "enriched|input"
+
+            // The operator.  Valid operators are currently:
+            //   * empty
+            //   * non-empty
+            //   * null
+            //   * non-null
+            //   * numeric
+            //   * non-numeric
+            "op": "non-empty",
+
+            // (OPTIONAL) The right-hand operand.  This is required for binary 
+            // checks (such as "<" or "="), and if specified, is ignored for 
+            // unary checks.
+            "right": "y",
+
+            // (OPTIONAL) Specify where to pull the right field from, either
+            // the inputRecord or the enriched record up to this point.
+            // If not specified, the default is to check the enriched record; 
+            // if not found there, it looks in the inputRecord.
+            "rightSource": "enriched|input",
+
+            // (OPTIONAL) If the check passes (the result is 'yes' or 'true'), then 
+            // all of the actions in the onPass list will be run. 
+            "onPass": [
+              {
+                "actionType": "custom-action",
+                "config": { "key": "val" }
+              },
+              {
+                "actionType": "custom-action2",
+                "config": { "key": "val2" }
+              }
+            ],
+
+            // (OPTIONAL) If the check fails (the result is 'no' or 'false'), then 
+            // all of the actions in the onPass list will be run. 
+            "onFail": [
+               {
+                 "actionType": "custom-action",
+                 "config": { "key": "val" }
+               },
+               {
+                 "actionType": "reject",
+                 "config": {
+                   "reasonFrom": "check"
+                 }
+               }
+            ]
+          }
+        }
+
+        // --------------------------------------------------------------------
         // Copy copies a field's value into a potentially-differently-named field.
         // More configurable than simple-copy.  For each element in config, 
         // you must specify a 'source' and an 'enrichedField' (destination).

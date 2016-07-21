@@ -11,6 +11,26 @@ import scala.io.Source
 import test.SparkTestContext._
 
 import scala.util.Try
+import org.mockito.Mockito._
+
+// note, I'm not sure this tests anything actually.  (TODO)
+class MockIfNonEmpty(
+  config: JValue,
+  actionFactory: Option[ActionFactory]
+) extends IfNonEmpty(config, actionFactory) {
+
+  var performCount = 0
+
+  override def perform(
+    inputRecord: JValue,
+    currentEnrichedMap: Map[String, String],
+    context: ActionContext):
+    PerformResult = {
+
+    performCount += 1
+    PerformResult(Map("performCount"->performCount.toString))
+  }
+}
 
 class IfNonEmptySpec extends UnitSpec {
 
@@ -257,10 +277,122 @@ class IfNonEmptySpec extends UnitSpec {
     }
   }
 
-  describe("integration test") {
-    it("should run the action if specified") {
-      fail() // todo
+  describe("integration") {
+
+    it("should create an IfNonEmpty type in the ActionFactory") {
+      val factory = new ActionFactory()
+      val items = factory.createItems("""{
+        "activityType": "impressions",
+        "items": [
+          {
+            "name": "test",
+            "actions":[
+              {
+                "actionType":"if-non-empty",
+                "config": {
+                  "fieldName": "A",
+                  "onPass": [
+                    {
+                      "actionType": "null",
+                      "config": { "name": "A PASS" }
+                    }
+                  ],
+                  "onFail": [
+                    {
+                      "actionType": "null",
+                      "config": { "name": "A FAIL" }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }""")
+
+      items.size should be (1)
+      items.head.actions.size should be (1)
+      val action = items.head.actions.head
+      action match {
+        case a: IfNonEmpty => ;
+        case _ => fail()
+      }
     }
+
+    it("should run the action if specified in a configuration") {
+
+      // using this fails - got NPE inside CachedLookupRequirement (!?)
+      //val mockIfNonEmpty = mock[IfNonEmpty]
+      //val actionFactory = new ActionFactory() {
+      //  override def createAction(
+      //    actionType: String,
+      //    actionConfig: JValue):
+      //    Option[Action] = {
+      //
+      //    actionType match {
+      //      case "if-non-empty" => Some(mockIfNonEmpty)
+      //      case _ => None
+      //    }
+      //  }
+      //}
+
+      // instead mock it out by hand (see MockIfNonEmpty, above)
+
+      val actionConfig = """{
+        "fieldName": "A",
+        "onPass": [
+        {
+          "actionType": "null",
+          "config": { "name": "A PASS" }
+        }
+        ],
+        "onFail": [
+        {
+          "actionType": "null",
+          "config": { "name": "A FAIL" }
+        }
+        ]
+      }"""
+
+      val mockAction = new MockIfNonEmpty(parse(actionConfig), Some(new ActionFactory()))
+
+      // create action 'factory' that always returns the above mock:
+      val mockActionFactory = new ActionFactory() {
+        override def createAction(
+          actionType: String,
+          actionConfig: JValue):
+          Option[Action] = {
+      
+          actionType match {
+            case "if-non-empty" => Some(mockAction)
+            case _ => None
+          }
+        }
+      }
+
+      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
+        List("""{ "activityMap": {"A": "nonempty"}}"""),
+        s"""{
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "test",
+              "actions":[
+                {
+                  "actionType":"if-non-empty",
+                  "config": $actionConfig
+                }
+              ]
+            }
+          ]
+        }""",
+        sc,
+        actionFactory = mockActionFactory).collect()
+
+      enriched.size should be (1) // always
+      enriched.head should be (Map("performCount"->"1"))
+    }
+
   }
 }
 

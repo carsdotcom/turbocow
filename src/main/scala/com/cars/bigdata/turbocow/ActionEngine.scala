@@ -38,7 +38,7 @@ object ActionEngine
     // Get the input file
     val inputJsonRDD = sc.textFile(inputDir.toString)
 
-    processRDD(inputJsonRDD, config, sc, hiveContext, actionFactory)
+    processJsonRDD(inputJsonRDD, config, sc, hiveContext, actionFactory)
   }
 
   /** Process a set of JSON strings rather than reading from a directory.
@@ -63,7 +63,7 @@ object ActionEngine
     // Create RDD from the inputJson strings
     val inputJsonRDD = sc.parallelize(inputJson)
 
-    processRDD(inputJsonRDD, config, sc, hiveContext, actionFactory)
+    processJsonRDD(inputJsonRDD, config, sc, hiveContext, actionFactory)
   }
 
   /** Process a set of JSON strings rather than reading from a directory.
@@ -77,7 +77,7 @@ object ActionEngine
     * 
     * @return RDD of enriched data records, where each record is a key-value map.
     */
-  def processRDD(
+  def processJsonRDD(
     inputJsonRDD: RDD[String],
     config: String,
     sc: SparkContext,

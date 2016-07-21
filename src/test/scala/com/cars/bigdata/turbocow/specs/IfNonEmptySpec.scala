@@ -71,6 +71,7 @@ class IfNonEmptySpec extends UnitSpec {
   }
 
   describe("primary constructor") {
+
     it("should succeed if both onPass and onFail are specified") {
       val onPass = makeNullAL
       val onFail = makeNullAL
@@ -114,6 +115,7 @@ class IfNonEmptySpec extends UnitSpec {
   }
 
   describe("JSON constructor") {
+
     it("should construct - happy path") {
       val config = parse(s"""{
         "fieldName": "A",
@@ -209,6 +211,7 @@ class IfNonEmptySpec extends UnitSpec {
 
 
   describe("getLookupRequirements") {
+
     it("should return default requirements") {
 
       // Null Action doesn't implement getLookupRequirements() so they should be
@@ -221,6 +224,7 @@ class IfNonEmptySpec extends UnitSpec {
   }
 
   describe("perform()") {
+
     val simpleConfig = parse(s"""{
         "fieldName": "A",
         "onPass": [ 

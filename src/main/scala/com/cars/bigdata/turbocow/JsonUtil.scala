@@ -21,6 +21,11 @@ object JsonUtil {
     jvalue.extract[TYPE]
   }
 
+  /** Aliases for some common extraction types.  (calls extract[])
+    */
+  def extractLong(jvalue : JValue): Long = this.extract[Long](jvalue)
+  def extractString(jvalue : JValue): String = this.extract[String](jvalue)
+
   /** Return an Option as a result of an extraction.
     * If a JValue is JNothing (or JNull), returns None.
     * If the JValue is (any other JValue), extracts the TYPE and 
@@ -51,11 +56,6 @@ object JsonUtil {
       }
     }
   }
-
-  /** Aliases for some common extraction types.
-    */
-  def extractLong(jvalue : JValue): Long = this.extract[Long](jvalue)
-  def extractString(jvalue : JValue): String = this.extract[String](jvalue)
 
   /** Extracts a string.  Calls extractOption[String], but does another check
     * to determine if the string is empty or not.  Return None if the string is

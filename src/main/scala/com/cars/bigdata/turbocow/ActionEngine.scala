@@ -32,13 +32,14 @@ object ActionEngine
     config: String,
     sc: SparkContext,
     hiveContext : Option[HiveContext] = None,
-    actionFactory: ActionFactory = new ActionFactory ): 
+    actionFactory: ActionFactory = new ActionFactory,
+    initialScratchPad: ScratchPad = new ScratchPad):
     RDD[Map[String, String]] = {
 
     // Get the input file
     val inputJsonRDD = sc.textFile(inputDir.toString)
 
-    processJsonRDD(inputJsonRDD, config, sc, hiveContext, actionFactory)
+    processJsonRDD(inputJsonRDD, config, sc, hiveContext, actionFactory, initialScratchPad)
   }
 
   /** Process a set of JSON strings rather than reading from a directory.
@@ -57,13 +58,14 @@ object ActionEngine
     config: String,
     sc: SparkContext,
     hiveContext : Option[HiveContext] = None,
-    actionFactory: ActionFactory = new ActionFactory ): 
+    actionFactory: ActionFactory = new ActionFactory,
+    initialScratchPad: ScratchPad = new ScratchPad):
     RDD[Map[String, String]] = {
 
     // Create RDD from the inputJson strings
     val inputJsonRDD = sc.parallelize(inputJson)
 
-    processJsonRDD(inputJsonRDD, config, sc, hiveContext, actionFactory)
+    processJsonRDD(inputJsonRDD, config, sc, hiveContext, actionFactory, initialScratchPad)
   }
 
   /** Process a set of JSON strings rather than reading from a directory.
@@ -82,7 +84,8 @@ object ActionEngine
     config: String,
     sc: SparkContext,
     hiveContext : Option[HiveContext] = None,
-    actionFactory: ActionFactory = new ActionFactory ): 
+    actionFactory: ActionFactory = new ActionFactory,
+    initialScratchPad: ScratchPad = new ScratchPad):
     RDD[Map[String, String]] = {
 
     // Parse the config.  Creates a list of Items.
@@ -93,6 +96,8 @@ object ActionEngine
     val tableCachesDriver: Map[String, TableCache] = 
       HiveTableCache.cacheTables(driverItems, hiveContext)
     val tableCaches = sc.broadcast(tableCachesDriver)
+
+    val initialScratchPadBC = sc.broadcast(initialScratchPad)
 
     // parse the input json data
     val flattenedImpressionsRDD = inputJsonRDD.map( jsonString => {
@@ -106,7 +111,7 @@ object ActionEngine
     // for every impression, perform all actions from config file.
     flattenedImpressionsRDD.map{ ast =>
 
-      val actionContext = ActionContext(tableCaches.value)
+      val actionContext = ActionContext(tableCaches.value, scratchPad= initialScratchPadBC.value)
 
       // This is the output map, to be filled with the results of validation &
       // enrichment actions.  Later it will be converted to Avro format and saved.

@@ -1,27 +1,17 @@
 package com.cars.bigdata.turbocow
 
-import org.scalatest.junit.JUnitRunner
+import java.io.File
+import java.net.URI
+import java.nio.file.Files
+
 import com.cars.bigdata.turbocow.actions._
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
-import org.apache.spark.SparkConf
+import com.cars.bigdata.turbocow.test.SparkTestContext._
+import com.databricks.spark.avro._
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Row, SQLContext}
+import org.apache.spark.sql.Row
 
 import scala.io.Source
-import org.scalatest.mock.MockitoSugar
-import org.mockito.Mockito._
-
-import com.databricks.spark.avro._
-import org.apache.spark.sql.hive.HiveContext
-
-import scala.util.{Try, Success, Failure}
-
-import java.io.File
-import java.nio.file.Files
-import java.net.URI
-
-import test.SparkTestContext._
+import scala.util.{Success, Try}
 
 class ActionEngineSpec 
   extends UnitSpec 
@@ -558,8 +548,58 @@ class ActionEngineSpec
       enriched.head("enrichedE") should be ("EEE")
       enriched.head("enrichedF") should be ("FFF")
     }
-  }
 
+    it("should be able to enrich from the scratchpad when a test value is set") {
+
+      val scratchPad: ScratchPad = new ScratchPad()
+      scratchPad.set("test","test123")
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
+        """{
+          |  "activityType":"impressions",
+          |  "items":[
+          |    {
+          |      "actions":[
+          |        {
+          |          "actionType":"add-scratch-to-enriched"
+          |        }
+          |      ]
+          |    }
+          |  ]
+          |}""".stripMargin, sc,
+        None,
+        new ActionFactory(new CustomActionCreator),
+        scratchPad).collect()
+
+      enriched.size should be (1) // always one because there's only one json input object
+      enriched.head("test") should be ("test123")
+
+    }
+
+    it("should return empty map in enriched when trying to enrich on an empty scratchpad") {
+
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
+        """{
+          |  "activityType":"impressions",
+          |  "items":[
+          |    {
+          |      "actions":[
+          |        {
+          |          "actionType":"add-scratch-to-enriched"
+          |        }
+          |      ]
+          |    }
+          |  ]
+          |}""".stripMargin, sc,
+        None,
+        new ActionFactory(new CustomActionCreator)).collect()
+
+      enriched.size should be (1) // always one because there's only one json input object
+      enriched.head.size should be (0)
+    }
+  }
+  
   describe("reject action") {
 
     it("should collect the rejection reasons if more than one action calls reject") 
@@ -1318,28 +1358,29 @@ class ActionEngineSpec
     }
   }
 
-/*
-  describe("hive test") {
-    it("should work locally") {
-      import org.apache.spark.sql.hive.HiveContext
 
-      val hiveCtx = new HiveContext(sc)
+  /*
+    describe("hive test") {
+      it("should work locally") {
+        import org.apache.spark.sql.hive.HiveContext
 
-      val inputDF = hiveCtx.read.json("./src/test/resources/testdimension-multirow.json")
-      inputDF.registerTempTable("dimtable")
+        val hiveCtx = new HiveContext(sc)
 
-      val rows = hiveCtx.sql("SELECT * FROM dimtable").collect
+        val inputDF = hiveCtx.read.json("./src/test/resources/testdimension-multirow.json")
+        inputDF.registerTempTable("dimtable")
 
-      println("here is the rowsDF from rowsDF.collect: ")
-      rows.foreach{ r=> println(r.toString) }
+        val rows = hiveCtx.sql("SELECT * FROM dimtable").collect
 
-      rows.size should be (3)
-      rows(0).getAs[String]("KEYFIELD") should be ("A")
-      rows(1).getAs[String]("KEYFIELD") should be ("B1")
-      rows(2).getAs[String]("KEYFIELD") should be ("B2")
+        println("here is the rowsDF from rowsDF.collect: ")
+        rows.foreach{ r=> println(r.toString) }
+
+        rows.size should be (3)
+        rows(0).getAs[String]("KEYFIELD") should be ("A")
+        rows(1).getAs[String]("KEYFIELD") should be ("B1")
+        rows(2).getAs[String]("KEYFIELD") should be ("B2")
+      }
     }
-  }
-*/
+  */
 }
 
  

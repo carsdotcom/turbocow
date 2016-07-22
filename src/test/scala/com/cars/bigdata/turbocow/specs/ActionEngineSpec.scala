@@ -1,27 +1,17 @@
 package com.cars.bigdata.turbocow
 
-import org.scalatest.junit.JUnitRunner
+import java.io.File
+import java.net.URI
+import java.nio.file.Files
+
 import com.cars.bigdata.turbocow.actions._
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
-import org.apache.spark.SparkConf
+import com.cars.bigdata.turbocow.test.SparkTestContext._
+import com.databricks.spark.avro._
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Row, SQLContext}
+import org.apache.spark.sql.Row
 
 import scala.io.Source
-import org.scalatest.mock.MockitoSugar
-import org.mockito.Mockito._
-
-import com.databricks.spark.avro._
-import org.apache.spark.sql.hive.HiveContext
-
-import scala.util.{Try, Success, Failure}
-
-import java.io.File
-import java.nio.file.Files
-import java.net.URI
-
-import test.SparkTestContext._
+import scala.util.{Success, Try}
 
 class ActionEngineSpec 
   extends UnitSpec 

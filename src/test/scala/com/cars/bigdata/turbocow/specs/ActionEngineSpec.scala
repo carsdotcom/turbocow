@@ -19,6 +19,7 @@ import scala.util.{Try, Success, Failure}
 
 import java.io.File
 import java.nio.file.Files
+import java.net.URI
 
 import test.SparkTestContext._
 
@@ -63,8 +64,8 @@ class ActionEngineSpec
   describe("simple copy") // ------------------------------------------------
   {
     it("should successfully process one field") {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration.json",
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
         """{
             "activityType": "impressions",
             "items": [
@@ -89,8 +90,8 @@ class ActionEngineSpec
 
     it("should successfully process two fields") {
     
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration.json",
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
         """{
             "activityType": "impressions",
             "items": [
@@ -118,8 +119,8 @@ class ActionEngineSpec
     it("should successfully copy over a field even if it is blank in the input") {
     
       // Note: EField is empty ("") in the input record
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration.json",
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
         """{
             "activityType": "impressions",
             "items": [
@@ -136,7 +137,7 @@ class ActionEngineSpec
           }
         """,
         sc).collect()
-  
+
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
       enriched.head.size should be (3)
@@ -147,8 +148,8 @@ class ActionEngineSpec
 
     it("should fail parsing missing config") {
       val e = intercept[Exception] {
-        ActionEngine.process(
-          "./src/test/resources/input-integration.json",
+        ActionEngine.processDir(
+          new URI("./src/test/resources/input-integration.json"),
           """{
               "activityType": "impressions",
               "items": [
@@ -160,8 +161,8 @@ class ActionEngineSpec
     }
     it("should fail parsing empty list") {
       val e = intercept[Exception] {
-        ActionEngine.process(
-          "./src/test/resources/input-integration.json",
+        ActionEngine.processDir(
+          new URI("./src/test/resources/input-integration.json"),
           """{
               "activityType": "impressions",
               "items": [
@@ -175,8 +176,8 @@ class ActionEngineSpec
     }
     it("should fail parsing list with empty element") {
       val e = intercept[Exception] {
-        ActionEngine.process(
-          "./src/test/resources/input-integration.json",
+        ActionEngine.processDir(
+          new URI("./src/test/resources/input-integration.json"),
           """{
               "activityType": "impressions",
               "items": [
@@ -190,8 +191,8 @@ class ActionEngineSpec
     }
     it("should fail parsing list with null element") {
       val e = intercept[Exception] {
-        ActionEngine.process(
-          "./src/test/resources/input-integration.json",
+        ActionEngine.processDir(
+          new URI("./src/test/resources/input-integration.json"),
           """{
               "activityType": "impressions",
               "items": [
@@ -208,8 +209,8 @@ class ActionEngineSpec
   describe("copy action") {
     it("should successfully process 'copy' with single config element") {
 
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration.json",
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
         """{
           |  "activityType":"impressions",
           |  "items":[
@@ -238,8 +239,8 @@ class ActionEngineSpec
 
     it("should successfully process 'copy' with two config elements") {
 
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration.json",
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
         """{
           |  "activityType":"impressions",
           |  "items":[
@@ -274,8 +275,8 @@ class ActionEngineSpec
     it("should successfully 'copy' over blank values from the input record, if specified") {
 
       // Note: EField value is "" in the input record
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration.json",
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
         """{
           |  "activityType":"impressions",
           |  "items":[
@@ -310,8 +311,8 @@ class ActionEngineSpec
     it("should throw exception on construct if 'copy' action has a null inputSource") {
 
       intercept[Exception] {
-        ActionEngine.process(
-          "./src/test/resources/input-integration.json",
+        ActionEngine.processDir(
+          new URI("./src/test/resources/input-integration.json"),
           """{
           |    "activityType":"impressions",
           |    "items":[
@@ -338,8 +339,8 @@ class ActionEngineSpec
     it("should throw exception on construct if 'copy' action has a null outputTarget") {
 
       intercept[Exception] {
-        ActionEngine.process(
-          "./src/test/resources/input-integration.json",
+        ActionEngine.processDir(
+          new URI("./src/test/resources/input-integration.json"),
           """{
           |    "activityType":"impressions",
           |    "items":[
@@ -366,8 +367,8 @@ class ActionEngineSpec
     it("should throw exception on construct if 'copy' action has an empty inputSource") {
 
       intercept[Exception] {
-        ActionEngine.process(
-          "./src/test/resources/input-integration.json",
+        ActionEngine.processDir(
+          new URI("./src/test/resources/input-integration.json"),
           """{
           |    "activityType":"impressions",
           |    "items":[
@@ -393,8 +394,8 @@ class ActionEngineSpec
     it("should throw exception on construct if 'copy' action has a empty outputTarget") {
 
       intercept[Exception] {
-        ActionEngine.process(
-          "./src/test/resources/input-integration.json",
+        ActionEngine.processDir(
+          new URI("./src/test/resources/input-integration.json"),
           """{
           |    "activityType":"impressions",
           |    "items":[
@@ -420,8 +421,8 @@ class ActionEngineSpec
     it(" should throw an exception if 'copy' action does not have config object") {
 
       intercept[Exception] {
-        ActionEngine.process(
-          "./src/test/resources/input-integration.json",
+        ActionEngine.processDir(
+          new URI("./src/test/resources/input-integration.json"),
           """{
             |  "activityType" : "impressions",
             |  "items" : [
@@ -444,8 +445,8 @@ class ActionEngineSpec
     // Helper test function
     def testReplaceNullWith(value: String) = {
       println("value = "+value)
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration-replacenullwith.json",
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration-replacenullwith.json"),
         s"""
         {
           "activityType": "impressions",
@@ -488,8 +489,8 @@ class ActionEngineSpec
   describe("custom actions") {
 
     it("should successfully process a custom action") {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration.json",
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
         """
           {
             "activityType": "impressions",
@@ -529,7 +530,7 @@ class ActionEngineSpec
   describe("misc ") {
     
     //it("should successfully process a different custom action") {
-    //  val enriched: List[Map[String, String]] = ActionEngine.process(
+    //  val enriched: List[Map[String, String]] = ActionEngine.processDir(
     //    sc, 
     //    configFilePath = "./src/test/resources/testconfig-integration-custom2.json", 
     //    inputFilePath = "./src/test/resources/input-integration.json")
@@ -542,8 +543,8 @@ class ActionEngineSpec
     //}
 
     it("should process two items with the same source fields") {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration.json",
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
         fileToString("./src/test/resources/testconfig-2-items-same-source.json"),
         sc, 
         None,
@@ -563,8 +564,8 @@ class ActionEngineSpec
 
     it("should collect the rejection reasons if more than one action calls reject") 
     {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration-AA.json"), // 'AA' in AField
         s"""{
              "activityType": "impressions",
              "items": [
@@ -632,8 +633,8 @@ class ActionEngineSpec
     }
     
     it("should add nothing to the enriched record if lookup fails and no onFail is specified") {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration-AA.json"), // 'AA' in AField
         s"""{
              "activityType": "impressions",
              "items": [
@@ -671,8 +672,8 @@ class ActionEngineSpec
     it("should throw an exception when parsing the reject action with no config") {
     
       val e = intercept[Exception] {
-        ActionEngine.process(
-          "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+        ActionEngine.processDir(
+          new URI("./src/test/resources/input-integration-AA.json"), // 'AA' in AField
           s"""{
                "activityType": "impressions",
                "items": [
@@ -707,8 +708,8 @@ class ActionEngineSpec
     it("should throw an exception when parsing the reject action with an empty config") {
     
       val e = intercept[Exception] {
-        ActionEngine.process(
-          "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+        ActionEngine.processDir(
+          new URI("./src/test/resources/input-integration-AA.json"), // 'AA' in AField
           s"""{
                "activityType": "impressions",
                "items": [
@@ -744,8 +745,8 @@ class ActionEngineSpec
     it("should throw an exception when parsing a reject action with both reason fields") {
     
       val e = intercept[Exception] {
-        ActionEngine.process(
-          "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+        ActionEngine.processDir(
+          new URI("./src/test/resources/input-integration-AA.json"), // 'AA' in AField
           s"""{
                "activityType": "impressions",
                "items": [
@@ -784,8 +785,8 @@ class ActionEngineSpec
 
     it("should output the entire input record if at least one action calls reject") 
     {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration-AA.json"), // 'AA' in AField
         s"""{
              "activityType": "impressions",
              "items": [
@@ -834,8 +835,8 @@ class ActionEngineSpec
 
     it("should output all input fields but also any enriched fields from action lists BEFORE the rejection") 
     {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration-AA.json"), // 'AA' in AField
         s"""{
              "activityType": "impressions",
              "items": [
@@ -903,8 +904,8 @@ class ActionEngineSpec
 
     it("should output all input fields but also any enriched fields from action lists AFTER the rejection") 
     {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration-AA.json"), // 'AA' in AField
         s"""{
              "activityType": "impressions",
              "items": [
@@ -972,8 +973,8 @@ class ActionEngineSpec
 
     it("should stop processing on an action list by default") 
     {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration-AA.json"), // 'AA' in AField
         """{
              "activityType": "impressions",
              "items": [
@@ -1020,8 +1021,8 @@ class ActionEngineSpec
 
     it("should not stop processing on an action list if specified in the config")
     {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration-AA.json"), // 'AA' in AField
         """{
              "activityType": "impressions",
              "items": [
@@ -1070,8 +1071,8 @@ class ActionEngineSpec
 
     it("should stop processing on sub-actions as well as higher-level actions")
     {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration.json",
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
         s"""{
              "activityType": "impressions",
              "items": [
@@ -1142,8 +1143,8 @@ class ActionEngineSpec
 
     it("should continue processing on sub-actions as well as higher-level actions (if requested)")
     {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration.json",
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
         s"""{
              "activityType": "impressions",
              "items": [
@@ -1218,8 +1219,8 @@ class ActionEngineSpec
 
   describe("AvroOutputWriter") {
     it("should only output the fields in the schema regardless of what is in the input RDD") {
-      val enriched: RDD[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration.json",
+      val enriched: RDD[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
         """{
             "activityType": "impressions",
             "items": [
@@ -1316,29 +1317,91 @@ class ActionEngineSpec
       }
     }
   }
+  
+  describe("dateIdAction ") {
 
-/*
-  describe("hive test") {
-    it("should work locally") {
-      import org.apache.spark.sql.hive.HiveContext
+    it("should process dateIdAction and enhance the dateId field when dateId set on intial scratchpad") {
 
-      val hiveCtx = new HiveContext(sc)
+      val scratchPad: ScratchPad = new ScratchPad()
+      scratchPad.set("dateId","20160101")
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
+        """{
+          |  "activityType":"impressions",
+          |  "items":[
+          |    {
+          |      "actions":[
+          |        {
+          |          "actionType":"transform-date-id",
+          |          "config": {
+          |              "inputSource": ["year", "month", "day"],
+          |              "outputTarget": "date_id"
+          |            }
+          |        }
+          |      ]
+          |    }
+          |  ]
+          |}""".stripMargin, sc,
+        None,
+        new ActionFactory(new CustomActionCreator),
+        scratchPad).collect()
 
-      val inputDF = hiveCtx.read.json("./src/test/resources/testdimension-multirow.json")
-      inputDF.registerTempTable("dimtable")
+      enriched.size should be (1) // always one because there's only one json input object
+      enriched.head("date-id") should be ("20160101")
 
-      val rows = hiveCtx.sql("SELECT * FROM dimtable").collect
-
-      println("here is the rowsDF from rowsDF.collect: ")
-      rows.foreach{ r=> println(r.toString) }
-
-      rows.size should be (3)
-      rows(0).getAs[String]("KEYFIELD") should be ("A")
-      rows(1).getAs[String]("KEYFIELD") should be ("B1")
-      rows(2).getAs[String]("KEYFIELD") should be ("B2")
     }
+
+    it("should process dateIdAction and return empty map in enriched when dateId not set in intitial scratchpad") {
+
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new URI("./src/test/resources/input-integration.json"),
+        """{
+          |  "activityType":"impressions",
+          |  "items":[
+          |    {
+          |      "actions":[
+          |        {
+          |          "actionType":"transform-date-id",
+          |          "config": {
+          |              "inputSource": ["year", "month", "day"],
+          |              "outputTarget": "date_id"
+          |            }
+          |        }
+          |      ]
+          |    }
+          |  ]
+          |}""".stripMargin, sc,
+        None,
+        new ActionFactory(new CustomActionCreator)).collect()
+
+      enriched.size should be (1) // always one because there's only one json input object
+      enriched.head.size should be (0)
+    }
+
   }
-*/
+
+  /*
+    describe("hive test") {
+      it("should work locally") {
+        import org.apache.spark.sql.hive.HiveContext
+
+        val hiveCtx = new HiveContext(sc)
+
+        val inputDF = hiveCtx.read.json("./src/test/resources/testdimension-multirow.json")
+        inputDF.registerTempTable("dimtable")
+
+        val rows = hiveCtx.sql("SELECT * FROM dimtable").collect
+
+        println("here is the rowsDF from rowsDF.collect: ")
+        rows.foreach{ r=> println(r.toString) }
+
+        rows.size should be (3)
+        rows(0).getAs[String]("KEYFIELD") should be ("A")
+        rows(1).getAs[String]("KEYFIELD") should be ("B1")
+        rows(2).getAs[String]("KEYFIELD") should be ("B2")
+      }
+    }
+  */
 }
 
  

@@ -3,7 +3,7 @@ package com.cars.bigdata.turbocow.actions
 import com.cars.bigdata.turbocow.{Action, ActionContext, PerformResult, ScratchPad}
 import org.json4s.JsonAST.JValue
 
-class DateIdAction extends Action
+class TransformToDateId extends Action
 {
   /** Perform the action
     */
@@ -18,7 +18,7 @@ class DateIdAction extends Action
     val dateIdOption: Option[Any] = context.scratchPad.get("dateId")
     if(!dateIdOption.isEmpty){
       // Just add this to the enriched data - doesn't matter
-      PerformResult(Map("dateId"-> dateIdOption.get.toString))
+      PerformResult(Map("date-id"-> dateIdOption.get.toString))
     }else{
       PerformResult(Map.empty[String, String])
     }

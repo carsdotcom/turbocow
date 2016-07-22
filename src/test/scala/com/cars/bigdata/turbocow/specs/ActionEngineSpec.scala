@@ -596,11 +596,7 @@ class ActionEngineSpec
           |    {
           |      "actions":[
           |        {
-          |          "actionType":"add-scratch-to-enriched",
-          |          "config": {
-          |              "inputSource": ["year", "month", "day"],
-          |              "outputTarget": "date_id"
-          |            }
+          |          "actionType":"add-scratch-to-enriched"
           |        }
           |      ]
           |    }

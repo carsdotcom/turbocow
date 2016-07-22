@@ -136,8 +136,8 @@ class LookupSpec extends UnitSpec {
   describe("Lookup action") {
 
     it("should successfully process one lookup") {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration.json",
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new java.net.URI("./src/test/resources/input-integration.json"),
         """{
              "activityType": "impressions",
              "items": [
@@ -172,8 +172,8 @@ class LookupSpec extends UnitSpec {
     }
 
     it("should correctly reject a record when the lookup fails") {
-      val enriched: Array[Map[String, String]] = ActionEngine.process(
-        "./src/test/resources/input-integration-AA.json", // 'AA' in AField
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new java.net.URI("./src/test/resources/input-integration-AA.json"), // 'AA' in AField
         """{
              "activityType": "impressions",
              "items": [

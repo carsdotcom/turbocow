@@ -93,13 +93,26 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
     val replaceNullWithRE = """replace-null-with-(.+)""".r
   
     actionType match {
+      case "add-enriched-field" | 
+           "add-enriched-fields" => Option(new AddEnrichedFields(actionConfig))
       case "copy" => Option(new actions.Copy(actionConfig))
-      case "add-enriched-fields" => Option(new AddEnrichedFields(actionConfig))
+      case "check" => createCheckAction(actionConfig, Option(this))
       case "lookup" => Option(actions.Lookup(actionConfig, Option(this)))
+      case "null" => Option(new actions.NullAction(actionConfig))
       case "reject" => Option(new actions.Reject(actionConfig))
       case replaceNullWithRE(someStr) => Option(new actions.ReplaceNullWith(someStr, actionConfig))
       case "simple-copy" => Option(new actions.SimpleCopy(actionConfig))
       case _ => None
+    }
+  }
+
+  def createCheckAction(actionConfig: JValue, actionFactory: Option[ActionFactory]): 
+    Option[Action] = {
+
+    val isUnary = JsonUtil.extractValidString(actionConfig \ "right").isEmpty
+    isUnary match {
+      case true => Option(new actions.UnaryCheck(actionConfig, actionFactory))
+      case false => None //Option(new BinaryCheck(actionConfig, actionFactory))
     }
   }
 

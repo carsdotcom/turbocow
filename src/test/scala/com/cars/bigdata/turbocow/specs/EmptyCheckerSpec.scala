@@ -1,37 +1,17 @@
 package com.cars.bigdata.turbocow
 
 import com.cars.bigdata.turbocow.actions._
-//import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
 class EmptyCheckerSpec extends UnitSpec {
 
-  // before all tests have run
-  override def beforeAll() = {
-    super.beforeAll()
-  }
-
-  // before each test has run
-  override def beforeEach() = {
-    super.beforeEach()
-  }
-
-  // after each test has run
-  override def afterEach() = {
-    //myAfterEach()
-    super.afterEach()
-  }
-
-  // after all tests have run
-  override def afterAll() = {
-    super.afterAll()
-  }
+  val checker = new EmptyChecker
 
   describe("EmptyChecker") {
 
     def doCheck(inputJson: String): Boolean = {
 
-      (new EmptyChecker).performCheck(
+      checker.performCheck(
         CheckParams("fieldA"),
         parse(inputJson),
         Map.empty[String, String],

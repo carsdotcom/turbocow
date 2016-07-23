@@ -104,8 +104,8 @@ class RejectSpec
                      }
                    }
                  ]
-               }
-               ,{
+               },
+               {
                  "name": "final actions - MUST BE LAST!",
                  "actions":[
                    {
@@ -153,6 +153,17 @@ class RejectSpec
                      }
                    }
                  ]
+               },
+               {
+                 "name": "final actions - MUST BE LAST!",
+                 "actions":[
+                   {
+                     "actionType":"add-rejection-reason",
+                     "config": {
+                       "field": "reasonForReject"
+                     }
+                   }
+                 ]
                }
              ]
            }""".stripMargin,
@@ -195,6 +206,17 @@ class RejectSpec
                        "actionType": "reject"
                      }
                    ]
+                 },
+                 {
+                   "name": "final actions - MUST BE LAST!",
+                   "actions":[
+                     {
+                       "actionType":"add-rejection-reason",
+                       "config": {
+                         "field": "reasonForReject"
+                       }
+                     }
+                   ]
                  }
                ]
              }""".stripMargin,
@@ -230,6 +252,17 @@ class RejectSpec
                      {
                        "actionType": "reject",
                        "config": {}
+                     }
+                   ]
+                 },
+                 {
+                   "name": "final actions - MUST BE LAST!",
+                   "actions":[
+                     {
+                       "actionType":"add-rejection-reason",
+                       "config": {
+                         "field": "reasonForReject"
+                       }
                      }
                    ]
                  }
@@ -272,6 +305,17 @@ class RejectSpec
                        }
                      }
                    ]
+                 },
+                 {
+                   "name": "final actions - MUST BE LAST!",
+                   "actions":[
+                     {
+                       "actionType":"add-rejection-reason",
+                       "config": {
+                         "field": "reasonForReject"
+                       }
+                     }
+                   ]
                  }
                ]
              }""".stripMargin,
@@ -310,6 +354,17 @@ class RejectSpec
                             }
                           }
                        ]
+                     }
+                   }
+                 ]
+               },
+               {
+                 "name": "final actions - MUST BE LAST!",
+                 "actions":[
+                   {
+                     "actionType":"add-rejection-reason",
+                     "config": {
+                       "field": "reasonForReject"
                      }
                    }
                  ]
@@ -377,6 +432,17 @@ class RejectSpec
                             }
                           }
                        ]
+                     }
+                   }
+                 ]
+               },
+               {
+                 "name": "final actions - MUST BE LAST!",
+                 "actions":[
+                   {
+                     "actionType":"add-rejection-reason",
+                     "config": {
+                       "field": "reasonForReject"
                      }
                    }
                  ]
@@ -449,6 +515,17 @@ class RejectSpec
                      ]
                    }
                  ]
+               },
+               {
+                 "name": "final actions - MUST BE LAST!",
+                 "actions":[
+                   {
+                     "actionType":"add-rejection-reason",
+                     "config": {
+                       "field": "reasonForReject"
+                     }
+                   }
+                 ]
                }
              ]
            }""".stripMargin,
@@ -498,6 +575,17 @@ class RejectSpec
                      ]
                    }
                  ]
+               },
+               {
+                 "name": "final actions - MUST BE LAST!",
+                 "actions":[
+                   {
+                     "actionType":"add-rejection-reason",
+                     "config": {
+                       "field": "reasonForReject"
+                     }
+                   }
+                 ]
                }
              ]
            }""".stripMargin,
@@ -545,6 +633,17 @@ class RejectSpec
                          "value": "YVal"
                        }
                      ]
+                   }
+                 ]
+               },
+               {
+                 "name": "final actions - MUST BE LAST!",
+                 "actions":[
+                   {
+                     "actionType":"add-rejection-reason",
+                     "config": {
+                       "field": "reasonForReject"
+                     }
                    }
                  ]
                }
@@ -613,6 +712,17 @@ class RejectSpec
                          "value": "XVal"
                        }
                      ]
+                   }
+                 ]
+               },
+               {
+                 "name": "final actions - MUST BE LAST!",
+                 "actions":[
+                   {
+                     "actionType":"add-rejection-reason",
+                     "config": {
+                       "field": "reasonForReject"
+                     }
                    }
                  ]
                }
@@ -686,6 +796,17 @@ class RejectSpec
                          "value": "XVal"
                        }
                      ]
+                   }
+                 ]
+               },
+               {
+                 "name": "final actions - MUST BE LAST!",
+                 "actions":[
+                   {
+                     "actionType":"add-rejection-reason",
+                     "config": {
+                       "field": "reasonForReject"
+                     }
                    }
                  ]
                }

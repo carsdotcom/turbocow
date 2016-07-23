@@ -5,15 +5,16 @@
   "activityType": "impressions",
   "items": [
     {
-      // The name field is strictly for the author's use, to name this sequence 
-      // of actions.  The best practice is to name it after the output field
-      // in the enriched record that this list generates.  If it generates more
-      // than one field, name them all, or use something generic like 
-      // "all the simple-copy fields".   This field is not used in the code at all.
-      "name": "name_of_this_action_list",
+      // The name field is strictly for the author's use, to name this item, 
+      // which is just a sequence of actions.  The best practice is to name it 
+      // after the output field in the enriched record that this list generates.  
+      // If it generates more than one field, name them all, or use something generic 
+      // like "all the simple-copy fields".   This field is not used in the code at 
+      // all.
+      "name": "name_of_this_item",
 
-      // All the actions to perform, in sequence to process the source fields
-      // (or create the destination output field).
+      // All the actions to perform, in sequence, in order to output a specific field 
+      // in the enriched record.
       "actions": [
 
         // --------------------------------------------------------------------
@@ -49,12 +50,16 @@
 
             // The "left" operand in the check operation.  For unary checks
             // (null, empty, etc.), this is the only operand required.
+            // For unary checks, you may also name it "field", which makes more 
+            // sense in this context.
             "left": "fieldA",
 
             // (Optional) Specify where to pull the left field from, either
             // the inputRecord or the enriched record up to this point.
             // If not specified, the default is to check the enriched record; 
             // if not found there, it looks in the inputRecord.
+            // For unary checks, you may also name it "fieldSource", which makes 
+            // more sense in this context.
             "leftSource": "enriched|input"
 
             // The operator.  Valid operators are currently:

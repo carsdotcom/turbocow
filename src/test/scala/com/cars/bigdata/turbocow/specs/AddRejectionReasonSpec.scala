@@ -83,7 +83,6 @@ class AddRejectionReasonSpec
     }
   }
 
-/*
   describe("perform()") {
 
     it("should add the specified field with all rejection reasons") 
@@ -122,7 +121,7 @@ class AddRejectionReasonSpec
               {
                 "actionType":"add-rejection-reason",
                 "config": {
-                  "field": "reasonForReject"
+                  "field": "reasonForRejectX"
                 }
               }
             ]
@@ -137,7 +136,7 @@ class AddRejectionReasonSpec
       enRecord.size should be (2)
 
       // enriched record     
-      enRecord.get("reasonForReject") should be (Some(rejectReasons.mkString("; ")))
+      enRecord.get("reasonForRejectX") should be (Some(rejectReasons.mkString("; ")))
       enRecord.get("K") should be (Some("V"))
     }
 
@@ -146,7 +145,6 @@ class AddRejectionReasonSpec
       //todo
     }
   }
-*/
 
   describe("getLookupRequirements()") {
 

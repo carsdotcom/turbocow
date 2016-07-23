@@ -15,7 +15,6 @@ import scala.util.{Success, Try}
 
 class ActionEngineSpec 
   extends UnitSpec 
-  //with MockitoSugar 
 {
   val testTable = "testtable"
 

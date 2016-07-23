@@ -59,10 +59,14 @@ object JsonUtil {
 
   /** Extracts a string.  Calls extractOption[String], but does another check
     * to determine if the string is empty or not.  Return None if the string is
-    * empty, Some if nonempty.
+    * empty, Some if nonempty.  Also returns None if the input value is not a 
+    * JString.  (This will NOT convert ints or floating types)
     */
   def extractValidString(jvalue : JValue): Option[String] = {
-    ValidString(this.extractOption[String](jvalue))
+    jvalue match {
+      case s: JString => ValidString(this.extractOption[String](jvalue))
+      case _ => None
+    }
   }
 
 }

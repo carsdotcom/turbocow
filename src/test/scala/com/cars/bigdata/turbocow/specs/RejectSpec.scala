@@ -105,6 +105,17 @@ class RejectSpec
                    }
                  ]
                }
+               ,{
+                 "name": "final actions - MUST BE LAST!",
+                 "actions":[
+                   {
+                     "actionType":"add-rejection-reason",
+                     "config": {
+                       "field": "reasonForReject"
+                     }
+                   }
+                 ]
+               }
              ]
            }""".stripMargin,
         sc, Some(hiveCtx)).collect()

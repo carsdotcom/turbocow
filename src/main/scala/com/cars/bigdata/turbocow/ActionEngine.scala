@@ -89,13 +89,13 @@ object ActionEngine
     RDD[Map[String, String]] = {
 
     // Parse the config.  Creates a list of Items.
-    val driverItems = actionFactory.createItems(config)
-    val items: Broadcast[List[Item]] = sc.broadcast(driverItems)
+    val items = actionFactory.createItems(config)
+    val itemsBC: Broadcast[List[Item]] = sc.broadcast(items)
 
     // Cache all the tables as specified in the items, then broadcast
-    val tableCachesDriver: Map[String, TableCache] = 
-      HiveTableCache.cacheTables(driverItems, hiveContext)
-    val tableCaches = sc.broadcast(tableCachesDriver)
+    val tableCaches: Map[String, TableCache] =
+      HiveTableCache.cacheTables(items, hiveContext)
+    val tableCachesBC = sc.broadcast(tableCaches)
 
     val initialScratchPadBC = sc.broadcast(initialScratchPad)
 
@@ -105,70 +105,57 @@ object ActionEngine
       // 'flatten' the json so activityMap & metaData's members are together at the
       // same level:
       // todo (open) make this configurable in the JSON.
-      (ast \ "md") merge (ast \ "activityMap")
+      val mergedAST = {
+        //val theRest = ast.children.flatMap{ jval =>
+        //  jval match {
+        //    case JNothing => 
+        //  } 
+        //}
+        val md = (ast \ "md").toOption 
+        val activityMap = (ast \ "activityMap").toOption
+        if (md.nonEmpty && activityMap.nonEmpty) md.get merge activityMap.get
+        else if (md.nonEmpty) md.get
+        else if (activityMap.nonEmpty) activityMap.get
+        else ast
+        // TODOTODO what if one or the other missing; what about the rest of the stuff?
+      }
+      mergedAST
     })
 
     // for every impression, perform all actions from config file.
     flattenedImpressionsRDD.map{ ast =>
-
-      val actionContext = ActionContext(tableCaches.value, scratchPad= initialScratchPadBC.value)
-
-      // This is the output map, to be filled with the results of validation &
-      // enrichment actions.  Later it will be converted to Avro format and saved.
-      var enrichedMap: Map[String, String] = new HashMap[String, String]
-
-      // For every item, process its actionlist.
-      items.value.foreach{ item =>
-        val result = item.perform(ast, enrichedMap, actionContext)
-        // Note that the 'stopProcessingActionList' field is ignored and not
-        // passed on to the next action list.
-        enrichedMap = enrichedMap ++ result.enrichedUpdates
-      }
-
-      // We are rejecting this record
-      if (actionContext.rejectionReasons.nonEmpty) {
-        // add any rejection reasons to the enriched record
-        enrichedMap = enrichedMap + ("reasonForReject"-> actionContext.rejectionReasons.toString)
-
-        // copy in all the fields from the input record.
-        enrichedMap = addAllFieldsToEnriched(ast, enrichedMap)
-      }
-
-      // (For now, just return the enriched data)
-      enrichedMap
+      processRecord(ast, itemsBC.value, initialScratchPadBC.value, tableCachesBC.value)
     }
   }
 
-  /** Add all fields from input record (as parsed AST) to the enriched map.
-    * 
-    * @param inputRecordAST the input record as parsed JSON AST
-    * @param enrichedMap the current enriched record
-    * @return the new enriched map
+  /** Process one JSON record.  Called from processJsonRDD and tests.
     */
-  def addAllFieldsToEnriched(
-    inputRecordAST: JValue, 
-    enrichedMap: Map[String, String]): 
+  protected [turbocow] 
+  def processRecord(
+    record: JValue,
+    configItems: List[Item],
+    initialScratchPad: ScratchPad = new ScratchPad,
+    tableCaches: Map[String, TableCache] = Map.empty[String, TableCache]): 
     Map[String, String] = {
 
-    val inputMap: Map[String, Option[String]] = inputRecordAST match { 
-      case JObject(o) => o.toMap.map{ case (k,v) => (k, JsonUtil.extractOptionString(v)) }
-      case _ => throw new Exception("The input record must be a JSON object (not an array or other type).")
-      // TODO double check the ALS code so that it always outputs an object.
+    val actionContext = ActionContext(tableCaches, scratchPad = initialScratchPad)
+
+    // This is the output map, to be filled with the results of validation &
+    // enrichment actions.  Later it will be converted to Avro format and saved.
+    var enrichedMap: Map[String, String] = new HashMap[String, String]
+
+    // For every item, process its actionlist.
+    configItems.foreach { item =>
+      val result = item.perform(record, enrichedMap, actionContext)
+      // Note that the 'stopProcessingActionList' field is ignored and not
+      // passed on to the next action list.
+      enrichedMap = enrichedMap ++ result.enrichedUpdates
     }
 
-    val inputToEnrichedMap = inputMap.flatMap{ case(k, v) => 
-      // if key is not in the enriched map, add it.
-      val enrichedOpt = enrichedMap.get(k)
-      if (enrichedOpt.isEmpty) { // not found
-        Some((k, v.getOrElse("")))
-      }
-      else { // otherwise don't add it
-        None
-      }
-    } 
-
-    // return the merged maps
-    inputToEnrichedMap ++ enrichedMap
+    // (For now, just return the enriched data)
+    enrichedMap
   }
+
+
 }
 

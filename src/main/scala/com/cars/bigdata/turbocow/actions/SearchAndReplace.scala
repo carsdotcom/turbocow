@@ -12,6 +12,9 @@ class SearchAndReplace(
   inputSource : List[String])
   extends Action {
 
+  if(inputSource.isEmpty){
+    throw new Exception(" 'inputSource' field is missing/invalid in 'search-and-replace' action ")
+  }
   /**
     * intialize regex terms and actionConfig from config
     *
@@ -51,17 +54,16 @@ class SearchAndReplace(
         val inputValue = JsonUtil.extractOption[String](inputRecord \ eachInput)
 
         if(inputValue.isDefined){
-          //use String method to replace anything with anything
+          //use String method to replace anything with anything. can be changed to replaceAll if there is requirement
           val result = inputValue.get.replace(searchFor, replaceWith)
 
           //return replaced String
           Map(eachInput -> result)
         }
         else {
-          // if the inputfield Doesnt exist or null in inputRecord. replace with mentioned value
-          Map(eachInput -> replaceWith)
+          // if the inputfield Doesnt exist or null in inputRecord. send null
+          Map(eachInput -> null)
         }
-
       }.reduce(_ ++ _)
     )
   }

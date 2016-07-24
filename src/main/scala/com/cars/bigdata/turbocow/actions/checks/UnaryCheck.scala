@@ -10,6 +10,7 @@ import org.json4s.jackson.JsonMethods._
 import com.cars.bigdata.turbocow.ActionFactory
 import com.cars.bigdata.turbocow.PerformResult
 import com.cars.bigdata.turbocow._
+import com.cars.bigdata.turbocow.actions.checks.NumericChecker
 
 import scala.io.Source
 
@@ -36,6 +37,8 @@ class UnaryCheck(
         operator match {
           case "empty" => new EmptyChecker
           case "not-empty" => new InverseChecker(new EmptyChecker)
+          case "numeric" => new NumericChecker
+          case "non-numeric" => new InverseChecker(new NumericChecker)
           case _ => throw new Exception("undefined unary operation (was 'right' specified where it is not needed?): "+operator)
         }
       },

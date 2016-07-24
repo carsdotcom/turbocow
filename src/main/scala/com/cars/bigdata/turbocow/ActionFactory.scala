@@ -1,6 +1,6 @@
 package com.cars.bigdata.turbocow
 
-import com.cars.bigdata.turbocow.actions.ActionList
+import com.cars.bigdata.turbocow.actions.{ActionList, SearchAndReplace}
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
@@ -99,6 +99,7 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
       case "check" => createCheckAction(actionConfig, Option(this))
       case "lookup" => Option(actions.Lookup(actionConfig, Option(this)))
       case "null" => Option(new actions.NullAction(actionConfig))
+      case "search-and-replace" => Option(new SearchAndReplace(actionConfig))
       case "reject" => Option(new actions.Reject(actionConfig))
       case replaceNullWithRE(someStr) => Option(new actions.ReplaceNullWith(someStr, actionConfig))
       case "simple-copy" => Option(new actions.SimpleCopy(actionConfig))

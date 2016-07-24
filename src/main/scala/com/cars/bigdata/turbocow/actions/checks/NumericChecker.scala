@@ -17,7 +17,12 @@ class NumericChecker extends Checker {
 
     // get the test value
     val testVal = ValidString(JsonUtil.extractOptionString(inputRecord \ checkParams.left))
-    testVal.isEmpty
+    if(testVal.isDefined) {
+      testVal.get.matches(s"""[+-]?((\\d+(e\\d+)?[lL]?)|(((\\d+(\\.\\d*)?)|(\\.\\d+))(e\\d+)?[fF]?))""")
+    }
+      else{
+      return false
+    }
   }
 }
 

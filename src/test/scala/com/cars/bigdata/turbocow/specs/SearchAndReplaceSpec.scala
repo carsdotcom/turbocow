@@ -45,6 +45,205 @@ class SearchAndReplaceSpec extends UnitSpec {
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
+  describe("SearchAndReplace constructor") {
+
+    it("should throw when inputSource is missing") {
+
+      intercept[Exception] {
+        val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+          new java.net.URI("./src/test/resources/input.json"),
+          """{
+          |   "activityType":"impressions",
+          |   "items":[
+          |      {
+          |         "actions":[
+          |            {
+          |               "actionType":"search-and-replace",
+          |               "config":{
+          |                 "searchFor" : "any",
+          |                 "replaceWith" : "anything"
+          |               }
+          |            }
+          |         ]
+          |      }
+          |   ]
+          |}""".
+            stripMargin,
+        sc).collect()
+      }
+    }
+
+    it("should throw when inputSource is null") {
+
+      intercept[Exception] {
+        val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+          new java.net.URI("./src/test/resources/input.json"),
+          """{
+            |   "activityType":"impressions",
+            |   "items":[
+            |      {
+            |         "actions":[
+            |            {
+            |               "actionType":"search-and-replace",
+            |               "config":{
+            |                 "inputSource" : null,
+            |                 "searchFor" : "any",
+            |                 "replaceWith" : "anything"
+            |               }
+            |            }
+            |         ]
+            |      }
+            |   ]
+            |}""".
+            stripMargin,
+          sc).collect()
+      }
+
+
+      }
+
+    it("should throw when inputSource has an empty array") {
+
+      intercept[Exception] {
+        val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+          new java.net.URI("./src/test/resources/input.json"),
+          """{
+            |   "activityType":"impressions",
+            |   "items":[
+            |      {
+            |         "actions":[
+            |            {
+            |               "actionType":"search-and-replace",
+            |               "config":{
+            |                 "inputSource" : [],
+            |                 "searchFor" : "any",
+            |                 "replaceWith" : "anything"
+            |               }
+            |            }
+            |         ]
+            |      }
+            |   ]
+            |}""".
+            stripMargin,
+          sc).collect()
+      }
+
+    }
+
+    it("should throw when searchFor is missing") {
+
+      intercept[Exception] {
+        val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+          new java.net.URI("./src/test/resources/input.json"),
+          """{
+            |   "activityType":"impressions",
+            |   "items":[
+            |      {
+            |         "actions":[
+            |            {
+            |               "actionType":"search-and-replace",
+            |               "config":{
+            |                 "inputSource" : ["A"],
+            |
+            |                 "replaceWith" : "anything"
+            |               }
+            |            }
+            |         ]
+            |      }
+            |   ]
+            |}""".
+            stripMargin,
+          sc).collect()
+      }
+
+
+  }
+
+    it("should throw when searchFor is null") {
+
+      intercept[Exception] {
+        val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+          new java.net.URI("./src/test/resources/input.json"),
+          """{
+            |   "activityType":"impressions",
+            |   "items":[
+            |      {
+            |         "actions":[
+            |            {
+            |               "actionType":"search-and-replace",
+            |               "config":{
+            |                 "inputSource" : ["A"],
+            |                 "searchFor" : null,
+            |                 "replaceWith" : "anything"
+            |               }
+            |            }
+            |         ]
+            |      }
+            |   ]
+            |}""".
+            stripMargin,
+          sc).collect()
+      }
+
+
+    }
+
+    it("should throw when replaceWith is missing") {
+
+      intercept[Exception] {
+        val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+          new java.net.URI("./src/test/resources/input.json"),
+          """{
+            |   "activityType":"impressions",
+            |   "items":[
+            |      {
+            |         "actions":[
+            |            {
+            |               "actionType":"search-and-replace",
+            |               "config":{
+            |                 "inputSource" : ["A"],
+            |                 "searchFor" : "a"
+            |               }
+            |            }
+            |         ]
+            |      }
+            |   ]
+            |}""".
+            stripMargin,
+          sc).collect()
+      }
+
+
+    }
+
+    it("should throw when replaceWith is null") {
+
+      intercept[Exception] {
+        val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+          new java.net.URI("./src/test/resources/input.json"),
+          """{
+            |   "activityType":"impressions",
+            |   "items":[
+            |      {
+            |         "actions":[
+            |            {
+            |               "actionType":"search-and-replace",
+            |               "config":{
+            |                 "inputSource" : ["A"],
+            |                 "searchFor" : "a",
+            |                 "replaceWith" : null
+            |               }
+            |            }
+            |         ]
+            |      }
+            |   ]
+            |}""".
+            stripMargin,
+          sc).collect()
+      }
+    }
+  }
+
   describe("SearchAndReplace Action"){
     it("should successfully process searchFor-~-replaceWith-|") {
 
@@ -100,6 +299,43 @@ class SearchAndReplaceSpec extends UnitSpec {
 
 
       enriched.head("adobe_id2") should be ("~~~anything~~~")
+    }
+
+    def doSearchAndReplace(
+      input : String,
+      searchFor : String,
+      replaceWith : String) :
+      Array[Map[String, String]] ={
+
+      ActionEngine.processJsonStrings(
+        List(input),
+        s"""{
+          |   "activityType":"impressions",
+          |   "items":[
+          |      {
+          |         "actions":[
+          |            {
+          |               "actionType":"search-and-replace",
+          |               "config":{
+          |                 "inputSource" : ["adobe"],
+          |                 "searchFor" : "${searchFor}",
+          |                 "replaceWith" : "${replaceWith}"
+          |               }
+          |            }
+          |         ]
+          |      }
+          |   ]
+          |}""".stripMargin,
+        sc).collect()
+    }
+
+    //passing null when the field is missing or null in input json..can be configured to Empty if needed
+    it(" should give null when adobe has null and found nothing to replace with"){
+     doSearchAndReplace("""{ "adobe" : null }""" , "a" , "b").head("adobe") should be (null)
+    }
+
+    it(" should give null when adobe is missing and found nothing to replace with"){
+      doSearchAndReplace("""{ }""" , "a" , "b").head("adobe") should be (null)
     }
   }
 }

@@ -19,6 +19,26 @@ class HiveTableCache(
   // companion object apply() instead.
   tableMap.headOption.getOrElse(throw new Exception("tableMap must not be empty!"))
 
+  /** Lookup function that returns the whole row if found.  
+    * 
+    * @param keyField the name of the key field to lookup on
+    * @param keyValue the value to search for in the keyField
+    * 
+    * @return Some[Row] if found; None if not.
+    */
+  override def lookup(
+    keyField: String,
+    keyValue: String
+  ): Option[Row] = {
+
+    // If we can't find this index's map, we just return None
+    val map = tableMap.getOrElse(keyField, return None)
+
+    val convertedKeyValue: Any = convertToCorrectLookupType(keyField, keyValue)
+    val resultRow = map.get(convertedKeyValue)
+    resultRow
+  }
+
   /** Do a lookup.  
     * 
     * @return 
@@ -32,12 +52,8 @@ class HiveTableCache(
     select: List[String]
   ): Option[Map[String, Option[String]]] = {
 
-    // If we can't find this index's map, we just return None
-    val map = tableMap.getOrElse(keyField, return None)
+    val row = lookup(keyField, keyValue).getOrElse(return None)
 
-    // todo test coverage for differently-typed keys
-    val convertedKeyValue: Any = convertToCorrectLookupType(keyField, keyValue)
-    val row = map.getOrElse(convertedKeyValue, return None)
     //println("RRRRRRRRRRRRRRRR keyValue = "+keyValue)
     //tableMap.foreach{ case (k, v) => println(s"RRRRRR key($k), value($v)") }
     //println("RRRRRRRRRRRRRRRR rowOpt = "+rowOpt)

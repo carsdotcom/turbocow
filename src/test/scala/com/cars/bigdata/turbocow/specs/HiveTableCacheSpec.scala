@@ -5,10 +5,12 @@ import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 import org.scalatest.junit.JUnitRunner
 import com.cars.bigdata.turbocow.actions._
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.hive._
 
 import scala.io.Source
 import test.SparkTestContext._
+
 import scala.util.Try
 
 class HiveTableCacheSpec extends UnitSpec {
@@ -25,18 +27,17 @@ class HiveTableCacheSpec extends UnitSpec {
   override def beforeEach() = {
     super.beforeEach()
     actionFactory = new ActionFactory
-    if (hiveCtx.tableNames.contains(testTable)) hiveCtx.dropTempTable(testTable)
   }
 
   // after each test has run
   override def afterEach() = {
     super.afterEach()
+    if (hiveCtx.tableNames.contains(testTable)) hiveCtx.dropTempTable(testTable)
   }
 
   // after all tests have run
   override def afterAll() = {
     super.afterAll()
-    if (hiveCtx.tableNames.contains(testTable)) hiveCtx.dropTempTable(testTable)
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -58,7 +59,7 @@ class HiveTableCacheSpec extends UnitSpec {
     println(s"""%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% $msg:  allTableNames = ${allTableNames.mkString(", ")}""")
   }
 
-  describe("cacheTables")  // ------------------------------------------------
+  describe("HiveTableCache")  // ------------------------------------------------
   {
     it("should cache one table properly") {
 
@@ -76,7 +77,7 @@ class HiveTableCacheSpec extends UnitSpec {
            |              "C"
            |            ],
            |            "fromDBTable": "$testTable",
-           |            "fromFile": "$resDir/testdimension-2row.json",
+           |            "fromFile": "$resDir/testdimension-3row.json",
            |            "where": "A",
            |            "equals": "11"
            |          }
@@ -148,7 +149,7 @@ class HiveTableCacheSpec extends UnitSpec {
            |              "C"
            |            ],
            |            "fromDBTable": "$testTable",
-           |            "fromFile": "$resDir/testdimension-2row.json",
+           |            "fromFile": "$resDir/testdimension-3row.json",
            |            "where": "A",
            |            "equals": "11"
            |          }
@@ -164,7 +165,7 @@ class HiveTableCacheSpec extends UnitSpec {
            |              "D"
            |            ],
            |            "fromDBTable": "$testTable",
-           |            "fromFile": "$resDir/testdimension-2row.json",
+           |            "fromFile": "$resDir/testdimension-3row.json",
            |            "where": "B",
            |            "equals": "22"
            |          }
@@ -257,6 +258,71 @@ class HiveTableCacheSpec extends UnitSpec {
       //TODO
     }
      
+  }
+
+  describe("lookup()") {
+
+    val testConfig = s"""{
+      |  "activityType": "impressions",
+      |  "items": [
+      |    {
+      |      "actions":[
+      |        {
+      |          "actionType":"lookup",
+      |          "config": {
+      |            "select": [
+      |              "String", "Int", "Long", "Float", "Double", "Boolean",
+      |               "NullInt", "NonNullInt", "AlwaysNull"
+      |            ],
+      |            "fromDBTable": "$testTable",
+      |            "fromFile": "$resDir/testdimension-different-types.json",
+      |            "where": "Row",
+      |            "equals": "2"
+      |          }
+      |        }
+      |      ]
+      |    }
+      |  ]
+      |}""".stripMargin
+
+    it("should return a row that is requested in lookup call") {
+    
+      val tcMap: Map[String, TableCache] = createTableCaches(testConfig)
+      val tableCache = tcMap.head._2 match { case h: HiveTableCache => h }
+    
+      val result: Option[Row] = tableCache.lookup("Row", "2")
+      result.nonEmpty should be (true)
+
+      val row = result.get
+      row.getAs[String]("String") should be ("string")
+      row.getAs[Int]("Int") should be (21)
+      row.getAs[Long]("Long") should be (22L)
+      row.getAs[Double]("Double") should be (-24.1)
+
+      // Note that Float gets converted to Double; it doesn't return a Float:
+      row.getAs[Float]("Float") should be (23.1)
+
+      row.getAs[Boolean]("Boolean") should be (true)
+
+      // Note, we have to use a java Integer to set it to null and compare:
+      row.getAs[Int]("NullInt") should be ({val v: Integer = null; v})
+      row.getAs[Int]("NonNullInt") should be (50)
+
+      // Shouldn't matter the type, this should return null
+      row.getAs[Int]("AlwaysNull") should be ({val v: Integer = null; v})
+      row.getAs[String]("AlwaysNull") should be ({val v: String = null; v})
+      // (Note, again using java type to do null comparison... Row api is annoying...
+      row.getAs[Boolean]("AlwaysNull") should be ({val v: java.lang.Boolean = null; v})
+    }
+
+    it("should return None if keyValue not found") {
+    
+      val tcMap: Map[String, TableCache] = createTableCaches(testConfig)
+      val tableCache = tcMap.head._2 match { case h: HiveTableCache => h }
+    
+      val result: Option[Row] = tableCache.lookup("Row", "X")
+      result should be (None)
+    }
   }
 
 }

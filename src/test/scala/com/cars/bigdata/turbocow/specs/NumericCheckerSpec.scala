@@ -248,10 +248,10 @@ class NumericCheckerSpec extends UnitSpec {
     //unnecessary test case for checking non-numeric action with inverse of numeric.
     // STMS have checking conditions as 'if non-numeric'. So this gives the configurator
     // flexibility of using numeric-onFail and non-numeirc-onPass (both act the same)
-    it("should run non-numeric action with OnPass search and replace action ") {
+    it("should run non-numeric action with d in inputValue with OnPass search and replace action ") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "5672934d"}}"""), // A is non-numeric string.
+        List("""{ "activityMap": {"A": "547346d"}}"""), // A is non-numeric string.
         s"""{
           "activityType": "impressions",
           "items": [
@@ -279,7 +279,7 @@ class NumericCheckerSpec extends UnitSpec {
                         "config": [
                           {
                             "inputSource" : [ "A" ],
-                            "searchFor": "a",
+                            "searchFor": "d",
                             "replaceWith": "9"
                           }
                         ]
@@ -294,7 +294,154 @@ class NumericCheckerSpec extends UnitSpec {
         sc).collect()
 
       enriched.size should be (1) // always
-      enriched.head should be (Map("A"->"56729348"))
+      enriched.head should be (Map("A"->"5473468"))
+    }
+
+    it("should run non-numeric D in inputValue action with OnPass search and replace action ") {
+
+      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
+        List("""{ "activityMap": {"A": "547346D"}}"""), // A is non-numeric string.
+        s"""{
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "test",
+              "actions":[
+                {
+                  "actionType":"check",
+                  "config": {
+                    "field": "A",
+                    "op": "non-numeric",
+                    "onPass": [
+                      {
+                        "actionType": "search-and-replace",
+                        "config":{
+                            "inputSource" : [ "A" ],
+                            "searchFor": "D",
+                            "replaceWith": "8"
+                          }
+                      }
+                    ],
+                    "onFail": [
+                      {
+                        "actionType": "search-and-replace",
+                        "config": [
+                          {
+                            "inputSource" : [ "A" ],
+                            "searchFor": "d",
+                            "replaceWith": "9"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }""",
+        sc).collect()
+
+      enriched.size should be (1) // always
+      enriched.head should be (Map("A"->"5473468"))
+    }
+
+    it("should run non-numeric f in inputValue action with OnPass search and replace action ") {
+
+      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
+        List("""{ "activityMap": {"A": "547346f"}}"""), // A is non-numeric string.
+        s"""{
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "test",
+              "actions":[
+                {
+                  "actionType":"check",
+                  "config": {
+                    "field": "A",
+                    "op": "non-numeric",
+                    "onPass": [
+                      {
+                        "actionType": "search-and-replace",
+                        "config":{
+                            "inputSource" : [ "A" ],
+                            "searchFor": "f",
+                            "replaceWith": "8"
+                          }
+                      }
+                    ],
+                    "onFail": [
+                      {
+                        "actionType": "search-and-replace",
+                        "config": [
+                          {
+                            "inputSource" : [ "A" ],
+                            "searchFor": "d",
+                            "replaceWith": "9"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }""",
+        sc).collect()
+
+      enriched.size should be (1) // always
+      enriched.head should be (Map("A"->"5473468"))
+    }
+
+    it("should run non-numeric F in inputValue action with OnPass search and replace action ") {
+
+      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
+        List("""{ "activityMap": {"A": "547346F"}}"""), // A is non-numeric string.
+        s"""{
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "test",
+              "actions":[
+                {
+                  "actionType":"check",
+                  "config": {
+                    "field": "A",
+                    "op": "non-numeric",
+                    "onPass": [
+                      {
+                        "actionType": "search-and-replace",
+                        "config":{
+                            "inputSource" : [ "A" ],
+                            "searchFor": "F",
+                            "replaceWith": "8"
+                          }
+                      }
+                    ],
+                    "onFail": [
+                      {
+                        "actionType": "search-and-replace",
+                        "config": [
+                          {
+                            "inputSource" : [ "A" ],
+                            "searchFor": "d",
+                            "replaceWith": "9"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }""",
+        sc).collect()
+
+      enriched.size should be (1) // always
+      enriched.head should be (Map("A"->"5473468"))
     }
 
     it("should run non-numeric action with OnFail search and replace action. the input value has number ") {

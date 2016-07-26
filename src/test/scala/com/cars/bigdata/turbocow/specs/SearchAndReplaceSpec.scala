@@ -257,7 +257,7 @@ class SearchAndReplaceSpec extends UnitSpec {
           |            {
           |               "actionType":"search-and-replace",
           |               "config":{
-          |                 "inputSource" : ["adobe_id"],
+          |                 "inputSource" : ["adobe_id2"],
           |                 "searchFor" : "~",
           |                 "replaceWith" : "|"
           |               }
@@ -271,7 +271,7 @@ class SearchAndReplaceSpec extends UnitSpec {
         new ActionFactory(new CustomActionCreator)).collect()
 
 
-      enriched.head("adobe_id") should be ("[CS]v1|2B8185E9851937DD-40000605800EC3AC[CE]")
+      enriched.head("adobe_id2") should be ("|||any|||")
     }
 
     it("should successfully process searchFor any and replaceWith anything") {
@@ -331,11 +331,11 @@ class SearchAndReplaceSpec extends UnitSpec {
 
     //passing null when the field is missing or null in input json..can be configured to Empty if needed
     it(" should give null when adobe has null and found nothing to replace with"){
-     doSearchAndReplace("""{ "adobe" : null }""" , "a" , "b").head("adobe") should be (null)
+     doSearchAndReplace("""{ "adobe" : null }""" , "a" , "b").head should be (Map.empty[String, String])
     }
 
     it(" should give null when adobe is missing and found nothing to replace with"){
-      doSearchAndReplace("""{ }""" , "a" , "b").head("adobe") should be (null)
+      doSearchAndReplace("""{ }""" , "a" , "b").head should be (Map.empty[String, String])
     }
   }
 }

@@ -1,16 +1,16 @@
 package com.cars.bigdata.turbocow.specs
 
-import com.cars.bigdata.turbocow.{ActionContext, ActionEngine, UnitSpec}
 import com.cars.bigdata.turbocow.actions._
-import com.cars.bigdata.turbocow.actions.checks.NumericChecker
+import com.cars.bigdata.turbocow.actions.checks.{NumericChecker, TrueChecker}
 import com.cars.bigdata.turbocow.test.SparkTestContext._
+import com.cars.bigdata.turbocow.{ActionContext, ActionEngine, UnitSpec}
 import org.json4s.jackson.JsonMethods._
 
-class NumericCheckerSpec extends UnitSpec {
+class TrueCheckerSpec extends UnitSpec {
 
-  val checker = new NumericChecker
+  val checker = new TrueChecker
 
-  describe("NumeircChecker") {
+  describe("TrueChecker") {
 
     def doCheck(inputJson: String): Boolean = {
 
@@ -22,17 +22,8 @@ class NumericCheckerSpec extends UnitSpec {
       )
     }
 
-    it("should return true if field is numeric") {
-      doCheck("""{"fieldA": "597"}""") should be (true)
-    }
-    it("should return true if field is negative number") {
-      doCheck("""{"fieldA": "-597"}""") should be (true)
-    }
-    it("should return true if field is float") {
-      doCheck("""{"fieldA": "597.859"}""") should be (true)
-    }
-    it("should return true if field is negative decimal") {
-      doCheck("""{"fieldA": "-0.597"}""") should be (true)
+    it("should return true if field is true") {
+      doCheck("""{"fieldA": "true"}""") should be (true)
     }
     it("should return false if field is null") {
       doCheck("""{"fieldA": null}""") should be (false)
@@ -41,17 +32,20 @@ class NumericCheckerSpec extends UnitSpec {
       doCheck("""{"X": ""}""") should be (false)
     }
 
-    it("should return false if anything is in the field") {
+    it("should return false if anything is in the field except true") {
       doCheck("""{"fieldA": "sjgfr3435"}""") should be (false)
     }
-
+    it("should return false if false is in the field") {
+      doCheck("""{"fieldA": "false"}""") should be (false)
+    }
   }
 
-  describe(" Unary Checks for numeric/non-numeric"){
-    it("should run numeric action successfully") {
+  describe("True Checker Action from Config"){
+    // true should be passed as Yes.
+    it("should run true checker action successfully onPass ") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "175"}}"""), // A with an integer
+        List("""{ "activityMap": {"A": "true"}}"""), // A is negative float value
         s"""{
           "activityType": "impressions",
           "items": [
@@ -62,14 +56,14 @@ class NumericCheckerSpec extends UnitSpec {
                   "actionType":"check",
                   "config": {
                     "field": "A",
-                    "op": "numeric",
+                    "op": "true",
                     "onPass": [
                       {
                         "actionType": "add-enriched-field",
                         "config": [
                           {
                             "key": "XXX",
-                            "value": "PASS"
+                            "value": "Yes"
                           }
                         ]
                       }
@@ -79,8 +73,8 @@ class NumericCheckerSpec extends UnitSpec {
                         "actionType": "add-enriched-field",
                         "config": [
                           {
-                            "key": "K",
-                            "value": "FAIL"
+                            "key": "XXX",
+                            "value": "No"
                           }
                         ]
                       }
@@ -94,13 +88,14 @@ class NumericCheckerSpec extends UnitSpec {
         sc).collect()
 
       enriched.size should be (1) // always
-      enriched.head should be (Map("XXX"->"PASS"))
+      enriched.head should be (Map("XXX"->"Yes"))
     }
 
-    it("should run numeric action successfully with a float value") {
+    //anyvalue other than true should be passed as No.
+    it("should run True Checker action with OnFail: anything other than true should be No ") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "175.43"}}"""), // A is float value
+        List("""{ "activityMap": {"A": "something something"}}"""), // A is non-numeric string.
         s"""{
           "activityType": "impressions",
           "items": [
@@ -111,14 +106,14 @@ class NumericCheckerSpec extends UnitSpec {
                   "actionType":"check",
                   "config": {
                     "field": "A",
-                    "op": "numeric",
+                    "op": "true",
                     "onPass": [
                       {
                         "actionType": "add-enriched-field",
                         "config": [
                           {
                             "key": "XXX",
-                            "value": "PASS"
+                            "value": "Yes"
                           }
                         ]
                       }
@@ -126,12 +121,10 @@ class NumericCheckerSpec extends UnitSpec {
                     "onFail": [
                       {
                         "actionType": "add-enriched-field",
-                        "config": [
-                          {
-                            "key": "K",
-                            "value": "FAIL"
-                          }
-                        ]
+                        "config": [{
+                          "key": "XXX",
+                          "value": "No"
+                        }]
                       }
                     ]
                   }
@@ -143,13 +136,13 @@ class NumericCheckerSpec extends UnitSpec {
         sc).collect()
 
       enriched.size should be (1) // always
-      enriched.head should be (Map("XXX"->"PASS"))
+      enriched.head should be (Map("XXX"->"No"))
     }
 
-    it("should run numeric action successfully with negative float numbers") {
+    it("should run true checker action successfully onPass and pass it as true") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "-9999999999999999999.9999999999999999999"}}"""), // A is negative float value
+        List("""{ "activityMap": {"A": "true"}}"""), // A is negative float value
         s"""{
           "activityType": "impressions",
           "items": [
@@ -160,14 +153,14 @@ class NumericCheckerSpec extends UnitSpec {
                   "actionType":"check",
                   "config": {
                     "field": "A",
-                    "op": "numeric",
+                    "op": "true",
                     "onPass": [
                       {
                         "actionType": "add-enriched-field",
                         "config": [
                           {
                             "key": "XXX",
-                            "value": "PASSED"
+                            "value": "true"
                           }
                         ]
                       }
@@ -177,8 +170,8 @@ class NumericCheckerSpec extends UnitSpec {
                         "actionType": "add-enriched-field",
                         "config": [
                           {
-                            "key": "K",
-                            "value": "FAIL"
+                            "key": "XXX",
+                            "value": "false"
                           }
                         ]
                       }
@@ -192,13 +185,14 @@ class NumericCheckerSpec extends UnitSpec {
         sc).collect()
 
       enriched.size should be (1) // always
-      enriched.head should be (Map("XXX"->"PASSED"))
+      enriched.head should be (Map("XXX"->"true"))
     }
 
-    it("should run numeric action with OnFail search and replace action ") {
+    //anyvalue other than true should be passed as false.
+    it("should run true checker action successfully onFail should output false ") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "6754a9"}}"""), // A is non-numeric string.
+        List("""{ "activityMap": {"A": "some other value"}}"""), // A is negative float value
         s"""{
           "activityType": "impressions",
           "items": [
@@ -209,26 +203,25 @@ class NumericCheckerSpec extends UnitSpec {
                   "actionType":"check",
                   "config": {
                     "field": "A",
-                    "op": "numeric",
+                    "op": "true",
                     "onPass": [
                       {
                         "actionType": "add-enriched-field",
                         "config": [
                           {
                             "key": "XXX",
-                            "value": "PASS"
+                            "value": "true"
                           }
                         ]
                       }
                     ],
                     "onFail": [
                       {
-                        "actionType": "search-and-replace",
+                        "actionType": "add-enriched-field",
                         "config": [
                           {
-                            "inputSource" : [ "A" ],
-                            "searchFor": "a",
-                            "replaceWith": "9"
+                            "key": "XXX",
+                            "value": "false"
                           }
                         ]
                       }
@@ -242,16 +235,16 @@ class NumericCheckerSpec extends UnitSpec {
         sc).collect()
 
       enriched.size should be (1) // always
-      enriched.head should be (Map("A"->"675499"))
+      enriched.head should be (Map("XXX"->"false"))
     }
 
     //unnecessary test case for checking non-numeric action with inverse of numeric.
-    // STMS have checking conditions as 'if non-numeric'. So this gives the configurator
+    // STMS have checking conditions as 'check false'. So this gives the configurator
     // flexibility of using numeric-onFail and non-numeirc-onPass (both act the same)
-    it("should run non-numeric action with OnPass search and replace action ") {
+    it("should run false action with OnPass search and replace action ") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "5672934d"}}"""), // A is non-numeric string.
+        List("""{ "activityMap": {"A": "false"}}"""), // A is non-numeric string.
         s"""{
           "activityType": "impressions",
           "items": [
@@ -262,14 +255,14 @@ class NumericCheckerSpec extends UnitSpec {
                   "actionType":"check",
                   "config": {
                     "field": "A",
-                    "op": "non-numeric",
+                    "op": "false",
                     "onPass": [
                       {
                         "actionType": "search-and-replace",
                         "config":{
                             "inputSource" : [ "A" ],
-                            "searchFor": "d",
-                            "replaceWith": "8"
+                            "searchFor": "fal",
+                            "replaceWith": "XYZ"
                           }
                       }
                     ],
@@ -294,13 +287,13 @@ class NumericCheckerSpec extends UnitSpec {
         sc).collect()
 
       enriched.size should be (1) // always
-      enriched.head should be (Map("A"->"56729348"))
+      enriched.head should be (Map("A"->"XYZse"))
     }
 
-    it("should run non-numeric action with OnFail search and replace action. the input value has number ") {
+    it("should run flase action with OnFail search and replace action. the input value has number ") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "5672934"}}"""), // A is non-numeric string.
+        List("""{ "activityMap": {"A": "true"}}"""), // A is non-numeric string.
         s"""{
           "activityType": "impressions",
           "items": [
@@ -311,7 +304,7 @@ class NumericCheckerSpec extends UnitSpec {
                   "actionType":"check",
                   "config": {
                     "field": "A",
-                    "op": "non-numeric",
+                    "op": "false",
                     "onPass": [
                       {
                         "actionType": "search-and-replace",
@@ -328,7 +321,7 @@ class NumericCheckerSpec extends UnitSpec {
                         "config": [
                           {
                             "inputSource" : [ "A" ],
-                            "searchFor": "a",
+                            "searchFor": "e",
                             "replaceWith": "9"
                           }
                         ]
@@ -343,10 +336,9 @@ class NumericCheckerSpec extends UnitSpec {
         sc).collect()
 
       enriched.size should be (1) // always
-      enriched.head should be (Map("A"->"5672934"))
+      enriched.head should be (Map("A"->"tru9"))
     }
   }
-
 }
 
 

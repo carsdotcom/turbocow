@@ -55,14 +55,14 @@ class SearchAndReplace(
 
         if(inputValue.isDefined){
           //use String method to replace anything with anything. can be changed to replaceAll if there is requirement
-          val result = inputValue.get.replace(searchFor, replaceWith)
+          val result = inputValue.get.replaceAll(searchFor, replaceWith)
 
           //return replaced String
           Map(eachInput -> result)
         }
         else {
           // if the inputfield Doesnt exist or null in inputRecord. send null
-          Map(eachInput -> null)
+          Map.empty[String, String]
         }
       }.reduce(_ ++ _)
     )

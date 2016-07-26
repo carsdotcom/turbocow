@@ -7,7 +7,7 @@ import com.cars.bigdata.turbocow.PerformResult
 import org.json4s._
 import com.cars.bigdata.turbocow.Defs
 
-class SimpleCopy(sourceList: List[String]) extends Action with Serializable
+class SimpleCopy(sourceList: List[String]) extends Action
 {
   if (sourceList.isEmpty) throw new Exception("'simple-copy' must have at least one 'source' field listed in the config section.")
 

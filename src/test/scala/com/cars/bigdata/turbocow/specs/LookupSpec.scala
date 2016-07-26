@@ -202,6 +202,17 @@ class LookupSpec extends UnitSpec {
                      }
                    }
                  ]
+               },
+               {
+                 "name": "final actions - MUST BE LAST!",
+                 "actions":[
+                   {
+                     "actionType":"add-rejection-reason",
+                     "config": {
+                       "field": "reasonForReject"
+                     }
+                   }
+                 ]
                }
              ]
            }""",

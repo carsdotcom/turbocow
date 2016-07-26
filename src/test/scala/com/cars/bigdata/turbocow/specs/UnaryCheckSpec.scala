@@ -234,7 +234,7 @@ class UnaryCheckSpec extends UnitSpec {
 
       // Null Action doesn't implement getLookupRequirements() so they should be
       // the same:
-      val a = new UnaryCheck("fieldname", new MockChecker, makeNullAL)
+      val a = new UnaryCheck("fieldname", new MockChecker, None, makeNullAL)
       val nullAction = new NullAction()
 
       nullAction.getLookupRequirements should be (a.getLookupRequirements)

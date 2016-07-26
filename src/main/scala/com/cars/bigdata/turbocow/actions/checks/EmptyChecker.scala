@@ -15,8 +15,9 @@ class EmptyChecker extends Checker {
     Boolean = {
 
     // get the test value
-    val testVal = ValidString(JsonUtil.extractOptionString(inputRecord \ checkParams.left))
-    testVal.isEmpty
+    val testVal = ValidString(checkParams.getLeftValue(inputRecord, currentEnrichedMap))
+    val result = (testVal.isEmpty || testVal.get.isEmpty)
+    result
   }
 }
 

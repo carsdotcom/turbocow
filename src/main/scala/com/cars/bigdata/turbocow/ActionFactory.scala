@@ -1,6 +1,5 @@
 package com.cars.bigdata.turbocow
 
-import com.cars.bigdata.turbocow.actions.ActionList
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
@@ -92,16 +91,19 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
     // regexes:
     val replaceNullWithRE = """replace-null-with-(.+)""".r
   
+    import actions._
+
     actionType match {
       case "add-enriched-field" | 
            "add-enriched-fields" => Option(new AddEnrichedFields(actionConfig))
-      case "copy" => Option(new actions.Copy(actionConfig))
+      case "add-rejection-reason" => Option(new AddRejectionReason(actionConfig))
+      case "copy" => Option(new Copy(actionConfig))
       case "check" => createCheckAction(actionConfig, Option(this))
-      case "lookup" => Option(actions.Lookup(actionConfig, Option(this)))
-      case "null" => Option(new actions.NullAction(actionConfig))
-      case "reject" => Option(new actions.Reject(actionConfig))
-      case replaceNullWithRE(someStr) => Option(new actions.ReplaceNullWith(someStr, actionConfig))
-      case "simple-copy" => Option(new actions.SimpleCopy(actionConfig))
+      case "lookup" => Option(Lookup(actionConfig, Option(this)))
+      case "null" => Option(new NullAction(actionConfig))
+      case "reject" => Option(new Reject(actionConfig))
+      case replaceNullWithRE(someStr) => Option(new ReplaceNullWith(someStr, actionConfig))
+      case "simple-copy" => Option(new SimpleCopy(actionConfig))
       case _ => None
     }
   }

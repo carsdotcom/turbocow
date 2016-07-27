@@ -1,0 +1,3 @@
+{ "Row": "1", "String": "string", "Int":  1, "Long":  2, "Float":  3.1, "Double":  -4.1, "Boolean": false, "NullInt":  5,   "NonNullInt": null, "AlwaysNull": null }
+{ "Row": "2", "String": "string", "Int": 21, "Long": 22, "Float": 23.1, "Double": -24.1, "Boolean": true,  "NullInt": null, "NonNullInt": 50,   "AlwaysNull": null }
+{ "Row": "3", "String": "string", "Int": 31, "Long": 32, "Float": 33.1, "Double": -34.1, "Boolean": true,  "NullInt": 35,   "NonNullInt": null, "AlwaysNull": null }

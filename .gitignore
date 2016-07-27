@@ -19,7 +19,8 @@ out/
 derby.log
 project/META-INF/
 src/main/scala/META-INF/
-
+.history
+desktop.ini
 metastore_db/
 
 # dia

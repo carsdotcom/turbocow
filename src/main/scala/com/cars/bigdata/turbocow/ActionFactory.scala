@@ -103,6 +103,7 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
       case "null" => Option(new NullAction(actionConfig))
       case "reject" => Option(new Reject(actionConfig))
       case replaceNullWithRE(someStr) => Option(new ReplaceNullWith(someStr, actionConfig))
+      case "search-and-replace" => Option(new SearchAndReplace(actionConfig))
       case "simple-copy" => Option(new SimpleCopy(actionConfig))
       case _ => None
     }

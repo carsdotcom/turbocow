@@ -5,15 +5,16 @@
   "activityType": "impressions",
   "items": [
     {
-      // The name field is strictly for the author's use, to name this sequence 
-      // of actions.  The best practice is to name it after the output field
-      // in the enriched record that this list generates.  If it generates more
-      // than one field, name them all, or use something generic like 
-      // "all the simple-copy fields".   This field is not used in the code at all.
-      "name": "name_of_this_action_list",
+      // The name field is strictly for the author's use, to name this item, 
+      // which is just a sequence of actions.  The best practice is to name it 
+      // after the output field in the enriched record that this list generates.  
+      // If it generates more than one field, name them all, or use something generic 
+      // like "all the simple-copy fields".   This field is not used in the code at 
+      // all.
+      "name": "name_of_this_item",
 
-      // All the actions to perform, in sequence to process the source fields
-      // (or create the destination output field).
+      // All the actions to perform, in sequence, in order to output a specific field 
+      // in the enriched record.
       "actions": [
 
         // --------------------------------------------------------------------
@@ -49,12 +50,16 @@
 
             // The "left" operand in the check operation.  For unary checks
             // (null, empty, etc.), this is the only operand required.
+            // For unary checks, you may also name it "field", which makes more 
+            // sense in this context.
             "left": "fieldA",
 
             // (Optional) Specify where to pull the left field from, either
             // the inputRecord or the enriched record up to this point.
             // If not specified, the default is to check the enriched record; 
             // if not found there, it looks in the inputRecord.
+            // For unary checks, you may also name it "fieldSource", which makes 
+            // more sense in this context.
             "leftSource": "enriched|input"
 
             // The operator.  Valid operators are currently:
@@ -66,17 +71,20 @@
             //   * non-numeric
             "op": "non-empty",
 
+            // Note - binary checks are unimplemented yet, but this is how they
+            // would be configured (using "right" and "rightSource", below):
+            
             // (OPTIONAL) The right-hand operand.  This is required for binary 
             // checks (such as "<" or "=").  If this is NOT a binary check (only
             // one field is being analyzed), and this is specified, the parser
             // will error out and let you know.
-            "right": "fieldB",
+            //"right": "fieldB",
 
             // (OPTIONAL) Specify where to pull the right field from, either
             // the inputRecord or the enriched record up to this point.
             // If not specified, the default is to check the enriched record; 
             // if not found there, it looks in the inputRecord.
-            "rightSource": "enriched|input",
+            //"rightSource": "enriched|input",
 
             // (OPTIONAL) If the check passes (the result is 'yes' or 'true'), then 
             // all of the actions in the onPass list will be run. 
@@ -241,6 +249,23 @@
             // after the rejection.
             // Use with care.
             "stopProcessingActionList": true
+          }
+        },
+
+        // --------------------------------------------------------------------
+        // Reason for Rejection 
+        //
+        // Provides a way to fill a field in the enriched record with all of 
+        // the collected rejection reasons.  The reasons are concatenated into
+        // one string, separated by "; ".  The field name in enriched is configurable.
+        // This action is best done at the end of all the items, in its own 
+        // action list.
+        {
+          "actionType":"add-rejection-reason",
+          "config": {
+            // The name of the field to add to the enriched record.
+            // Will not be added if there are no collected rejection reasons.
+            "field": "reasonForReject"
           }
         }
       ]

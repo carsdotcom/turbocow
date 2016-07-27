@@ -17,6 +17,7 @@ import scala.io.Source
 class UnaryCheck(
   val field: String,
   val checker: Checker,
+  val fieldSource: Option[FieldSource.Value] = None,
   override val onPass: ActionList = new ActionList,
   override val onFail: ActionList = new ActionList
 ) extends CheckAction(onPass, onFail) {
@@ -32,7 +33,7 @@ class UnaryCheck(
       JsonUtil.extractOptionString(config \ "field").getOrElse(
         JsonUtil.extractOptionString(config \ "left").getOrElse(
           throw new Exception("""JSON configuration for checks are required to have a 'left' or 'field' object"""))),
-      { 
+      {
         val operator = JsonUtil.extractValidString(config \ "op").getOrElse(throw new Exception("must specify an operator"))
         operator match {
           case "empty" => new EmptyChecker
@@ -42,6 +43,19 @@ class UnaryCheck(
           case "true" => new TrueChecker
           case "false" => new InverseChecker(new TrueChecker)
           case _ => throw new Exception("undefined unary operation (was 'right' specified where it is not needed?): "+operator)
+        }
+      },
+      {
+        val sourceOpt = Option(JsonUtil.extractOptionString(config \ "fieldSource").getOrElse(
+          JsonUtil.extractOptionString(config \ "leftSource").getOrElse(null)))
+
+        sourceOpt match {
+          case None => None
+          case Some(source) => source match {
+            case "input" => Option(FieldSource.Input)
+            case "enriched" => Option(FieldSource.Enriched)
+            case s: String => throw new Exception("unrecognized fieldSource / leftSource for unary check action: "+ s)
+          }
         }
       },
       new ActionList(config \ "onPass", actionFactory),

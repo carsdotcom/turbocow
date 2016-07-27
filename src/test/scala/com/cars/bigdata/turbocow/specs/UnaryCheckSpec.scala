@@ -412,6 +412,8 @@ class UnaryCheckSpec extends UnitSpec {
       enriched.head should be (Map("K"->"PASS"))
     }
   }
+
+
 }
 
 

@@ -23,7 +23,7 @@ class BinaryCheck(
   def this(config: JValue, actionFactory: Option[ActionFactory]) = {
     this(
         JsonUtil.extractOptionString(config \ "left").getOrElse(
-          throw new Exception("""JSON configuration for checks are required to have a 'left' or 'field' object""")),
+          throw new Exception("""JSON configuration for checks are required to have a 'left' object""")),
       JsonUtil.extractOptionString(config \ "right").getOrElse(
           throw new Exception("""JSON configuration for checks are required to have a 'right object""")),
       {

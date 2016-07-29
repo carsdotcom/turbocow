@@ -13,7 +13,7 @@ class BinaryCheck(
   override val onFail: ActionList = new ActionList
 ) extends CheckAction(onPass, onFail) {
 
-  ValidString(left).getOrElse(throw new Exception("""'field/left' was nonexistent or empty ("")"""))
+  ValidString(left).getOrElse(throw new Exception("""'left' was nonexistent or empty ("")"""))
   ValidString(right).getOrElse(throw new Exception("""'right' was nonexistent or empty ("")"""))
 
   if(checker==null) throw new Exception("Hey buddy, we need a Checker object")
@@ -22,12 +22,10 @@ class BinaryCheck(
     */
   def this(config: JValue, actionFactory: Option[ActionFactory]) = {
     this(
-      JsonUtil.extractOptionString(config \ "field").getOrElse(
         JsonUtil.extractOptionString(config \ "left").getOrElse(
-          throw new Exception("""JSON configuration for checks are required to have a 'left' or 'field' object"""))),
+          throw new Exception("""JSON configuration for checks are required to have a 'left' or 'field' object""")),
       JsonUtil.extractOptionString(config \ "right").getOrElse(
           throw new Exception("""JSON configuration for checks are required to have a 'right object""")),
-
       {
         val operator = JsonUtil.extractValidString(config \ "op").getOrElse(throw new Exception("must specify an operator"))
         operator match {
@@ -36,15 +34,14 @@ class BinaryCheck(
         }
       },
       {
-        val sourceOpt = Option(JsonUtil.extractOptionString(config \ "fieldSource").getOrElse(
-          JsonUtil.extractOptionString(config \ "leftSource").getOrElse(null)))
+        val sourceOpt = Option(JsonUtil.extractOptionString(config \ "leftSource").getOrElse(null))
 
         sourceOpt match {
           case None => None
           case Some(source) => source match {
             case "input" => Option(FieldSource.Input)
             case "enriched" => Option(FieldSource.Enriched)
-            case s: String => throw new Exception("unrecognized fieldSource / leftSource for unary check action: "+ s)
+            case s: String => throw new Exception("unrecognized leftSource for binary check action: "+ s)
           }
         }
       },

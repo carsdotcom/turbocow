@@ -5,7 +5,7 @@ import org.json4s.{JValue, JsonAST}
 
 class EqualChecker extends Checker {
 
-  /** Check if the two non null fields are equals or not .
+  /** Check if the two fields are equals or not .
     */
   def performCheck(
                     checkParams: CheckParams,

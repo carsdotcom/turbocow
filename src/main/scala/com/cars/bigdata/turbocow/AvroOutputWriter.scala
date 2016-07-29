@@ -19,8 +19,7 @@ object AvroOutputWriter {
              rdd: RDD[Map[String, String]],
              schemaPath: String,
              outputDir: String,
-             sc: SparkContext):
-  Unit = {
+             sc: SparkContext): Unit = {
 
     // get the list of field names from avro schema
     val schema: List[String] = getAvroSchema(schemaPath, sc)

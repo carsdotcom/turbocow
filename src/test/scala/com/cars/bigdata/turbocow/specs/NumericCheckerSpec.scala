@@ -1,16 +1,15 @@
 package com.cars.bigdata.turbocow.specs
 
-import com.cars.bigdata.turbocow.{ActionContext, ActionEngine, UnitSpec}
-import com.cars.bigdata.turbocow.actions._
-import com.cars.bigdata.turbocow.actions.checks.NumericChecker
+import com.cars.bigdata.turbocow.actions.checks.{CheckParams, NumericChecker}
 import com.cars.bigdata.turbocow.test.SparkTestContext._
+import com.cars.bigdata.turbocow.{ActionContext, ActionEngine, UnitSpec}
 import org.json4s.jackson.JsonMethods._
 
 class NumericCheckerSpec extends UnitSpec {
 
   val checker = new NumericChecker
 
-  describe("NumeircChecker") {
+  describe("NumericChecker") {
 
     def doCheck(inputJson: String): Boolean = {
 

@@ -29,6 +29,8 @@ import scala.collection.mutable.ListBuffer
 
 object AvroOutputWriter
 {
+
+
   /** Output data to avro using a specific Avro schema file.
     * 
     * @param rdd RDD to write out

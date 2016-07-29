@@ -1,6 +1,5 @@
 package com.cars.bigdata.turbocow.actions.checks
 
-import com.cars.bigdata.turbocow.actions.{CheckParams, Checker}
 import com.cars.bigdata.turbocow.{ActionContext, JsonUtil, ValidString}
 import org.json4s.JValue
 

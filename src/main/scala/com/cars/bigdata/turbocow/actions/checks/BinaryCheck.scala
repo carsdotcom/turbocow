@@ -1,18 +1,20 @@
 package com.cars.bigdata.turbocow.actions.checks
 
-import com.cars.bigdata.turbocow.{ActionContext, ActionFactory, JsonUtil, PerformResult, _}
 import com.cars.bigdata.turbocow.actions.ActionList
+import com.cars.bigdata.turbocow.{ActionContext, ActionFactory, JsonUtil, PerformResult, _}
 import org.json4s._
 
-class UnaryCheck(
-  val field: String,
+class BinaryCheck(
+  val left: String,
+  val right: String,
   val checker: Checker,
   val fieldSource: Option[FieldSource.Value] = None,
   override val onPass: ActionList = new ActionList,
   override val onFail: ActionList = new ActionList
 ) extends CheckAction(onPass, onFail) {
 
-  ValidString(field).getOrElse(throw new Exception("""'field' was nonexistent or empty ("")"""))
+  ValidString(left).getOrElse(throw new Exception("""'field/left' was nonexistent or empty ("")"""))
+  ValidString(right).getOrElse(throw new Exception("""'right' was nonexistent or empty ("")"""))
 
   if(checker==null) throw new Exception("Hey buddy, we need a Checker object")
 
@@ -23,16 +25,14 @@ class UnaryCheck(
       JsonUtil.extractOptionString(config \ "field").getOrElse(
         JsonUtil.extractOptionString(config \ "left").getOrElse(
           throw new Exception("""JSON configuration for checks are required to have a 'left' or 'field' object"""))),
+      JsonUtil.extractOptionString(config \ "right").getOrElse(
+          throw new Exception("""JSON configuration for checks are required to have a 'right object""")),
+
       {
         val operator = JsonUtil.extractValidString(config \ "op").getOrElse(throw new Exception("must specify an operator"))
         operator match {
-          case "empty" => new EmptyChecker
-          case "not-empty" => new InverseChecker(new EmptyChecker)
-          case "numeric" => new NumericChecker
-          case "non-numeric" => new InverseChecker(new NumericChecker)
-          case "true" => new TrueChecker
-          case "false" => new InverseChecker(new TrueChecker)
-          case _ => throw new Exception("undefined unary operation (was 'right' specified where it is not needed?): "+operator)
+          case "equals" => new EqualChecker
+          case _ => throw new Exception("undefined binary operation  "+operator)
         }
       },
       {
@@ -58,7 +58,8 @@ class UnaryCheck(
   override def toString() = {
     
     val sb = new StringBuffer
-    sb.append(s"""field = ${field}""")
+    sb.append(s"""field = ${left}""")
+    sb.append(s"""right = ${right}""")
     sb.append(s""", checker = ${checker.toString}""")
     sb.append(s""", onPass = ${onPass.toString}""")
     sb.append(s""", onFail = ${onFail.toString}""")
@@ -78,7 +79,7 @@ class UnaryCheck(
 
     // If the check passes, run onPass.
     if (checker.performCheck(
-          CheckParams.fromUnaryCheck(this), 
+          CheckParams.fromBinaryCheck(this),
           inputRecord, 
           currentEnrichedMap, 
           context)) {

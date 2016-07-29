@@ -1,4 +1,4 @@
-package com.cars.bigdata.turbocow.actions
+package com.cars.bigdata.turbocow.actions.checks
 
 import com.cars.bigdata.turbocow.{FieldSource, JsonUtil}
 import org.json4s.JValue
@@ -64,12 +64,11 @@ object CheckParams {
     uc.field
   )
 
-/*
+
   def fromBinaryCheck(bc: BinaryCheck): CheckParams = CheckParams(
     bc.left,
     Option(bc.right)
   )
-  */
 }
 
 

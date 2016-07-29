@@ -429,52 +429,6 @@ class ActionEngineSpec
     }
   }
   
-  describe("replace null with") {
-
-    // Helper test function
-    def testReplaceNullWith(value: String) = {
-      println("value = "+value)
-      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
-        new URI("./src/test/resources/input-integration-replacenullwith.json"),
-        s"""
-        {
-          "activityType": "impressions",
-          "items": [
-            {
-              "actions":[
-                {
-                  "actionType": "replace-null-with-${value}",
-                  "config": {
-                    "inputSource": [ "AField", "CField", "DField" ]
-                  }
-                }
-              ]
-        
-            }
-          ]
-        }""",
-        sc).collect()
-
-      enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be (2)
-      enriched.head.get("CField") should be (Some(value)) // this one was null
-      enriched.head.get("DField") should be (Some(value)) // this one was missing
-      enriched.head.get("AField") should be (None) // do nothing to a field that is not null
-      // note the semantics of this are weird.  todo - rethink this action
-    }
-
-    it("should successfully process replace-null-with-X") {
-      testReplaceNullWith("0")
-      testReplaceNullWith("1")
-      testReplaceNullWith("2")
-      testReplaceNullWith("X")
-      testReplaceNullWith("XXXXXYYYYZ have a nice day   ")
-    }
-
-    // todo this could use more testing
-  }
-
   describe("custom actions") {
 
     it("should successfully process a custom action") {

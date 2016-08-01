@@ -120,10 +120,8 @@ object HiveTableCache
     //println("SSSSSSSSSSSSSSSSSSS showing df:")
     //df.show
     //println("SSSSSSSSSSSSSSSSSSS showed df.")
-    // first collect
-    //val allRows = df.collect
 
-    // then get a reference map which we will refer to later
+    //Transform into a key->Row map on the driver
     val refMap: Map[Any, Row] = df.map( row =>
       Map(row.getAs[Any](keyFields.head) -> row)
     ).reduce(_ ++ _)

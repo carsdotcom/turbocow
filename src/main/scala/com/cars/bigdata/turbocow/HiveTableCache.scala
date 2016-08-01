@@ -120,14 +120,13 @@ object HiveTableCache
     //println("SSSSSSSSSSSSSSSSSSS showing df:")
     //df.show
     //println("SSSSSSSSSSSSSSSSSSS showed df.")
-
     // first collect
-    val allRows = df.collect
+    //val allRows = df.collect
 
     // then get a reference map which we will refer to later
-    val refMap: Map[Any, Row] = allRows.map{ row =>
-      (row.getAs[Any](keyFields.head) -> row)
-    }.toMap
+    val refMap: Map[Any, Row] = df.map( row =>
+      Map(row.getAs[Any](keyFields.head) -> row)
+    ).reduce(_ ++ _)
 
     // create the other maps, using the reference map (use tail - skipping the head)
     val otherMaps: Map[String, Map[Any, Row]] = keyFields.tail.flatMap{ keyField => 

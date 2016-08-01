@@ -11,16 +11,15 @@ class EqualChecker extends Checker {
                     checkParams: CheckParams,
                     inputRecord: JValue,
                     currentEnrichedMap: Map[String, String],
-                    context: ActionContext):
-  Boolean = {
+                    context: ActionContext): Boolean = {
 
-    val leftVal = JsonUtil.extract[JValue](inputRecord \ checkParams.left)
+    val leftVal = inputRecord \ checkParams.left
     val rightOption: Option[String] = checkParams.right
     if (rightOption.isEmpty) {
       return false
     }
 
-    val rightVal = JsonUtil.extract[JValue](inputRecord \ rightOption.get)
+    val rightVal = inputRecord \ rightOption.get
 
     if (leftVal.isInstanceOf[JsonAST.JNothing.type] && rightVal.isInstanceOf[JsonAST.JNothing.type]) {
       return false

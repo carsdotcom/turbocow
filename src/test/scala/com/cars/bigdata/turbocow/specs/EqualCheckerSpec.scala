@@ -38,6 +38,9 @@ class EqualCheckerSpec extends UnitSpec {
     it("should return false if A and B are not present") {
       doCheck("""{}""") should be (false)
     }
+    it("should return false if A is null and B is not present") {
+      doCheck("""{"A": null}""") should be (false)
+    }
   }
 }
 

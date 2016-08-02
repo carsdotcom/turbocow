@@ -108,7 +108,7 @@ class FieldSourceSpec
 
   }
 
-  describe("getValue") {
+  describe("getValue()") {
 
     it("should return a value from the Input record") {
       FieldSource("A", Input).getValue(
@@ -178,8 +178,61 @@ class FieldSourceSpec
         scratchPad = { val sp = new ScratchPad; sp.set("A", null); sp }
       ) should be (None)
     }
+  }
+
+  describe("isValueNull()") {
+
+    it("should return true if a value is null in Input") {
+      FieldSource("A", Input).isValueNull(
+        inputRecord = parse("""{"A": null}"""),
+        currentEnrichedMap = Map("A"-> "AEnriched"),
+        scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
+      ) should be (true)
+    }
+
+    it("should return false if a value is non-null in Input") {
+      FieldSource("A", Input).isValueNull(
+        inputRecord = parse("""{"A": "not null"}"""),
+        currentEnrichedMap = Map("A"-> "AEnriched"),
+        scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
+      ) should be (false)
+    }
+
+    it("should return true if a value is null in Enriched") {
+      FieldSource("A", Enriched).isValueNull(
+        inputRecord = parse("""{"A": "AInput"}"""),
+        currentEnrichedMap = Map("A"-> null),
+        scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
+      ) should be (true)
+    }
+
+
+    it("should return false if a value is non-null in Enriched") {
+      FieldSource("A", Enriched).isValueNull(
+        inputRecord = parse("""{"A": "AInput"}"""),
+        currentEnrichedMap = Map("A"-> "not-null"),
+        scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
+      ) should be (false)
+    }
+
+    it("should return true if a value is null in Scratchpad") {
+      FieldSource("A", Scratchpad).isValueNull(
+        inputRecord = parse("""{"A": "AInput"}"""),
+        currentEnrichedMap = Map("A"-> "AEnriched"),
+        scratchPad = { val sp = new ScratchPad; sp.set("A", null); sp }
+      ) should be (true)
+    }
+
+    it("should return false if a value is not-null in Scratchpad") {
+      FieldSource("A", Scratchpad).isValueNull(
+        inputRecord = parse("""{"A": "AInput"}"""),
+        currentEnrichedMap = Map("A"-> "AEnriched"),
+        scratchPad = { val sp = new ScratchPad; sp.set("A", "not-null"); sp }
+      ) should be (false)
+    }
 
   }
+
 
 
 }

@@ -8,7 +8,8 @@ class BinaryCheck(
   val left: String,
   val right: String,
   val checker: Checker,
-  val fieldSource: Option[FieldSource.Value] = None,
+  val leftSource: Option[FieldSource.Value] = None,
+  val rightSource: Option[FieldSource.Value] = None,
   override val onPass: ActionList = new ActionList,
   override val onFail: ActionList = new ActionList
 ) extends CheckAction(onPass, onFail) {
@@ -41,6 +42,20 @@ class BinaryCheck(
           case Some(source) => source match {
             case "input" => Option(FieldSource.Input)
             case "enriched" => Option(FieldSource.Enriched)
+            case "constant" => Option(FieldSource.Constant)
+            case s: String => throw new Exception("unrecognized leftSource for binary check action: "+ s)
+          }
+        }
+      },
+      {
+        val sourceOpt = Option(JsonUtil.extractOptionString(config \ "rightSource").getOrElse(null))
+
+        sourceOpt match {
+          case None => None
+          case Some(source) => source match {
+            case "input" => Option(FieldSource.Input)
+            case "enriched" => Option(FieldSource.Enriched)
+            case "constant" => Option(FieldSource.Constant)
             case s: String => throw new Exception("unrecognized leftSource for binary check action: "+ s)
           }
         }

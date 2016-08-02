@@ -17,7 +17,7 @@ class EqualChecker extends Checker {
     val leftVal = checkParams.leftSource match {
       case Some(FieldSource.Input) => inputRecord \ checkParams.left
       case Some(FieldSource.Enriched) => currentEnrichedMap.get(checkParams.left)
-      case Some(FieldSource.Constant) => checkParams.left
+      case Some(FieldSource.Constant) => Option(checkParams.left)
       case None => inputRecord \ checkParams.left
       case a: Any => throw new Exception("unrecognized field source:" + a.toString)
     }
@@ -50,20 +50,21 @@ class EqualChecker extends Checker {
 
   def handleLeftOptionString(leftVal: Object, rightVal: Object): Boolean = {
     if (rightVal.isInstanceOf[JValue.type]) {
-      val rightValidStringVal = JsonUtil.extractValidString(rightVal.asInstanceOf[JValue])
+      val rightValidStringVal = JsonUtil.extractValidString(rightVal.asInstanceOf[JsonAST.JValue])
       return leftVal.equals(rightValidStringVal)
     }
     return leftVal.equals(rightVal)
   }
 
   def handleLeftJValue(leftVal: Object, rightVal: Object): Boolean = {
-    val leftValidStringVal = JsonUtil.extractValidString(leftVal.asInstanceOf[JValue])
-    if (!rightVal.isInstanceOf[JValue.type]) {
-      return leftValidStringVal.equals(rightVal)
-    } else if (rightVal.isInstanceOf[JValue.type]) {
-      val rightValidStringVal = JsonUtil.extractValidString(rightVal.asInstanceOf[JValue])
+    val leftValidStringVal = JsonUtil.extractValidString(leftVal.asInstanceOf[JsonAST.JValue])
+    if (rightVal.isInstanceOf[JsonAST.JValue] && !rightVal.isInstanceOf[JsonAST.JNothing.type]) {
+      val rightValidStringVal = JsonUtil.extractValidString(rightVal.asInstanceOf[JsonAST.JValue])
       return leftValidStringVal.equals(rightValidStringVal)
+    } else if (!rightVal.isInstanceOf[JsonAST.JValue]) {
+      return leftValidStringVal.equals(rightVal)
     }
+
     return false
   }
 }

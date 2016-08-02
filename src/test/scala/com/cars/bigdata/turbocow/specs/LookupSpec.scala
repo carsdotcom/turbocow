@@ -229,6 +229,117 @@ class LookupSpec extends UnitSpec {
       reasonOpt.get should be ("Invalid KEYFIELD: 'AA'")
     }
 
+    it("should correctly process lookup inside OnFail") {
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new java.net.URI("./src/test/resources/input-integration.json"),
+        """{
+             "activityType": "impressions",
+             "items": [
+               {
+                 "actions":[
+                   {
+                     "actionType":"lookup",
+                     "config": {
+                       "select": [
+                         "KEYFIELD"
+                       ],
+                       "fromDBTable": "testTable",
+                       "fromFile": "./src/test/resources/testdimension-multirow.json",
+                       "where": "KEYFIELD",
+                       "equals": "BField",
+                       "onFail": [
+                         {
+                           "actionType": "lookup",
+                           "config": {
+                              "select": [
+                                   "KEYFIELD"
+                              ],
+                              "fromDBTable": "testTable",
+                              "fromFile": "./src/test/resources/testdimension-multirow.json", 
+                              "where": "KEYFIELD",
+                              "equals": "AField",
+                              "onPass":[{
+                                  "actionType" : "add-enriched-fields",
+                                  "config" : [{
+                                      "key" : "XYZ",
+                                      "value" : "success"
+                                  }]
+                              }]
+                           }
+                         }
+                       ]
+                     }
+                   }
+                 ]
+               }
+             ]
+           }""",
+        sc,
+        Option(hiveCtx) ).collect()
+
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+
+      // test the record
+      val recordMap = enriched.head
+      recordMap("XYZ") should be ("success")
+    }
+
+    it("should correctly process lookup inside OnPass") {
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new java.net.URI("./src/test/resources/input-integration.json"),
+        """{
+             "activityType": "impressions",
+             "items": [
+               {
+                 "actions":[
+                   {
+                     "actionType":"lookup",
+                     "config": {
+                       "select": [
+                         "KEYFIELD"
+                       ],
+                       "fromDBTable": "testTable",
+                       "fromFile": "./src/test/resources/testdimension-multirow.json",
+                       "where": "KEYFIELD",
+                       "equals": "AField",
+                       "onPass": [
+                         {
+                           "actionType": "lookup",
+                           "config": {
+                              "select": [
+                                   "KEYFIELD"
+                              ],
+                              "fromDBTable": "testTable",
+                              "fromFile": "./src/test/resources/testdimension-multirow.json",                   "where": "KEYFIELD",
+                              "equals": "BField",
+                              "onFail":[{
+                                  "actionType" : "add-enriched-fields",
+                                  "config" : [{
+                                      "key" : "XYZ",
+                                      "value" : "failure"
+                                  }]
+                              }]
+                           }
+                         }
+                       ]
+                     }
+                   }
+                 ]
+               }
+             ]
+           }""",
+        sc,
+        Option(hiveCtx) ).collect()
+
+      enriched.size should be (1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+
+      // test the record
+      val recordMap = enriched.head
+      recordMap("XYZ") should be ("failure")
+    }
+
   }
 
 }

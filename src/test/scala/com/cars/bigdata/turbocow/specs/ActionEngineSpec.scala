@@ -723,50 +723,6 @@ class ActionEngineSpec
       }
     }
   */
-
-  describe("authenticated_consumer actions") {
-
-    it("should successfully process a custom action") {
-      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
-        new URI("./src/test/resources/input-integration-authconsumer.json"),
-        """{
-                  "activityType": "impressions",
-                  "items": [{
-                    "actions":[{
-                   "actionType":"check",
-                   "config":{
-                    "left":"authenticated_consumer",
-                      "op":"equals",
-                     "right": "Y",
-                     "onFail":[{
-                         "actionType":"add-enriched-fields",
-                             "config":[{
-                              "key":"authenticated_consumer",
-                               "value":"N"
-                            }]
-                      }],
-                    "onPass":[{
-                         "actionType":"add-enriched-fields",
-                           "config":[{
-                               "key":"authenticated_consumer",
-                              "value":"Y"
-                            }]
-                     }]
-                 }
-                 }]
-                 }]
-          }""",
-        sc,
-        None,
-        new ActionFactory(new CustomActionCreator) ).collect()
-
-      enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be (2)
-      enriched.head("customA") should be ("AAA")
-      enriched.head("customB") should be ("BBB")
-    }
-  }
 }
 
  

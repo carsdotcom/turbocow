@@ -68,7 +68,9 @@ object CheckParams {
 
   def fromBinaryCheck(bc: BinaryCheck): CheckParams = CheckParams(
     bc.left,
-    Option(bc.right)
+    Option(bc.right),
+    bc.leftSource,
+    bc.rightSource
   )
 }
 

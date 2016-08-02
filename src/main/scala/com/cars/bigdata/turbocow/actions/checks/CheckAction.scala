@@ -21,7 +21,13 @@ abstract class CheckAction(
   // must have at least one of onPass or onFail; otherwise what's the point?
   if (onPass.actions.isEmpty && onFail.actions.isEmpty) throw new Exception("""CheckNonEmpty: expected at least one action in onPass or onFail""")
 
-  /** JSON constructor 
+  /** Get the lookup requirements
+    */
+  override def getLookupRequirements: List[CachedLookupRequirement] ={
+    onPass.getLookupRequirements ++ onFail.getLookupRequirements
+  }
+
+  /** JSON constructor
     */
   def this(config: JValue, actionFactory: Option[ActionFactory]) = {
     this(

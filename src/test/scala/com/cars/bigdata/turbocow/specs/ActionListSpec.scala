@@ -7,8 +7,8 @@ import org.json4s.jackson.JsonMethods._
 
 import scala.util.Try
 
-class GetLookupRequirementsSpec
-  extends UnitSpec 
+class ActionListSpec
+  extends UnitSpec
 {
   var actionFactory: ActionFactory = null
 
@@ -39,7 +39,7 @@ class GetLookupRequirementsSpec
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  describe("getLookupRequirements()") {
+  describe("ActionList.getLookupRequirements()") {
 
     it("should return lookup requirements for lookup from onPass") {
 
@@ -54,7 +54,6 @@ class GetLookupRequirementsSpec
            |    }
            |  }]
            |  }""".stripMargin
-      val onFail = s""""""
 
       val actionList =  new ActionList(parse(config) \ "onPass", Option(actionFactory))
       val lookup = new Lookup(List("abcd"),"table",None, "hello" , "input", actionList)

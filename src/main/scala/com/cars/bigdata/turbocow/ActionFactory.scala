@@ -88,7 +88,7 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
     actionType: String, 
     actionConfig: JValue): 
     Option[Action] = {
-  
+
     // regexes:
     val replaceNullWithRE = """replace-null-with-(.+)""".r
   

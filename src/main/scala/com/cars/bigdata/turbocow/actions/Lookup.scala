@@ -85,7 +85,7 @@ class Lookup(
         select,
         fromFile
       )
-    ) 
+    ) ++ onPass.getLookupRequirements ++ onFail.getLookupRequirements
   }
 
   /** Perform the lookup

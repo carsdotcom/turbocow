@@ -1,6 +1,6 @@
-package com.cars.bigdata.turbocow.actions
+package com.cars.bigdata.turbocow.actions.checks
 
-import com.cars.bigdata.turbocow.{ActionContext, JsonUtil, ValidString}
+import com.cars.bigdata.turbocow.{ActionContext, ValidString}
 import org.json4s.JValue
 
 class EmptyChecker extends Checker {

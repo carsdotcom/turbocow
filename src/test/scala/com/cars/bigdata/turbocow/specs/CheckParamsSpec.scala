@@ -1,6 +1,6 @@
 package com.cars.bigdata.turbocow
 
-import com.cars.bigdata.turbocow.actions._
+import com.cars.bigdata.turbocow.actions.checks.CheckParams
 import org.json4s.jackson.JsonMethods._
 
 class CheckParamsSpec extends UnitSpec {
@@ -70,6 +70,12 @@ class CheckParamsSpec extends UnitSpec {
       val input = parse("""{"XXA": "XXXAInput"}""")
       val enriched = Map("XXA"->"XXAEnriched")
       cp.getValueFrom(Option(cp.left), cp.leftSource, input, enriched) should be (None)
+    }
+    it("should return the field when field source is constant") {
+      val cp = CheckParams(left = "A", leftSource = Option(FieldSource.Constant))
+      val input = parse("""{"A": "AInput"}""")
+      val enriched = Map("A"->"AEnriched")
+      cp.getValueFrom(Option(cp.left), cp.leftSource, input, enriched) should be (Some("A"))
     }
   }
 

@@ -1,4 +1,4 @@
-package com.cars.bigdata.turbocow.actions
+package com.cars.bigdata.turbocow.actions.checks
 
 import com.cars.bigdata.turbocow.ActionContext
 import org.json4s.JValue

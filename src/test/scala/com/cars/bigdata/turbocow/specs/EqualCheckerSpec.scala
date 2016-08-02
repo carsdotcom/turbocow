@@ -84,7 +84,7 @@ class EqualCheckerSpec extends UnitSpec {
   }
   describe("performCheck() on constant") {
 
-    it("should return true if A and A are compated") {
+    it("should return true if A and A are compared") {
       checker.performCheck(
         CheckParams("A", Some("A"), Option(FieldSource.Constant), Option(FieldSource.Constant)),
         parse("{}"),
@@ -92,17 +92,9 @@ class EqualCheckerSpec extends UnitSpec {
         new ActionContext
       ) should be (true)
     }
-    it("should return false if A and B are compated") {
+    it("should return false if A and B are compared") {
       checker.performCheck(
         CheckParams("A", Some("B"), Option(FieldSource.Constant), Option(FieldSource.Constant)),
-        parse("{}"),
-        Map.empty[String, String],
-        new ActionContext
-      ) should be (false)
-    }
-    it("should return false if A and null value are compared") {
-      checker.performCheck(
-        CheckParams("A", Some("null"), Option(FieldSource.Constant), Option(FieldSource.Constant)),
         parse("{}"),
         Map.empty[String, String],
         new ActionContext

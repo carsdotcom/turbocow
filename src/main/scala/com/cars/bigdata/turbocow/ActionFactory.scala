@@ -88,9 +88,6 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
     actionConfig: JValue): 
     Option[Action] = {
   
-    // regexes:
-    val replaceNullWithRE = """replace-null-with-(.+)""".r
-  
     import actions._
 
     actionType match {
@@ -102,7 +99,7 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
       case "lookup" => Option(Lookup(actionConfig, Option(this)))
       case "null" => Option(new NullAction(actionConfig))
       case "reject" => Option(new Reject(actionConfig))
-      case replaceNullWithRE(someStr) => Option(new ReplaceNullWith(someStr, actionConfig))
+      case "replace-null" => Option(new ReplaceNull(actionConfig))
       case "search-and-replace" => Option(new SearchAndReplace(actionConfig))
       case "simple-copy" => Option(new SimpleCopy(actionConfig))
       case _ => None

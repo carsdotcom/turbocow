@@ -12,6 +12,57 @@ case class FieldSource(
   // Where to pull it from.  
   source: FieldLocation.Value = EnrichedThenInput
 )
+{
+  
+  /** Convenience method to get a string value from either input, enriched map, 
+    * or scratchpad, depending on the source in this instance.
+    * 
+    * Note the return type is Option[String].  It cannot differentiate between
+    * a value that is actually null or just plain missing in this return type,
+    * since they all return None.  If your logic requires differentiating between
+    * the two, you should not use this convenience method and write your own.
+    * 
+    * Also, since it return a String, if you are getting a scratchpad value, it 
+    * will be converted to a String via toString if it is not a string.  If 
+    * that is not desired, use your own implementation.
+    * 
+    */  
+  def getValue(
+    inputRecord: JValue, 
+    currentEnrichedMap: Map[String, String],
+    scratchPad: ScratchPad): 
+    Option[String] = {
+
+    source match {
+      case Input => JsonUtil.extractOptionString(inputRecord \ name)
+      case Enriched => {
+        val enrOpt = currentEnrichedMap.get(name)
+        enrOpt match {
+          case None => None
+          case Some(null) => None // this could happen if the key exists in the map but the val is null
+          case Some(s) => enrOpt
+        }
+      }
+      case Scratchpad => {
+        scratchPad.get(name) match {
+          case None => None
+          case Some(null) => None // this could happen if the key exists in the map but the val is null
+          case Some(s) => s match {
+            case str: String => Option(str)
+            case a: Any => Option(a.toString)
+          }
+        }
+      }
+      case EnrichedThenInput => {
+        val enrichedOpt = currentEnrichedMap.get(name) 
+        enrichedOpt match {
+          case None => JsonUtil.extractOptionString(inputRecord \ name)
+          case _ => enrichedOpt
+        }
+      }
+    }
+  }
+}
 
 object FieldSource {
 

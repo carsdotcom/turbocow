@@ -255,7 +255,7 @@ class LookupSpec extends UnitSpec {
                                    "KEYFIELD"
                               ],
                               "fromDBTable": "testTable",
-                              "fromFile": "./src/test/resources/testdimension-multirow.json", 
+                              "fromFile": "./src/test/resources/testdimension-multirow.json",
                               "where": "KEYFIELD",
                               "equals": "AField",
                               "onPass":[{
@@ -311,7 +311,8 @@ class LookupSpec extends UnitSpec {
                                    "KEYFIELD"
                               ],
                               "fromDBTable": "testTable",
-                              "fromFile": "./src/test/resources/testdimension-multirow.json",                   "where": "KEYFIELD",
+                              "fromFile": "./src/test/resources/testdimension-multirow.json",
+                              "where": "KEYFIELD",
                               "equals": "BField",
                               "onFail":[{
                                   "actionType" : "add-enriched-fields",

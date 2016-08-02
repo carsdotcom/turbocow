@@ -28,7 +28,7 @@ class UnaryCheck(
 
   /** Get the lookup requirements
     */
-  override def getLookupRequirements: List[CachedLookupRequirement] ={
+  override def getLookupRequirements: List[CachedLookupRequirement] = {
     onPass.getLookupRequirements ++ onFail.getLookupRequirements
   }
 

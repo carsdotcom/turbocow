@@ -46,11 +46,11 @@ class BinaryCheckSpec extends UnitSpec {
       a.onFail should be(onFail)
     }
 
-    it("should throw if field/left is empty") {
+    it("should throw if left is empty") {
       intercept[Exception](new BinaryCheck("", "B", new MockChecker))
     }
 
-    it("should throw if field is null") {
+    it("should throw if left is null") {
       intercept[Exception](new BinaryCheck(null, "B", new MockChecker))
     }
 

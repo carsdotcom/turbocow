@@ -30,6 +30,7 @@ case class CheckParams(
           }
           case Some(FieldSource.Input) => JsonUtil.extractOptionString(inputRecord \ f)
           case Some(FieldSource.Enriched) => currentEnrichedMap.get(f)
+          case Some(FieldSource.Constant) => field
           case a: Any => throw new Exception("unrecognized field source:"+ a.toString)
         }
       }

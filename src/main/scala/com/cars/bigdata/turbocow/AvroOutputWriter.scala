@@ -16,10 +16,10 @@ object AvroOutputWriter {
     * @param sc         spark context
     */
   def write(
-             rdd: RDD[Map[String, String]],
-             schemaPath: String,
-             outputDir: String,
-             sc: SparkContext): Unit = {
+    rdd: RDD[Map[String, String]],
+    schemaPath: String,
+    outputDir: String,
+    sc: SparkContext): Unit = {
 
     // get the list of field names from avro schema
     val schema: List[String] = getAvroSchema(schemaPath, sc)
@@ -35,10 +35,10 @@ object AvroOutputWriter {
     * @param sc        spark context
     */
   def write(
-             rdd: RDD[Map[String, String]],
-             schema: List[String],
-             outputDir: String,
-             sc: SparkContext):
+    rdd: RDD[Map[String, String]],
+    schema: List[String],
+    outputDir: String,
+    sc: SparkContext):
   Unit = {
 
     // Loop through enriched record fields, and extract the value of each field 
@@ -66,8 +66,8 @@ object AvroOutputWriter {
     * @param sc SparkContext
     */
   def getAvroSchema(
-                     hdfsPath: String,
-                     sc: SparkContext):
+    hdfsPath: String,
+    sc: SparkContext):
   List[String] = {
 
     val jsonSchema = sc.textFile(hdfsPath).collect().mkString("")

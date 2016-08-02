@@ -1,6 +1,6 @@
 package com.cars.bigdata.turbocow
 
-import com.cars.bigdata.turbocow.actions._
+import com.cars.bigdata.turbocow.actions.checks.{CheckParams, EmptyChecker, InverseChecker}
 import org.json4s.jackson.JsonMethods._
 
 class InverseCheckerSpec extends UnitSpec {

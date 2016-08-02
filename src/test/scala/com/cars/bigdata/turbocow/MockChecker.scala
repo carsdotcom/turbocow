@@ -1,6 +1,7 @@
 package com.cars.bigdata.turbocow.actions
 
-import com.cars.bigdata.turbocow.{ActionContext, ValidString}
+import com.cars.bigdata.turbocow.ActionContext
+import com.cars.bigdata.turbocow.actions.checks.{CheckParams, Checker}
 import org.json4s.JValue
 
 class MockChecker extends Checker {

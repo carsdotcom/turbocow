@@ -1,17 +1,8 @@
 package com.cars.bigdata.turbocow
 
-import java.io.File
 import java.net.URI
-import java.nio.file.Files
 
-import com.cars.bigdata.turbocow.actions._
 import com.cars.bigdata.turbocow.test.SparkTestContext._
-import com.databricks.spark.avro._
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.Row
-
-import scala.io.Source
-import scala.util.{Success, Try}
 
 class RejectSpec 
   extends UnitSpec 

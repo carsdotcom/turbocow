@@ -1,6 +1,6 @@
 package com.cars.bigdata.turbocow.actions.checks
 
-import com.cars.bigdata.turbocow.{Action, ActionFactory}
+import com.cars.bigdata.turbocow.{Action, ActionFactory, CachedLookupRequirement}
 import com.cars.bigdata.turbocow.actions.ActionList
 import org.json4s._
 

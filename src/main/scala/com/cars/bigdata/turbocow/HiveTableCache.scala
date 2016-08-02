@@ -144,7 +144,7 @@ object HiveTableCache
     // return otherMaps with the addition of the refmap
     val tableMap = otherMaps + (keyFields.head-> refMap)
     println("table map outer size:"+tableMap.size )
-      tableMap.foreach{ case(key, map) => println("for "+key+", map size is:"+map.size)}
+    tableMap.foreach{ case(key, map) => println("for "+key+", map size is:"+map.size)}
 
     val htc = new HiveTableCache(tableMap)
     htc

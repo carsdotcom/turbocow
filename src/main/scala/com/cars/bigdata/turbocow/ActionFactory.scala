@@ -1,5 +1,6 @@
 package com.cars.bigdata.turbocow
 
+import com.cars.bigdata.turbocow.actions.checks.{BinaryCheck, UnaryCheck}
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
@@ -114,8 +115,8 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
 
     val isUnary = JsonUtil.extractValidString(actionConfig \ "right").isEmpty
     isUnary match {
-      case true => Option(new actions.UnaryCheck(actionConfig, actionFactory))
-      case false => None //Option(new BinaryCheck(actionConfig, actionFactory))
+      case true => Option(new UnaryCheck(actionConfig, actionFactory))
+      case false => Option(new BinaryCheck(actionConfig, actionFactory))
     }
   }
 

@@ -1,17 +1,8 @@
-package com.cars.bigdata.turbocow.actions
+package com.cars.bigdata.turbocow.actions.checks
 
-import com.cars.bigdata.turbocow.Action
-import com.cars.bigdata.turbocow.ActionContext
-import com.cars.bigdata.turbocow.JsonUtil
+import com.cars.bigdata.turbocow.{Action, ActionFactory}
+import com.cars.bigdata.turbocow.actions.ActionList
 import org.json4s._
-import org.json4s.JsonDSL._
-import org.json4s.JsonAST.JNothing
-import org.json4s.jackson.JsonMethods._
-import com.cars.bigdata.turbocow.ActionFactory
-import com.cars.bigdata.turbocow.PerformResult
-import com.cars.bigdata.turbocow._
-
-import scala.io.Source
 
 abstract class CheckAction(
   val onPass: ActionList = new ActionList,

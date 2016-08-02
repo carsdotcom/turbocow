@@ -12,7 +12,7 @@ class EmptyCheckerSpec extends UnitSpec {
     def doCheck(inputJson: String): Boolean = {
 
       checker.performCheck(
-        CheckParams("fieldA", leftSource=Option(FieldSource.Input)),
+        CheckParams("fieldA", leftSource=Option(FieldLocation.Input)),
         parse(inputJson),
         Map.empty[String, String],
         new ActionContext
@@ -39,7 +39,7 @@ class EmptyCheckerSpec extends UnitSpec {
 
       //println("enrichedRecord = "+enrichedRecord)
       checker.performCheck(
-        CheckParams("fieldA", leftSource=Option(FieldSource.Enriched)),
+        CheckParams("fieldA", leftSource=Option(FieldLocation.Enriched)),
         parse("""{"fieldA": "A"}"""),
         enrichedRecord,
         new ActionContext

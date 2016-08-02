@@ -6,7 +6,7 @@ import org.json4s._
 //import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 
-class FieldSourceSpec 
+class FieldSourceSpec
   extends UnitSpec 
 {
   val testTable = "testtable"
@@ -104,6 +104,79 @@ class FieldSourceSpec
       Try{ FieldSource.parseList(parse(""" {"a":"b"} """)) }.isSuccess should be (false)
       Try{ FieldSource.parseList(parse(""" 9 """)) }.isSuccess should be (false)
       Try{ FieldSource.parseList(parse(""" 9.3 """)) }.isSuccess should be (false)
+    }
+
+  }
+
+  describe("getValue") {
+
+    it("should return a value from the Input record") {
+      FieldSource("A", Input).getValue(
+        inputRecord = parse("""{"A": "AInput"}"""),
+        currentEnrichedMap = Map("A"-> "AEnriched"),
+        scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
+      ) should be (Some("AInput"))
+    }
+
+    it("should return a value from the Enriched record") {
+      FieldSource("A", Enriched).getValue(
+        inputRecord = parse("""{"A": "AInput"}"""),
+        currentEnrichedMap = Map("A"-> "AEnriched"),
+        scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
+      ) should be (Some("AEnriched"))
+    }
+
+    it("should return a value from the Scratchpad") {
+      FieldSource("A", Scratchpad).getValue(
+        inputRecord = parse("""{"A": "AInput"}"""),
+        currentEnrichedMap = Map("A"-> "AEnriched"),
+        scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
+      ) should be (Some("AScratch"))
+    }
+
+    it("should return None if a value is missing in Input") {
+      FieldSource("A", Input).getValue(
+        inputRecord = parse("""{"AX": "AInput"}"""),
+        currentEnrichedMap = Map("A"-> "AEnriched"),
+        scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
+      ) should be (None)
+    }
+    it("should return None if a value is null in Input") {
+      FieldSource("A", Input).getValue(
+        inputRecord = parse("""{"A": null}"""),
+        currentEnrichedMap = Map("A"-> "AEnriched"),
+        scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
+      ) should be (None)
+    }
+
+    it("should return None if a value is missing in Enriched") {
+      FieldSource("A", Enriched).getValue(
+        inputRecord = parse("""{"A": "AInput"}"""),
+        currentEnrichedMap = Map("AX"-> "AEnriched"),
+        scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
+      ) should be (None)
+    }
+    it("should return None if a value is null in Enriched") {
+      FieldSource("A", Enriched).getValue(
+        inputRecord = parse("""{"A": "AInput"}"""),
+        currentEnrichedMap = Map("A"-> null),
+        scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
+      ) should be (None)
+    }
+
+    it("should return None if a value is missing in Scratchpad") {
+      FieldSource("A", Scratchpad).getValue(
+        inputRecord = parse("""{"A": "AInput"}"""),
+        currentEnrichedMap = Map("A"-> "AEnriched"),
+        scratchPad = { val sp = new ScratchPad; sp.set("AX", "AScratch"); sp }
+      ) should be (None)
+    }
+    it("should return None if a value is null in Scratchpad") {
+      FieldSource("A", Scratchpad).getValue(
+        inputRecord = parse("""{"A": "AInput"}"""),
+        currentEnrichedMap = Map("A"-> "AEnriched"),
+        scratchPad = { val sp = new ScratchPad; sp.set("A", null); sp }
+      ) should be (None)
     }
 
   }

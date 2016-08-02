@@ -2,6 +2,7 @@ package com.cars.bigdata.turbocow
 
 import org.json4s.{JArray, JString, JValue}
 import FieldLocation._
+import org.json4s.JsonAST.JNull
 
 import scala.util.Try
 
@@ -21,6 +22,7 @@ case class FieldSource(
     * a value that is actually null or just plain missing in this return type,
     * since they all return None.  If your logic requires differentiating between
     * the two, you should not use this convenience method and write your own.
+    * You may also use isValueNull, below, to check for this case.
     * 
     * Also, since it return a String, if you are getting a scratchpad value, it 
     * will be converted to a String via toString if it is not a string.  If 
@@ -58,6 +60,47 @@ case class FieldSource(
         enrichedOpt match {
           case None => JsonUtil.extractOptionString(inputRecord \ name)
           case _ => enrichedOpt
+        }
+      }
+    }
+  }
+
+  /** Check if a value is null based on input type.
+    * This returns true only if the value exists in the location, but it is null.
+    */
+  def isValueNull(
+    inputRecord: JValue, 
+    currentEnrichedMap: Map[String, String],
+    scratchPad: ScratchPad): 
+    Boolean = {
+
+    source match {
+      case Input => (inputRecord \ name) match { 
+        case JNull => true
+        case _ => false 
+      }
+      case Enriched => {
+        val enrOpt = currentEnrichedMap.get(name)
+        enrOpt match {
+          case Some(null) => true // this could happen if the key exists in the map but the val is null
+          case _ => false
+        }
+      }
+      case Scratchpad => {
+        scratchPad.get(name) match {
+          case Some(null) => true // this could happen if the key exists in the map but the val is null
+          case _ => false
+        }
+      }
+      case EnrichedThenInput => {
+        val enrichedOpt = currentEnrichedMap.get(name) 
+        enrichedOpt match {
+          case None => (inputRecord \ name) match { 
+            case JNull => true
+            case _ => false 
+          }
+          case Some(null) => true // this could happen if the key exists in the map but the val is null
+          case _ => false
         }
       }
     }

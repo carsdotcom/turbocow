@@ -19,6 +19,12 @@ class BinaryCheck(
 
   if(checker==null) throw new Exception("Hey buddy, we need a Checker object")
 
+  /** Get the lookup requirements
+    */
+  override def getLookupRequirements: List[CachedLookupRequirement] = {
+    onPass.getLookupRequirements ++ onFail.getLookupRequirements
+  }
+
   /** JSON constructor 
     */
   def this(config: JValue, actionFactory: Option[ActionFactory]) = {

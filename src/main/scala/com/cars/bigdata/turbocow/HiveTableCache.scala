@@ -126,6 +126,11 @@ object HiveTableCache
       Map(row.getAs[Any](keyFields.head) -> row)
     ).reduce(_ ++ _)
 
+    //refMap.foreach{ case(key, row) => println( "row size: "+row.size)}
+    println("**************************************************************")
+    println("HiveContext.sql - query = "+query)
+    println("ref map size:"+refMap.size)
+
     // create the other maps, using the reference map (use tail - skipping the head)
     val otherMaps: Map[String, Map[Any, Row]] = keyFields.tail.flatMap{ keyField => 
       Some(
@@ -138,6 +143,8 @@ object HiveTableCache
 
     // return otherMaps with the addition of the refmap
     val tableMap = otherMaps + (keyFields.head-> refMap)
+    println("table map outer size:"+tableMap.size )
+    tableMap.foreach{ case(key, map) => println("for "+key+", map size is:"+map.size)}
 
     val htc = new HiveTableCache(tableMap)
     htc

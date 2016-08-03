@@ -58,8 +58,14 @@ class ReplaceNull(
 
     implicit val jsonFormats = org.json4s.DefaultFormats
 
-    PerformResult() // todo
+    fields.map{ fieldSource => 
 
+      if (fieldSource.isValueNull(inputRecord, currentEnrichedMap, context.scratchPad)) {
+        
+      }
+    }
+
+    PerformResult()
   }
 }
 

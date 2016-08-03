@@ -45,7 +45,7 @@ object ActionEngine
   /** Process a set of JSON strings rather than reading from a directory.
     * This will mostly be used during testing.
     *
-    * @param inputJSON a sequence of json strings, one JSON record per element.
+    * @param inputJson a sequence of json strings, one JSON record per element.
     * @param config configuration file that describes how to process the input data
     * @param sc SparkContext
     * @param hiveContext the hive context, if any
@@ -71,7 +71,7 @@ object ActionEngine
   /** Process a set of JSON strings rather than reading from a directory.
     * This will likely never be called except from the two above process functions.
     *
-    * @param inputJSONRDD an RDD of JSON Strings to process
+    * @param inputJsonRDD an RDD of JSON Strings to process
     * @param config configuration file that describes how to process the input data
     * @param sc SparkContext
     * @param hiveContext the hive context, if any

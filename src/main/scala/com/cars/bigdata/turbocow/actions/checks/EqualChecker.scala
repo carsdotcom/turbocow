@@ -9,10 +9,10 @@ class EqualChecker extends Checker {
   /** Check if the two fields are equals or not .
     */
   def performCheck(
-                    checkParams: CheckParams,
-                    inputRecord: JValue,
-                    currentEnrichedMap: Map[String, String],
-                    context: ActionContext): Boolean = {
+    checkParams: CheckParams,
+    inputRecord: JValue,
+    currentEnrichedMap: Map[String, String],
+    context: ActionContext): Boolean = {
 
     val leftVal = checkParams.leftSource match {
       case Some(FieldSource.Input) => inputRecord \ checkParams.left

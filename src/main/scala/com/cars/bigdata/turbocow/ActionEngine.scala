@@ -124,8 +124,13 @@ object ActionEngine
 
     // for every impression, perform all actions from config file.
     flattenedImpressionsRDD.map{ ast =>
-      processRecord(ast, itemsBC.value, initialScratchPadBC.value, tableCachesBC.value)
-    }
+      try {
+        processRecord(ast, itemsBC.value, initialScratchPadBC.value, tableCachesBC.value)
+      }
+      catch {
+        case _: Throwable => Map.empty[String, String]
+      }
+    } //.filter{ m => m != Map.empty[String, String] }
   }
 
   /** Process one JSON record.  Called from processJsonRDD and tests.

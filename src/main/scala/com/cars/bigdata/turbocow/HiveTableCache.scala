@@ -36,9 +36,12 @@ class HiveTableCache(
       val map = tableMap.getOrElse(keyField, return None)
 
       val convertedKeyValue: Option[Any] = convertToCorrectLookupType(keyField, keyValue.get)
-      val resultRow = map.get(convertedKeyValue.getOrElse(None))
-
-      resultRow
+      if (convertedKeyValue.isEmpty){
+        None
+      }
+      else {
+        map.get(convertedKeyValue.get)
+      }
     }
     else None
   }

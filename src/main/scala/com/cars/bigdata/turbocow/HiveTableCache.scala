@@ -32,7 +32,6 @@ class HiveTableCache(
   ): Option[Row] = {
 
     if (keyValue.nonEmpty)  {
-
       // If we can't find this index's map, we just return None
       val map = tableMap.getOrElse(keyField, return None)
 

@@ -290,7 +290,7 @@ class HiveTableCacheSpec extends UnitSpec {
       val tcMap: Map[String, TableCache] = createTableCaches(testConfig)
       val tableCache = tcMap.head._2 match { case h: HiveTableCache => h }
     
-      val result: Option[Row] = tableCache.lookup("Row", "2")
+      val result : Option[Row] = tableCache.lookup("Row", Some("2"))
       result.nonEmpty should be (true)
 
       val row = result.get
@@ -315,12 +315,44 @@ class HiveTableCacheSpec extends UnitSpec {
       row.getAs[Boolean]("AlwaysNull") should be ({val v: java.lang.Boolean = null; v})
     }
 
+    val testConfig2 = s"""{
+      |  "activityType": "impressions",
+      |  "items": [
+      |   {
+      |      "actions":[
+      |        {
+      |          "actionType":"lookup",
+      |          "config": {
+      |            "select": [
+      |              "gg"
+      |            ],
+      |            "fromDBTable": "$testTable",
+      |            "fromFile": "$resDir/testdimension-different-types-invalid-data.json",
+      |            "where": "dc",
+      |            "equals": "1"
+      |          }
+      |        }
+      |      ]
+      |    }
+      |  ]
+      |}""".stripMargin
+
+    it("should return a row that is requested in lookup call with invalid table values") {
+        val tcMap: Map[String, TableCache] = createTableCaches(testConfig2)
+        val tableCache = tcMap.head._2 match {
+          case h: HiveTableCache => h
+        }
+
+        val result: Any = tableCache.convertToCorrectLookupType("dc", "")
+        result should be (None)
+    }
+
     it("should return None if keyValue not found") {
     
       val tcMap: Map[String, TableCache] = createTableCaches(testConfig)
       val tableCache = tcMap.head._2 match { case h: HiveTableCache => h }
     
-      val result: Option[Row] = tableCache.lookup("Row", "X")
+      val result: Option[Row] = tableCache.lookup("Row", Some("X"))
       result should be (None)
     }
   }

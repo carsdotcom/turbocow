@@ -16,7 +16,7 @@ trait TableCache extends Serializable {
     */
   def lookup(
     keyField: String,
-    keyValue: String
+    keyValue: Option[String]
   ): Option[Row]
 
   /** Do a lookup.  Only returns the values you select.
@@ -32,7 +32,7 @@ trait TableCache extends Serializable {
     */
   def lookup(
     keyField: String,
-    keyValue: String,
+    keyValue: Option[String],
     select: List[String]
   ): Option[Map[String, Option[String]]]
 

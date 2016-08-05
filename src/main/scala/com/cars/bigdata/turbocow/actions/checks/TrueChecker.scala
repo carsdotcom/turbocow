@@ -19,6 +19,7 @@ class TrueChecker extends Checker {
     if(testVal.isDefined) {
       testVal.get.toLowerCase.equals("true")
       //todo Optional Source (input | enriched | constant) handling
+      //todo extend to accept boolean type values if needed. for now we are checking "true" as a String but not as boolean.
     }
       else{
       return false

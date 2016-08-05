@@ -13,6 +13,9 @@ import org.apache.spark.sql.Row
 import scala.io.Source
 import scala.util.{Success, Try}
 
+import org.json4s._
+import org.json4s.jackson.JsonMethods._
+
 class ActionEngineSpec 
   extends UnitSpec 
 {
@@ -700,29 +703,197 @@ class ActionEngineSpec
     }
   }
 
+  describe("processJsonStrings()") {
 
-  /*
-    describe("hive test") {
-      it("should work locally") {
-        import org.apache.spark.sql.hive.HiveContext
+    it("""should run the exceptionHandlingList actions if an unhandled 
+         exception is thrown""") {
 
-        val hiveCtx = new HiveContext(sc)
+      val t = Try {
+        ActionEngine.processJsonStrings(
+          // inputJson
+          Seq(s"""{"A": "AVAL", "B": "BVAL"}"""),
+          // config
+          s"""{
+            "activityType": "impressions",
 
-        val inputDF = hiveCtx.read.json("./src/test/resources/testdimension-multirow.json")
-        inputDF.registerTempTable("dimtable")
+            "global": {
+              "exceptionHandlingList": [{
+                "actionType": "add-enriched-field",
+                "config": [{
+                  "key": "result", 
+                  "value": "success"
+                }]
+              }]
+            },
 
-        val rows = hiveCtx.sql("SELECT * FROM dimtable").collect
-
-        println("here is the rowsDF from rowsDF.collect: ")
-        rows.foreach{ r=> println(r.toString) }
-
-        rows.size should be (3)
-        rows(0).getAs[String]("KEYFIELD") should be ("A")
-        rows(1).getAs[String]("KEYFIELD") should be ("B1")
-        rows(2).getAs[String]("KEYFIELD") should be ("B2")
+            "items": [
+              {
+                "name": "test",
+                "actions":[{
+                  "actionType":"mock-action",
+                  "config": { "shouldThrow": true }
+                }]
+              }
+            ]
+          }""",
+          sc,
+          Option(hiveCtx),
+          new ActionFactory(new CustomActionCreator) 
+        )
       }
+
+      if (t.isFailure) println("Exception: "+t.get)
+      t.isSuccess should be (true)
+      val collected = t.get.collect
+      collected.size should be (1) // only 1 record
+      val enrichedMap = collected.head
+
+      enrichedMap should be (Map("result"->"success"))
     }
-  */
+
+    it("""should detect unhandled exceptions and add the stack trace to the 
+          reject reason field""") {
+
+      val t = Try {
+        ActionEngine.processJsonStrings(
+          // inputJson
+          Seq(s"""{"A": "AVAL", "B": "BVAL"}"""),
+          // config
+          s"""{
+            "activityType": "impressions",
+
+            "global": {
+              "exceptionHandlingList": [
+                {
+                  "actionType": "reject",
+                  "config": {
+                    "reasonFrom": "unhandled-exception",
+                    "stopProcessingActionList": false
+                  }
+                },
+                {
+                  "actionType":"add-rejection-reason",
+                  "config": {
+                    "field": "reasonForReject"
+                  }
+                },      
+                {
+                  "actionType":"check",
+                  "config": {
+                    "field": "reasonForReject",
+                    "fieldSource": "enriched",
+                    "op": "empty",
+                    "onPass": [{
+                      "actionType": "add-enriched-field",
+                      "config": [{
+                        "key": "accepted", 
+                        "value": "true"
+                      }]
+                    }],
+                    "onFail": [{
+                      "actionType": "add-enriched-field",
+                      "config": [{
+                        "key": "accepted", 
+                        "value": "false"
+                      }]
+                    }]
+                  }
+                }
+              ]
+            },
+
+            "items": [
+              {
+                "name": "test",
+                "actions":[
+                  {
+                    "actionType":"add-enriched-fields",
+                    "config": [{
+                        "key": "E",
+                        "value": "EVAL"
+                    }]
+                  },
+                  {
+                    "actionType":"mock-action",
+                    "config": { "shouldThrow": true }
+                  }
+                ]
+              }
+            ]
+          }""",
+          sc,
+          Option(hiveCtx),
+          new ActionFactory(new CustomActionCreator) 
+        )
+      }
+
+      if (t.isFailure) println("Exception: "+t.get)
+      t.isSuccess should be (true)
+      val collected = t.get.collect
+      collected.size should be (1) // only 1 record
+      val enrichedMap = collected.head
+
+      enrichedMap.keySet should be (Set("A", "B", "accepted", "reasonForReject"))
+      val expectedStart = "Unhandled Exception:  MockAction:  throwing exception"
+      enrichedMap("reasonForReject").substring(0, expectedStart.size) should be (expectedStart)
+      // there should be more stuff after this... (the stack trace)
+      enrichedMap("reasonForReject").size should be > (expectedStart.size)
+
+      // check the start of the stack trace...
+      val nextLine = "\n    com.cars.bigdata.turbocow.actions.MockAction.perform("
+      enrichedMap("reasonForReject").substring(expectedStart.size, expectedStart.size + nextLine.size) should
+        be (nextLine)
+
+      // this field was configured too
+      enrichedMap("accepted") should be ("false")
+
+      // should have added the entire record too:
+      enrichedMap("A") should be ("AVAL")
+      enrichedMap("B") should be ("BVAL")
+    }
+
+    it("""should not throw if the exceptionHandling stanza is not configured""") {
+
+      val t = Try {
+        ActionEngine.processJsonStrings(
+          // inputJson
+          Seq(s"""{"A": "AVAL", "B": "BVAL"}"""),
+          // config
+          s"""{
+            "activityType": "impressions",
+
+            "items": [
+              {
+                "name": "test",
+                "actions":[
+                  {
+                    "actionType":"add-enriched-fields",
+                    "config": [{
+                        "key": "E",
+                        "value": "EVAL"
+                    }]
+                  },
+                  {
+                    "actionType":"mock-action",
+                    "config": { "shouldThrow": true }
+                  }
+                ]
+              }
+            ]
+          }""",
+          sc,
+          Option(hiveCtx),
+          new ActionFactory(new CustomActionCreator) 
+        )
+      }
+
+      t.isSuccess should be (true)
+      val collected = t.get.collect
+      collected.size should be (0)
+    }
+
+  }
+  
 }
 
  

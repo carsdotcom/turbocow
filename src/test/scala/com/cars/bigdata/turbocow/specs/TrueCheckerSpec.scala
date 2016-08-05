@@ -7,7 +7,7 @@ import org.json4s.jackson.JsonMethods._
 
 class TrueCheckerSpec extends UnitSpec {
 
-  val checker = new TrueChecker
+  val checker = new TrueChecker(Option(false))
 
   describe("TrueChecker") {
 
@@ -56,6 +56,7 @@ class TrueCheckerSpec extends UnitSpec {
                   "config": {
                     "field": "A",
                     "op": "true",
+                    "caseSensitive" : false,
                     "onPass": [
                       {
                         "actionType": "add-enriched-field",
@@ -106,6 +107,7 @@ class TrueCheckerSpec extends UnitSpec {
                   "config": {
                     "field": "A",
                     "op": "true",
+                    "caseSensitive" : false,
                     "onPass": [
                       {
                         "actionType": "add-enriched-field",
@@ -153,6 +155,7 @@ class TrueCheckerSpec extends UnitSpec {
                   "config": {
                     "field": "A",
                     "op": "true",
+                    "caseSensitive" : false,
                     "onPass": [
                       {
                         "actionType": "add-enriched-field",
@@ -203,6 +206,206 @@ class TrueCheckerSpec extends UnitSpec {
                   "config": {
                     "field": "A",
                     "op": "true",
+                    "caseSensitive" : false,
+                    "onPass": [
+                      {
+                        "actionType": "add-enriched-field",
+                        "config": [
+                          {
+                            "key": "XXX",
+                            "value": "true"
+                          }
+                        ]
+                      }
+                    ],
+                    "onFail": [
+                      {
+                        "actionType": "add-enriched-field",
+                        "config": [
+                          {
+                            "key": "XXX",
+                            "value": "false"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }""",
+        sc).collect()
+
+      enriched.size should be (1) // always
+      enriched.head should be (Map("XXX"->"false"))
+    }
+
+    it("should run true checker action successfully onPass should output true when caseSensitive is not mentioned") {
+
+      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
+        List("""{ "activityMap": {"A": "trUE"}}"""),
+        s"""{
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "test",
+              "actions":[
+                {
+                  "actionType":"check",
+                  "config": {
+                    "field": "A",
+                    "op": "true",
+                    "onPass": [
+                      {
+                        "actionType": "add-enriched-field",
+                        "config": [
+                          {
+                            "key": "XXX",
+                            "value": "true"
+                          }
+                        ]
+                      }
+                    ],
+                    "onFail": [
+                      {
+                        "actionType": "add-enriched-field",
+                        "config": [
+                          {
+                            "key": "XXX",
+                            "value": "false"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }""",
+        sc).collect()
+
+      enriched.size should be (1) // always
+      enriched.head should be (Map("XXX"->"false"))
+    }
+
+    it("should run true checker action successfully onFail should output false when caseSensitive is mentioned and true") {
+
+      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
+        List("""{ "activityMap": {"A": "TRue"}}"""),
+        s"""{
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "test",
+              "actions":[
+                {
+                  "actionType":"check",
+                  "config": {
+                    "field": "A",
+                    "op": "true",
+                    "caseSensitive" : true,
+                    "onPass": [
+                      {
+                        "actionType": "add-enriched-field",
+                        "config": [
+                          {
+                            "key": "XXX",
+                            "value": "true"
+                          }
+                        ]
+                      }
+                    ],
+                    "onFail": [
+                      {
+                        "actionType": "add-enriched-field",
+                        "config": [
+                          {
+                            "key": "XXX",
+                            "value": "false"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }""",
+        sc).collect()
+
+      enriched.size should be (1) // always
+      enriched.head should be (Map("XXX"->"false"))
+    }
+
+    it("should run true checker action successfully onPass should output true when caseSensitive is mentioned and false") {
+
+      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
+        List("""{ "activityMap": {"A": "TRue"}}"""),
+        s"""{
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "test",
+              "actions":[
+                {
+                  "actionType":"check",
+                  "config": {
+                    "field": "A",
+                    "op": "true",
+                    "caseSensitive" : false,
+                    "onPass": [
+                      {
+                        "actionType": "add-enriched-field",
+                        "config": [
+                          {
+                            "key": "XXX",
+                            "value": "true"
+                          }
+                        ]
+                      }
+                    ],
+                    "onFail": [
+                      {
+                        "actionType": "add-enriched-field",
+                        "config": [
+                          {
+                            "key": "XXX",
+                            "value": "false"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }""",
+        sc).collect()
+
+      enriched.size should be (1) // always
+      enriched.head should be (Map("XXX"->"true"))
+    }
+
+    it("should run true checker action successfully onFail should output false when caseSensitive is mentioned and false") {
+
+      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
+        List("""{ "activityMap": {"A": "FALSE"}}"""),
+        s"""{
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "test",
+              "actions":[
+                {
+                  "actionType":"check",
+                  "config": {
+                    "field": "A",
+                    "op": "true",
+                    "caseSensitive" : false,
                     "onPass": [
                       {
                         "actionType": "add-enriched-field",
@@ -243,7 +446,7 @@ class TrueCheckerSpec extends UnitSpec {
     it("should run false action with OnPass search and replace action ") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "false"}}"""), // A is non-numeric string.
+        List("""{ "activityMap": {"A": "false"}}"""),
         s"""{
           "activityType": "impressions",
           "items": [
@@ -289,10 +492,10 @@ class TrueCheckerSpec extends UnitSpec {
       enriched.head should be (Map("A"->"XYZse"))
     }
 
-    it("should run flase action with OnFail search and replace action. the input value has number ") {
+    it("should run false action with OnFail search and replace action. the input value has number ") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "true"}}"""), // A is non-numeric string.
+        List("""{ "activityMap": {"A": "true"}}"""),
         s"""{
           "activityType": "impressions",
           "items": [

@@ -17,7 +17,8 @@ class TrueChecker extends Checker {
     // get the test value
     val testVal = JsonUtil.extractValidString(inputRecord \ checkParams.left)
     if(testVal.isDefined) {
-      testVal.get.equals("true")
+      testVal.get.toLowerCase.equals("true")
+      //todo Optional Source (input | enriched | constant) handling
     }
       else{
       return false

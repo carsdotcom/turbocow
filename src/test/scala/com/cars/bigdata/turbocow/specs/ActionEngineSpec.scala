@@ -597,8 +597,7 @@ class ActionEngineSpec
         None,
         new ActionFactory(new CustomActionCreator)).collect()
 
-      enriched.size should be (1) // always one because there's only one json input object
-      enriched.head.size should be (0)
+      enriched.size should be (0) // empty enriched records get filtered out
     }
   }
 

@@ -180,8 +180,23 @@ class ActionFactorySpec extends UnitSpec {
         case _ => fail()
       }
     }
-  }
 
+    it("should throw if no 'actions' list is given in the config")
+    {
+      val actionFactory = new ActionFactoryForTest
+      val config = """
+        {
+        	"activityType": "impressions",
+        	"items": [
+        		{
+              "name": "some name"
+        		}
+        	]
+        }
+      """
+      intercept[Exception]{ actionFactory.createItems(config) }
+    }
+  }
 }
 
 

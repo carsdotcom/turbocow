@@ -28,15 +28,22 @@ class HiveTableCache(
     */
   override def lookup(
     keyField: String,
-    keyValue: String
+    keyValue: Option[String]
   ): Option[Row] = {
 
-    // If we can't find this index's map, we just return None
-    val map = tableMap.getOrElse(keyField, return None)
+    if (keyValue.nonEmpty)  {
+      // If we can't find this index's map, we just return None
+      val map = tableMap.getOrElse(keyField, return None)
 
-    val convertedKeyValue: Any = convertToCorrectLookupType(keyField, keyValue)
-    val resultRow = map.get(convertedKeyValue)
-    resultRow
+      val convertedKeyValue: Option[Any] = convertToCorrectLookupType(keyField, keyValue.get)
+      if (convertedKeyValue.isEmpty){
+        None
+      }
+      else {
+        map.get(convertedKeyValue.get)
+      }
+    }
+    else None
   }
 
   /** Do a lookup.  
@@ -48,7 +55,7 @@ class HiveTableCache(
     */
   override def lookup(
     keyField: String,
-    keyValue: String,
+    keyValue: Option[String],
     select: List[String]
   ): Option[Map[String, Option[String]]] = {
 
@@ -69,18 +76,18 @@ class HiveTableCache(
 
   /** convert the type
     */
-  def convertToCorrectLookupType(keyField: String, keyValue: String): Any = {
+  def convertToCorrectLookupType(keyField: String, keyValue: String): Option[Any] = {
 
     // TODO test coverage
     println("CCCCCCCCCCCCCCCCCCCCCCCC converting to.......")
-    val lookupTable = tableMap.get(keyField).getOrElse(return keyValue) // todo handle failure
+    val lookupTable = tableMap.get(keyField).getOrElse(return Option(keyValue)) // todo handle failure
     lookupTable.head._1 match {
-      case a: Long => println("LONG"); keyValue.toLong
-      case a: Int => println("INT"); keyValue.toInt
-      case a: Double => println("DOUBLE"); keyValue.toDouble
-      case a: Float => println("FLOAT"); keyValue.toFloat
-      case a: String => println("STRING"); keyValue.toString
-      case a => println("(NOTHING)"); a
+      case a: Long => println("LONG"); Try{Option(keyValue.toLong)}.getOrElse( None)
+      case a: Int => println("INT"); Try{Option(keyValue.toInt)}.getOrElse( None)
+      case a: Double => println("DOUBLE"); Try{Option(keyValue.toDouble)}.getOrElse( None)
+      case a: Float => println("FLOAT"); Try{Option(keyValue.toFloat)}.getOrElse( None)
+      case a: String => println("STRING"); Option(keyValue.toString)
+      case a => println("(NOTHING)"); Option(a)
     }
   }
 }
@@ -121,13 +128,15 @@ object HiveTableCache
     //df.show
     //println("SSSSSSSSSSSSSSSSSSS showed df.")
 
-    // first collect
-    val allRows = df.collect
+    //Transform into a key->Row map on the driver
+    val refMap: Map[Any, Row] = df.map( row =>
+      Map(row.getAs[Any](keyFields.head) -> row)
+    ).reduce(_ ++ _)
 
-    // then get a reference map which we will refer to later
-    val refMap: Map[Any, Row] = allRows.map{ row =>
-      (row.getAs[Any](keyFields.head) -> row)
-    }.toMap
+    //refMap.foreach{ case(key, row) => println( "row size: "+row.size)}
+    println("**************************************************************")
+    println("HiveContext.sql - query = "+query)
+    println("ref map size:"+refMap.size)
 
     // create the other maps, using the reference map (use tail - skipping the head)
     val otherMaps: Map[String, Map[Any, Row]] = keyFields.tail.flatMap{ keyField => 
@@ -141,6 +150,8 @@ object HiveTableCache
 
     // return otherMaps with the addition of the refmap
     val tableMap = otherMaps + (keyFields.head-> refMap)
+    println("table map outer size:"+tableMap.size )
+    tableMap.foreach{ case(key, map) => println("for "+key+", map size is:"+map.size)}
 
     val htc = new HiveTableCache(tableMap)
     htc

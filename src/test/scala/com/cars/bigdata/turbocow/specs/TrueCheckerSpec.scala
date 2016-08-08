@@ -1,7 +1,6 @@
 package com.cars.bigdata.turbocow.specs
 
-import com.cars.bigdata.turbocow.actions._
-import com.cars.bigdata.turbocow.actions.checks.{NumericChecker, TrueChecker}
+import com.cars.bigdata.turbocow.actions.checks.{CheckParams, TrueChecker}
 import com.cars.bigdata.turbocow.test.SparkTestContext._
 import com.cars.bigdata.turbocow.{ActionContext, ActionEngine, UnitSpec}
 import org.json4s.jackson.JsonMethods._

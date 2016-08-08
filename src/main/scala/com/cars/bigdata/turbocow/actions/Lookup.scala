@@ -85,7 +85,7 @@ class Lookup(
         select,
         fromFile
       )
-    ) 
+    ) ++ onPass.getLookupRequirements ++ onFail.getLookupRequirements
   }
 
   /** Perform the lookup
@@ -114,7 +114,7 @@ class Lookup(
 
     // Get the selected fields out of the table
     val selectedFields: Option[Map[String, Option[String]]] = 
-      tc.lookup(where, lookupValueOpt.getOrElse(""), select)
+      tc.lookup(where, lookupValueOpt, select)
 
     if (selectedFields.isEmpty || selectedFields.get.isEmpty) { // failed to find table or record
 

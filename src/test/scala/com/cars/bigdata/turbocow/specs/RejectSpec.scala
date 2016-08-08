@@ -160,13 +160,7 @@ class RejectSpec
            }""".stripMargin,
         sc, Some(hiveCtx)).collect()
     
-      enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-    
-      // test the record
-      val recordMap = enriched.head
-      recordMap.size should be (0)
-      recordMap should be (Map.empty[String, String])
+      enriched.size should be (0) // an empty enriched record gets filtered out
     }
 
     it("should throw an exception when parsing the reject action with no config") {

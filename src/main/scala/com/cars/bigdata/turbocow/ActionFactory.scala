@@ -22,10 +22,23 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
     */
   def createItems(configJson: String): List[Item] = {
 
+    // Parse and pass to real createItems.
     implicit val jsonFormats = org.json4s.DefaultFormats
+    createItems(parse(configJson))
+  }
 
-    // parse it
-    val configAST = parse(configJson)
+  /** Create the list of Item objects based on the config file.
+    */
+  def createItems(configAST: Option[JValue]): List[Item] = {
+    if (configAST.isDefined) 
+      createItems(configAST.get)
+    else 
+      Nil
+  }
+
+  /** Create the list of Item objects based on the config file.
+    */
+  def createItems(configAST: JValue): List[Item] = {
 
     val itemsList = (configAST \ "items").children
 
@@ -35,17 +48,26 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
       // get name
       val name = JsonUtil.extractOptionString(item \ "name")
 
-      // get destination - is None if null, "", or missing
-      val destination = JsonUtil.extractValidString(item \ "destination")
-
       val actions = createActionList(item \ "actions")
+      if (actions.isEmpty) throw new Exception("Couldn't find 'actions' array in the config file.")
 
       Item( actions, name )
     }
   }
 
   /** Process a JValue that is a JArray of Actions
-    * 
+    */
+  def createActionList(
+    actionsList: Option[JValue]): 
+    List[Action] = {
+
+    if (actionsList.isDefined)
+      createActionList(actionsList.get)
+    else 
+      Nil
+  }
+
+  /** Process a JValue that is a JArray of Actions
     */
   def createActionList(
     actionsList: JValue): 

@@ -8,8 +8,6 @@ class MockAction(
   val throwMessage: Option[String] = None
 ) extends Action
 {
-  var performCount = 0
-
   def this(config: JValue) = {
     this(
       JsonUtil.extractOption[Boolean](config \ "shouldThrow").getOrElse(false),
@@ -24,8 +22,6 @@ class MockAction(
     currentEnrichedMap: Map[String, String],
     context: ActionContext):
     PerformResult = {
-
-    performCount += 1
 
     if (shouldThrow) {
       throw new Exception("MockAction:  " + throwMessage.getOrElse("throwing exception"))

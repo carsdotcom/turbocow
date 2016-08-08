@@ -1,6 +1,6 @@
 package com.cars.bigdata.turbocow
 
-import com.cars.bigdata.turbocow.actions.AddScratchToEnriched
+import com.cars.bigdata.turbocow.actions.{AddScratchToEnriched, MockAction}
 import org.json4s.JValue
 
 /** ActionFactoryMock - enables creation of test actions
@@ -17,6 +17,7 @@ class CustomActionCreator extends ActionCreator {
       case "custom-add-enriched-fields" => Option(new AddEnrichedFields(actionConfig))
       //case "custom-remove-enriched-fields" => Option(new RemoveEnrichedField(actionConfig))
       case "add-scratch-to-enriched" => Option(new AddScratchToEnriched)
+      case "mock-action" => Option(new MockAction(actionConfig))
       case _ => None
     }
   }

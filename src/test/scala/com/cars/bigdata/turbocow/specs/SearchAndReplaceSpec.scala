@@ -331,11 +331,11 @@ class SearchAndReplaceSpec extends UnitSpec {
 
     //passing null when the field is missing or null in input json..can be configured to Empty if needed
     it(" should give null when adobe has null and found nothing to replace with"){
-     doSearchAndReplace("""{ "adobe" : null }""" , "a" , "b").head should be (Map.empty[String, String])
+     doSearchAndReplace("""{ "adobe" : null }""" , "a" , "b").size should be (0)
     }
 
     it(" should give null when adobe is missing and found nothing to replace with"){
-      doSearchAndReplace("""{ }""" , "a" , "b").head should be (Map.empty[String, String])
+      doSearchAndReplace("""{ }""" , "a" , "b").size should be (0)
     }
   }
 }

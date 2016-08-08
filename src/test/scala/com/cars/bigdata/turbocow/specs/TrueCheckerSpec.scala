@@ -1,13 +1,13 @@
-package com.cars.bigdata.turbocow.specs
+package com.cars.bigdata.turbocow
 
 import com.cars.bigdata.turbocow.actions.checks.{CheckParams, TrueChecker}
 import com.cars.bigdata.turbocow.test.SparkTestContext._
-import com.cars.bigdata.turbocow.{ActionContext, ActionEngine, UnitSpec}
+import com.cars.bigdata.turbocow.{ActionContext, ActionEngine}
 import org.json4s.jackson.JsonMethods._
 
 class TrueCheckerSpec extends UnitSpec {
 
-  val checker = new TrueChecker(Option(false))
+  val checker = new TrueChecker
 
   describe("TrueChecker") {
 
@@ -287,7 +287,7 @@ class TrueCheckerSpec extends UnitSpec {
         sc).collect()
 
       enriched.size should be (1) // always
-      enriched.head should be (Map("XXX"->"false"))
+      enriched.head should be (Map("XXX"->"true"))
     }
 
     it("should run true checker action successfully onFail should output false when caseSensitive is mentioned and true") {
@@ -337,7 +337,7 @@ class TrueCheckerSpec extends UnitSpec {
         sc).collect()
 
       enriched.size should be (1) // always
-      enriched.head should be (Map("XXX"->"false"))
+      enriched.head should be (Map("XXX"->"true"))
     }
 
     it("should run true checker action successfully onPass should output true when caseSensitive is mentioned and false") {

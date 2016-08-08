@@ -5,6 +5,7 @@ object FieldLocation extends Enumeration {
 
   type FieldLocation = Value
 
+  val Constant = Value("constant")
   val Input = Value("input")
   val Enriched = Value("enriched")
   val Scratchpad = Value("scratchpad")

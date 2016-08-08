@@ -11,6 +11,7 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
 import scala.collection.immutable.HashMap
+import java.sql.{Connection, DriverManager, Statement}
 
 object ActionEngine
 {
@@ -24,6 +25,10 @@ object ActionEngine
     * @param sc SparkContext
     * @param hiveContext the hive context, if any
     * @param actionFactory the factory you want to utilize for creating Action objects
+    * @param initialScratchPad at the start of the processing for every record, 
+    *        initialize the scratch pad to this.
+    * @param jdbcClientConfigs list of JdbcClientConfig objects that the framework
+    *        will use to create JDBC clients to use during actions.
     * 
     * @return RDD of enriched data records, where each record is a key-value map.
     */
@@ -33,7 +38,8 @@ object ActionEngine
     sc: SparkContext,
     hiveContext : Option[HiveContext] = None,
     actionFactory: ActionFactory = new ActionFactory,
-    initialScratchPad: ScratchPad = new ScratchPad):
+    initialScratchPad: ScratchPad = new ScratchPad,
+    jdbcClientConfigs: Seq[JdbcClientConfig] = Nil):
     RDD[Map[String, String]] = {
 
     // Get the input file
@@ -50,6 +56,10 @@ object ActionEngine
     * @param sc SparkContext
     * @param hiveContext the hive context, if any
     * @param actionFactory the factory you want to utilize for creating Action objects
+    * @param initialScratchPad at the start of the processing for every record, 
+    *        initialize the scratch pad to this.
+    * @param jdbcClientConfigs list of JdbcClientConfig objects that the framework
+    *        will use to create JDBC clients to use during actions.
     * 
     * @return RDD of enriched data records, where each record is a key-value map.
     */
@@ -59,7 +69,8 @@ object ActionEngine
     sc: SparkContext,
     hiveContext : Option[HiveContext] = None,
     actionFactory: ActionFactory = new ActionFactory,
-    initialScratchPad: ScratchPad = new ScratchPad):
+    initialScratchPad: ScratchPad = new ScratchPad,
+    jdbcClientConfigs: Seq[JdbcClientConfig] = Nil):
     RDD[Map[String, String]] = {
 
     // Create RDD from the inputJson strings
@@ -76,6 +87,10 @@ object ActionEngine
     * @param sc SparkContext
     * @param hiveContext the hive context, if any
     * @param actionFactory the factory you want to utilize for creating Action objects
+    * @param initialScratchPad at the start of the processing for every record, 
+    *        initialize the scratch pad to this.
+    * @param jdbcClientConfigs list of JdbcClientConfig objects that the framework
+    *        will use to create JDBC clients to use during actions.
     * 
     * @return RDD of enriched data records, where each record is a key-value map.
     */
@@ -85,7 +100,8 @@ object ActionEngine
     sc: SparkContext,
     hiveContext : Option[HiveContext] = None,
     actionFactory: ActionFactory = new ActionFactory,
-    initialScratchPad: ScratchPad = new ScratchPad):
+    initialScratchPad: ScratchPad = new ScratchPad,
+    jdbcClientConfigs: Seq[JdbcClientConfig] = Nil):
     RDD[Map[String, String]] = {
 
     // Create the list of Items from the config and broadcast
@@ -106,7 +122,9 @@ object ActionEngine
       HiveTableCache.cacheTables(items, hiveContext)
     val tableCachesBC = sc.broadcast(tableCaches)
 
+    // Broadcast some things
     val initialScratchPadBC = sc.broadcast(initialScratchPad)
+    val jdbcClientConfigsBC = sc.broadcast(jdbcClientConfigs)
 
     // parse the input json data
     val flattenedImpressionsRDD = inputJsonRDD.map( jsonString => {
@@ -132,35 +150,41 @@ object ActionEngine
     })
 
     // for every impression, perform all actions from config file.
-    val enrichedRDD = flattenedImpressionsRDD.map{ ast =>
-      try {
-        processRecord(ast, itemsBC.value, initialScratchPadBC.value, tableCachesBC.value)
-      }
-      catch {
-        case e: Throwable => {
+    val enrichedRDD = flattenedImpressionsRDD.mapPartitions{ iter =>
 
-          // Save the stack trace in the scratchpad
-          val scratchPad = initialScratchPadBC.value
+      val jdbcClients: Map[String, Statement] = createJdbcClients(jdbcClientConfigsBC.value)
 
-          val message = "Unhandled Exception:  " + e.getMessage() +
-            e.getStackTrace().mkString("\n    ", "\n    ", "")
+      iter.map{ ast =>
 
-          // TODO log somewhere
-          println("EEEEEEEEEEEEEEEEEEEEEEE Error:  "+message)
+        try {
+          processRecord(ast, itemsBC.value, initialScratchPadBC.value, tableCachesBC.value, jdbcClients)
+        }
+        catch {
+          case e: Throwable => {
 
-          scratchPad.setResult("unhandled-exception", message)
+            // Save the stack trace in the scratchpad
+            val scratchPad = initialScratchPadBC.value
 
-          // Run the exception action list
-          //println("Running actions: ")
-          //exceptionHandlingActionsBC.value.actions.foreach{ e => println(e.toString) }
-          exceptionHandlingActionsBC.value.perform(
-            ast, 
-            Map.empty[String, String], 
-            ActionContext(
-              tableCachesBC.value, 
-              scratchPad=initialScratchPadBC.value
-            )
-          ).enrichedUpdates
+            val message = "Unhandled Exception:  " + e.getMessage() +
+              e.getStackTrace().mkString("\n    ", "\n    ", "")
+
+            // TODO log somewhere
+            println("EEEEEEEEEEEEEEEEEEEEEEE Error:  "+message)
+
+            scratchPad.setResult("unhandled-exception", message)
+
+            // Run the exception action list
+            //println("Running actions: ")
+            //exceptionHandlingActionsBC.value.actions.foreach{ e => println(e.toString) }
+            exceptionHandlingActionsBC.value.perform(
+              ast, 
+              Map.empty[String, String], 
+              ActionContext(
+                tableCachesBC.value, 
+                scratchPad=initialScratchPadBC.value
+              )
+            ).enrichedUpdates
+          }
         }
       }
 
@@ -178,10 +202,11 @@ object ActionEngine
     record: JValue,
     configItems: List[Item],
     initialScratchPad: ScratchPad = new ScratchPad,
-    tableCaches: Map[String, TableCache] = Map.empty[String, TableCache]): 
+    tableCaches: Map[String, TableCache] = Map.empty[String, TableCache],
+    jdbcClients: Map[String, Statement] = Map.empty[String, Statement]): 
     Map[String, String] = {
 
-    val actionContext = ActionContext(tableCaches, scratchPad = initialScratchPad)
+    val actionContext = ActionContext(tableCaches, scratchPad = initialScratchPad, jdbcClients = jdbcClients)
 
     // This is the output map, to be filled with the results of validation &
     // enrichment actions.  Later it will be converted to Avro format and saved.
@@ -199,6 +224,46 @@ object ActionEngine
     enrichedMap
   }
 
+  /** Create JDBC clients, well Statement instances
+    * 
+    */
+  def createJdbcClients(jdbcClientConfigs: Seq[JdbcClientConfig]): 
+    Map[String, Statement] = {
 
+    val jdbcMap = jdbcClientConfigs.map{ jdbcConfig => 
+
+      val driver = "org.apache.hive.jdbc.HiveDriver"
+      val uri = jdbcConfig.connectionUri
+
+      var connection: Option[Connection] = None
+      val statement = try {
+
+        // make the connection
+        println("JJJ ---1")
+        Class.forName(driver)
+        println("JJJ ---2")
+        val connection:Connection = DriverManager.getConnection(uri)
+
+        // create the statement, and run the select query
+        println("JJJ ---3")
+        connection.createStatement()
+      } 
+      catch {
+        case e:Throwable => { 
+          println("Unable to create JDBC connection to: "+uri)
+          connection.foreach{ _.close() }
+          throw e 
+        }
+      } 
+      println("JJJ ---7")
+
+      (jdbcConfig.name, statement)
+    }.toMap
+
+    // check for duplicate keys
+    if (jdbcMap.size != jdbcClientConfigs.size) throw new Exception("Names for JDBC clients must be unique!")
+
+    jdbcMap
+  }
 }
 

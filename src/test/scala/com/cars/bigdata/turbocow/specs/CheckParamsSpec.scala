@@ -72,7 +72,7 @@ class CheckParamsSpec extends UnitSpec {
       cp.getValueFrom(Option(cp.left), cp.leftSource, input, enriched) should be (None)
     }
     it("should return the field when field source is constant") {
-      val cp = CheckParams(left = "A", leftSource = Option(FieldSource.Constant))
+      val cp = CheckParams(left = "A", leftSource = Option(FieldLocation.Constant))
       val input = parse("""{"A": "AInput"}""")
       val enriched = Map("A"->"AEnriched")
       cp.getValueFrom(Option(cp.left), cp.leftSource, input, enriched) should be (Some("A"))

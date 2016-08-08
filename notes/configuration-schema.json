@@ -2,7 +2,18 @@
 // in the library.
 
 {
+  // Provide the type of activity this is enriching.  This should be the same
+  // as the name of the kafka queue.
   "activityType": "impressions",
+
+  // Some global configuration settings.
+  "global": {
+
+    // This is an action list containing any actions that you need to perform in
+    // the event that an action throws an (unhandled) exception during perform().
+    // Any action can be provided.  These actions should not throw!  
+    "exceptionHandlingList": [ { "actionType": "...", "config": {} } ]
+  }
 
   "items": [
     {

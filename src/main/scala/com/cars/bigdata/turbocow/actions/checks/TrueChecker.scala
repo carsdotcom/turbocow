@@ -3,7 +3,7 @@ package com.cars.bigdata.turbocow.actions.checks
 import com.cars.bigdata.turbocow.{ActionContext, JsonUtil, ValidString}
 import org.json4s.JValue
 
-class TrueChecker( caseSensitive : Option[Boolean]) extends Checker {
+class TrueChecker extends Checker {
 
   /** Check if the requested field is numeric
     */
@@ -18,20 +18,16 @@ class TrueChecker( caseSensitive : Option[Boolean]) extends Checker {
     val testVal = JsonUtil.extractValidString(inputRecord \ checkParams.left)
 
     if(testVal.isDefined){
-      if(caseSensitive.isEmpty || caseSensitive.get) {
-        testVal.get.equals("true")
-        //todo Optional Source (input | enriched | constant) handling
-        //todo extend to accept boolean type values if needed. for now we are checking "true" as a String but not as boolean.
-      }
-      else{
+
+
         testVal.get.toLowerCase.equals("true")
         //todo Optional Source (input | enriched | constant) handling
         //todo extend to accept boolean type values if needed. for now we are checking "true" as a String but not as boolean.
       }
-    }
     else{
       false
     }
+
   }
 }
 

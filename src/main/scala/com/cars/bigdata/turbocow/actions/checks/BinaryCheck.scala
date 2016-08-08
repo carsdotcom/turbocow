@@ -3,6 +3,7 @@ package com.cars.bigdata.turbocow.actions.checks
 import com.cars.bigdata.turbocow.actions.ActionList
 import com.cars.bigdata.turbocow.{ActionContext, ActionFactory, JsonUtil, PerformResult, _}
 import org.json4s._
+import BinaryCheck.caseSensitiveDefault
 
 class BinaryCheck(
   val left: String,
@@ -35,8 +36,9 @@ class BinaryCheck(
           throw new Exception("""JSON configuration for checks are required to have a 'right object""")),
       {
         val operator = JsonUtil.extractValidString(config \ "op").getOrElse(throw new Exception("must specify an operator"))
+        val caseSensitive = JsonUtil.extractOption[Boolean](config \ "caseSensitive").getOrElse(caseSensitiveDefault)
         operator match {
-          case "equals" => new EqualChecker
+          case "equals" => new EqualChecker(caseSensitive)
           case _ => throw new Exception("undefined binary operation  "+operator)
         }
       },
@@ -109,6 +111,10 @@ class BinaryCheck(
       onFail.perform(inputRecord, currentEnrichedMap, context)
     }
   }
-
 }
+
+object BinaryCheck {
+  val caseSensitiveDefault = true
+}
+
 

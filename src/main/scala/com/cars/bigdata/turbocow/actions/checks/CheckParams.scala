@@ -1,4 +1,4 @@
-package com.cars.bigdata.turbocow.actions
+package com.cars.bigdata.turbocow.actions.checks
 
 import com.cars.bigdata.turbocow.{FieldLocation, JsonUtil}
 import org.json4s.JValue
@@ -31,6 +31,7 @@ case class CheckParams(
           }
           case Some(FieldLocation.Input) => JsonUtil.extractOptionString(inputRecord \ f)
           case Some(FieldLocation.Enriched) => currentEnrichedMap.get(f)
+          case Some(FieldLocation.Constant) => field
           case a: Any => throw new Exception("unrecognized field source:"+ a.toString)
         }
       }
@@ -65,12 +66,13 @@ object CheckParams {
     uc.field
   )
 
-/*
+
   def fromBinaryCheck(bc: BinaryCheck): CheckParams = CheckParams(
     bc.left,
-    Option(bc.right)
+    Option(bc.right),
+    bc.leftSource,
+    bc.rightSource
   )
-  */
 }
 
 

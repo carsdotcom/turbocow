@@ -2,7 +2,7 @@ package com.cars.bigdata.turbocow
 
 import java.net.URI
 
-import com.cars.bigdata.turbocow.actions.Lookup
+import com.cars.bigdata.turbocow.actions.{ActionList, Lookup}
 import org.apache.spark.SparkContext
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
@@ -45,7 +45,7 @@ object ActionEngine
   /** Process a set of JSON strings rather than reading from a directory.
     * This will mostly be used during testing.
     *
-    * @param inputJSON a sequence of json strings, one JSON record per element.
+    * @param inputJson a sequence of json strings, one JSON record per element.
     * @param config configuration file that describes how to process the input data
     * @param sc SparkContext
     * @param hiveContext the hive context, if any
@@ -71,7 +71,7 @@ object ActionEngine
   /** Process a set of JSON strings rather than reading from a directory.
     * This will likely never be called except from the two above process functions.
     *
-    * @param inputJSONRDD an RDD of JSON Strings to process
+    * @param inputJsonRDD an RDD of JSON Strings to process
     * @param config configuration file that describes how to process the input data
     * @param sc SparkContext
     * @param hiveContext the hive context, if any
@@ -88,9 +88,18 @@ object ActionEngine
     initialScratchPad: ScratchPad = new ScratchPad):
     RDD[Map[String, String]] = {
 
-    // Parse the config.  Creates a list of Items.
-    val items = actionFactory.createItems(config)
+    // Create the list of Items from the config and broadcast
+    val parsedConfig = parse(config)
+    val items = actionFactory.createItems(parsedConfig)
     val itemsBC: Broadcast[List[Item]] = sc.broadcast(items)
+
+    // Create the exceptionHandling from the config:
+    val exceptionHandlingActions = new ActionList(
+      actionFactory.createActionList(
+        ( parsedConfig \ "global" \ "exceptionHandlingList" ).toOption
+      )
+    )
+    val exceptionHandlingActionsBC = sc.broadcast(exceptionHandlingActions)
 
     // Cache all the tables as specified in the items, then broadcast
     val tableCaches: Map[String, TableCache] =
@@ -123,12 +132,46 @@ object ActionEngine
     })
 
     // for every impression, perform all actions from config file.
-    flattenedImpressionsRDD.map{ ast =>
-      processRecord(ast, itemsBC.value, initialScratchPadBC.value, tableCachesBC.value)
-    }
+    val enrichedRDD = flattenedImpressionsRDD.map{ ast =>
+      try {
+        processRecord(ast, itemsBC.value, initialScratchPadBC.value, tableCachesBC.value)
+      }
+      catch {
+        case e: Throwable => {
+
+          // Save the stack trace in the scratchpad
+          val scratchPad = initialScratchPadBC.value
+
+          val message = "Unhandled Exception:  " + e.getMessage() +
+            e.getStackTrace().mkString("\n    ", "\n    ", "")
+
+          // TODO log somewhere
+          println("EEEEEEEEEEEEEEEEEEEEEEE Error:  "+message)
+
+          scratchPad.setResult("unhandled-exception", message)
+
+          // Run the exception action list
+          //println("Running actions: ")
+          //exceptionHandlingActionsBC.value.actions.foreach{ e => println(e.toString) }
+          exceptionHandlingActionsBC.value.perform(
+            ast, 
+            Map.empty[String, String], 
+            ActionContext(
+              tableCachesBC.value, 
+              scratchPad=initialScratchPadBC.value
+            )
+          ).enrichedUpdates
+        }
+      }
+
+      // (filter out any of these empty maps)
+    }.filter{ m => m != Map.empty[String, String] }
+
+    enrichedRDD
   }
 
-  /** Process one JSON record.  Called from processJsonRDD and tests.
+  /** Process one JSON record.  Called from processJsonRDD and tests; not meant 
+    * for outside consumption.
     */
   protected [turbocow] 
   def processRecord(

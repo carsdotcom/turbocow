@@ -6,7 +6,6 @@ trait Action extends Serializable
 {
   /** Performs an action.  
     *
-    * @param sourceFields the list of fields from the "source" array for this item.
     * @param inputRecord the parsed JSON record received as input
     * @param currentEnrichedMap the map that represents the entire enriched data 
     *        record so far in this action sequence.

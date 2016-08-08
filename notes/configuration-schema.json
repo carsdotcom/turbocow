@@ -138,7 +138,7 @@
         },
 
         // --------------------------------------------------------------------
-        // "Replace Null" checks for a null value in the input field(s),
+        // "ReplaceNull" checks for a null value in the input field(s),
         // and if the value exists and is null (or does not exist), it will set 
         // the enriched record's field value to be some hard-coded value.  
         {

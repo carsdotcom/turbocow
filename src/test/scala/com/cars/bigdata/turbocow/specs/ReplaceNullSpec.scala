@@ -203,7 +203,7 @@ class ReplaceNullSpec
 
     it("should set outputTo to Enriched if specified") {
       val a = new ReplaceNull(parse("""{
-        "field": "A",
+        "fields": ["A"],
         "newValue": "X",
         "outputTo": "enriched"
       }"""))
@@ -213,7 +213,7 @@ class ReplaceNullSpec
     }
     it("should set outputTo to Scratchpad if specified") {
       val a = new ReplaceNull(parse("""{
-        "field": "A",
+        "fields": ["A"],
         "newValue": "X",
         "outputTo": "scratchpad"
       }"""))
@@ -229,6 +229,29 @@ class ReplaceNullSpec
       }""")) }.isSuccess should be (false)
     }
 
+    it("should create the same object if passing fields:[A] and field:A") {
+      val listAction = new ReplaceNull(parse("""{
+        "fields": ["A"],
+        "newValue": "X",
+        "outputTo": "scratchpad"
+      }"""))
+      // single-field action
+      val sfAction = new ReplaceNull(parse("""{
+        "field": "A",
+        "newValue": "X",
+        "outputTo": "scratchpad"
+      }"""))
+
+      // make sure fields list is same
+      listAction.fields.size should be (1)
+      listAction.fields.size should be (sfAction.fields.size)
+      listAction.fields.head should be (FieldSource("A", EnrichedThenInput))
+      listAction.fields.head should be (sfAction.fields.head)
+
+      // just to be thorough:
+      listAction.newValue should be (sfAction.newValue)
+      listAction.outputTo should be (sfAction.outputTo)
+    }
   }
 
   describe("getLookupRequirements") {
@@ -245,68 +268,159 @@ class ReplaceNullSpec
   }
 
   describe("perform") {
+
+    // test output locations
     it("should add to enriched record if specified") {
 
       val a = new ReplaceNull(List(FieldSource("A", Input)), "X", Enriched)
+      val ac = ActionContext()
       a.perform(
         parse("""{ "A": null }"""),
         Map.empty[String, String],
-        ActionContext()
+        ac
+      ) should be (PerformResult(Map("A"->"X")))
+
+      // scratchpad should not have changed
+      ac.scratchPad.allMainPad should be (ActionContext().scratchPad.allMainPad)
+      ac.scratchPad.allResults should be (ActionContext().scratchPad.allResults)
+    }
+
+    it("should add nothing if input is not null (ie. string 'null')") {
+
+      val a = new ReplaceNull(List(FieldSource("A", Input)), "X", Enriched)
+      val ac = ActionContext()
+      a.perform(
+        parse("""{ "A": "null" }"""),  // note this is a string "null" (not null)
+        Map.empty[String, String],
+        ac
+      ) should be (PerformResult())
+
+      // scratchpad should not have changed
+      ac.scratchPad.allMainPad should be (ActionContext().scratchPad.allMainPad)
+      ac.scratchPad.allResults should be (ActionContext().scratchPad.allResults)
+    }
+
+    it("should add to scratchpad record if specified") {
+
+      val a = new ReplaceNull(List(FieldSource("A", Input)), "X", Scratchpad)
+      val ac = ActionContext()
+      a.perform(
+        parse("""{ "A": null }"""),
+        Map.empty[String, String],
+        ac
+      ) should be (PerformResult())
+
+      // scratchpad should be updated
+      ac.scratchPad.allMainPad.size should be (1)
+      ac.scratchPad.get("A") should be (Some("X"))
+      // scratchpad results should not have changed
+      ac.scratchPad.allResults should be (ActionContext().scratchPad.allResults)
+    }
+
+    it("should add nothing to scratchpad record if not null") {
+
+      val a = new ReplaceNull(List(FieldSource("A", Input)), "X", Scratchpad)
+      val ac = ActionContext()
+      a.perform(
+        parse("""{ "A": "" }"""), // blank, not null
+        Map.empty[String, String],
+        ac
+      ) should be (PerformResult())
+
+      // scratchpad should not have changed
+      ac.scratchPad.allMainPad should be (ActionContext().scratchPad.allMainPad)
+      ac.scratchPad.allResults should be (ActionContext().scratchPad.allResults)
+    }
+
+    // test input locations: enriched
+    it("should add to enriched record if enriched is null") {
+
+      val a = new ReplaceNull(List(FieldSource("A", Enriched)), "X", Enriched)
+      val ac = ActionContext()
+      a.perform(
+        parse("""{ "A": "A" }"""),
+        Map("A"->null),
+        ac
       ) should be (PerformResult(Map("A"->"X")))
     }
 
-    todo leftoff - add more tests
-    
+    it("should not add to enriched record if enriched is non-null") {
+
+      val a = new ReplaceNull(List(FieldSource("A", Enriched)), "X", Enriched)
+      val ac = ActionContext()
+      a.perform(
+        parse("""{ "A": "A" }"""),
+        Map("A"->""),// not null, empty string
+        ac
+      ) should be (PerformResult())
+    }
+
+    // test input locations: scratch
+    it("should add to enriched record if scratchpad is null") {
+
+      val a = new ReplaceNull(List(FieldSource("A", Scratchpad)), "X", Enriched)
+      val sc = new ScratchPad()
+      sc.set("A", null)
+      val ac = ActionContext(scratchPad = sc)
+
+      a.perform(
+        parse("""{ "A": "A" }"""),
+        Map.empty[String, String],
+        ac
+      ) should be (PerformResult(Map("A"->"X")))
+    }
+
+    it("should not add to enriched record if scratchpad is not null") {
+
+      val a = new ReplaceNull(List(FieldSource("A", Scratchpad)), "X", Enriched)
+      val sc = new ScratchPad()
+      sc.set("A", "") // not null
+      val ac = ActionContext(scratchPad = sc)
+
+      a.perform(
+        parse("""{ "A": "A" }"""),
+        Map.empty[String, String],
+        ac
+      ) should be (PerformResult())
+    }
+
+    // test input locations: EnrichedThenInput
+    it("should add to enriched record for EnrichedThenInput if Enriched is null") {
+
+      val a = new ReplaceNull(List(FieldSource("A", EnrichedThenInput)), "X", Enriched)
+      val ac = ActionContext()
+      a.perform(
+        parse("""{ "A": "A" }"""),
+        Map("A"->null),
+        ac
+      ) should be (PerformResult(Map("A"->"X")))
+    }
+
+    it("should add to enriched record for EnrichedThenInput if Enriched is nonexistent and Input is null") {
+
+      val a = new ReplaceNull(List(FieldSource("A", EnrichedThenInput)), "X", Enriched)
+      val ac = ActionContext()
+      a.perform(
+        parse("""{ "A": null }"""),
+        Map("X"->"X"),
+        ac
+      ) should be (PerformResult(Map("A"->"X")))
+    }
+
+    it("should NOT add to enriched record for EnrichedThenInput if Enriched is nonexistent and Input is not null") {
+
+      val a = new ReplaceNull(List(FieldSource("A", EnrichedThenInput)), "X", Enriched)
+      val ac = ActionContext()
+      a.perform(
+        parse("""{ "A": "" }"""), // not null
+        Map("X"->"X"),
+        ac
+      ) should be (PerformResult())
+    }
+
   }
+}       
 
-  // old replace-null-with tests:
-  //describe("replace null with") {
-  //
-  //  // Helper test function
-  //  def testReplaceNull(value: String) = {
-  //    println("value = "+value)
-  //    val enriched: Array[Map[String, String]] = ActionEngine.processDir(
-  //      new URI("./src/test/resources/input-integration-replacenullwith.json"),
-  //      s"""
-  //      {
-  //        "activityType": "impressions",
-  //        "items": [
-  //          {
-  //            "actions":[
-  //              {
-  //                "actionType": "replace-null-with-${value}",
-  //                "config": {
-  //                  "inputSource": [ "AField", "CField", "DField" ]
-  //                }
-  //              }
-  //            ]
-  //      
-  //          }
-  //        ]
-  //      }""",
-  //      sc).collect()
-  //
-  //    enriched.size should be (1) // always one because there's only one json input object
-  //    //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-  //    enriched.head.size should be (2)
-  //    enriched.head.get("CField") should be (Some(value)) // this one was null
-  //    enriched.head.get("DField") should be (Some(value)) // this one was missing
-  //    enriched.head.get("AField") should be (None) // do nothing to a field that is not null
-  //    // note the semantics of this are weird.  todo - rethink this action
-  //  }
-  //
-  //  it("should successfully process replace-null-with-X") {
-  //    testReplaceNull("0")
-  //    testReplaceNull("1")
-  //    testReplaceNull("2")
-  //    testReplaceNull("X")
-  //    testReplaceNull("XXXXXYYYYZ have a nice day   ")
-  //  }
-  //
-  //  // todo this could use more testing
-  //}
-
-}
 
  
 

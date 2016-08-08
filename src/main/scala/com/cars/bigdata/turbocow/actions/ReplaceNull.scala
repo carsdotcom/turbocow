@@ -5,17 +5,19 @@ import org.json4s._
 
 import scala.util.Try
 
+import FieldLocation._
+
 /** Main constructor
   *
-  * @param fields
+  * @param fields list of fields in the input record to replace a null value with
   * @param newValue
   * @param outputTo
   */
 class ReplaceNull(
   val fields: List[FieldSource],
   val newValue: String,
-  val outputTo: FieldLocation.Value = FieldLocation.Enriched) extends Action
-{
+  val outputTo: FieldLocation.Value = FieldLocation.Enriched) 
+  extends Action {
 
   // Check the input
   Option(fields).getOrElse(throw new Exception("ReplaceNull: fields value is null"))
@@ -47,7 +49,7 @@ class ReplaceNull(
     )
   }
 
-  /** Replace a null value with something else.
+  /** Replace a null value with something else.  If not null, do nothing.
     *
     */
   def perform(
@@ -61,11 +63,22 @@ class ReplaceNull(
     fields.map{ fieldSource => 
 
       if (fieldSource.isValueNull(inputRecord, currentEnrichedMap, context.scratchPad)) {
-        
-      }
-    }
 
-    PerformResult()
+        outputTo match {
+          case Enriched => PerformResult(Map(fieldSource.name->newValue))
+          case Scratchpad => {
+            context.scratchPad.set(fieldSource.name, newValue)
+            PerformResult()
+          }
+          case _ => throw new Exception("ReplaceNull: cannot output to anything other than Enriched or Scratchpad!")
+        }
+      }
+      else {
+        PerformResult()
+      }
+    }.reduceLeft{ (combined, e) =>
+      combined.combineWith(e)
+    } 
   }
 }
 

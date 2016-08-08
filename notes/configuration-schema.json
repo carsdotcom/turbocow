@@ -3,6 +3,7 @@
 
 {
   "activityType": "impressions",
+
   "items": [
     {
       // The name field is strictly for the author's use, to name this item, 
@@ -27,6 +28,21 @@
           "config": {
               "any": "thing",
               "someOther": [ "things" ]
+          }
+        },
+
+        // --------------------------------------------------------------------
+        // AddRejectionReason adds the rejection reason stored in the scratchpad
+        // (as a result of Reject action(s) - see below) to the field below, and
+        // copies the rest of the input record to the enriched record.
+        // This is best done at the end of a set of items as well as in the 
+        // global.exceptionHandlingList.
+        {
+          "actionType":"add-rejection-reason",
+          "config": {
+            // The name of the field in the enriched record to add the rejection
+            // reason to:
+            "field": "reasonForReject"
           }
         },
 
@@ -241,6 +257,9 @@
             // this actionType.  (Each action caches a result string, if it succeeds
             // or fails).
             // For example, use the below in the onFail section of a lookup action:
+            // There is a special code "unhandled-exception" that can be used if you
+            // want to use a reject action in the global.exceptionHandlingList; this
+            // means the stack trace from an unhandled exception as the reason.
             "reasonFrom": "lookup"
             //-------------------------------------------
 

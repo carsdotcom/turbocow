@@ -3,6 +3,7 @@ package com.cars.bigdata.turbocow.actions.checks
 import com.cars.bigdata.turbocow.actions.checks.BinaryCheck.caseSensitiveDefault
 import com.cars.bigdata.turbocow.{ActionContext, FieldSource}
 import org.json4s.JValue
+import com.cars.bigdata.turbocow.FieldLocation._
 
 class EqualChecker(val caseSensitive : Boolean = caseSensitiveDefault) extends Checker {
 
@@ -18,10 +19,10 @@ class EqualChecker(val caseSensitive : Boolean = caseSensitiveDefault) extends C
       false
     else {
       val leftSource = FieldSource(checkParams.left, checkParams.leftSource.getOrElse(EnrichedThenInput))
-      val rightSource = FieldSource(checkParams.right, checkParams.rightSource.getOrElse(EnrichedThenInput))
+      val rightSource = FieldSource(checkParams.right.get, checkParams.rightSource.getOrElse(EnrichedThenInput))
 
-      val leftIsNull = leftSource.isValueNull(inputRecord, currentEnrichedMap, context.scratchPad)
-      val rightIsNull = rightSource.isValueNull(inputRecord, currentEnrichedMap, context.scratchPad)
+      val leftIsNull = leftSource.isValueNull(inputRecord, currentEnrichedMap, context.scratchPad, Option(checkParams.left))
+      val rightIsNull = rightSource.isValueNull(inputRecord, currentEnrichedMap, context.scratchPad, checkParams.right)
       if ( leftIsNull && rightIsNull )
         true // equal if both are null
       else if (leftIsNull || rightIsNull)
@@ -29,8 +30,8 @@ class EqualChecker(val caseSensitive : Boolean = caseSensitiveDefault) extends C
       else {
         // Both left and right are non-null
         // It's okay if they are missing, getValue() will return None
-        val leftVal = leftSource.getValue(inputRecord, currentEnrichedMap, context.scratchPad)
-        val rightVal = rightSource.getValue(inputRecord, currentEnrichedMap, context.scratchPad)
+        val leftVal = leftSource.getValue(inputRecord, currentEnrichedMap, context.scratchPad, Option(checkParams.left))
+        val rightVal = rightSource.getValue(inputRecord, currentEnrichedMap, context.scratchPad, checkParams.right)
 
         if (leftVal.nonEmpty && rightVal.nonEmpty) {
           if (caseSensitive)

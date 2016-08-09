@@ -7,25 +7,27 @@ class ScratchPad extends Serializable
 {
 
   // main storage is a k-v map, Any values
-  private var main: Map[String, Any] = new HashMap[String, Any]
+  private var mainPad: Map[String, Any] = new HashMap[String, Any]
+  def allMainPad = mainPad
 
   // result storage is also a k-v map but with String values
   private var results: Map[String, String] = new HashMap[String, String]
+  def allResults = results
 
   // -----------------------------------------------------------------
   // Set / get a key of any type
 
-  def size = main.size
+  def size = mainPad.size
 
   def set(key: String, value: Any) = {
-    main = main + (key->value)
+    mainPad = mainPad + (key->value)
   }
 
-  def get(key: String): Option[Any] = main.get(key)
+  def get(key: String): Option[Any] = mainPad.get(key)
 
   def remove(key: String): Option[Any] = {
     val removed = get(key)
-    main = main - key 
+    mainPad = mainPad - key 
     removed
   }
 

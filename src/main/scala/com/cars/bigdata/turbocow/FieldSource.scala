@@ -31,10 +31,11 @@ case class FieldSource(
   def getValue(
     inputRecord: JValue, 
     currentEnrichedMap: Map[String, String],
-    scratchPad: ScratchPad): 
+    scratchPad: ScratchPad):
     Option[String] = {
 
     source match {
+      case Constant => Option(name)
       case Input => JsonUtil.extractOptionString(inputRecord \ name)
       case Enriched => {
         val enrOpt = currentEnrichedMap.get(name)
@@ -70,10 +71,14 @@ case class FieldSource(
   def isValueNull(
     inputRecord: JValue, 
     currentEnrichedMap: Map[String, String],
-    scratchPad: ScratchPad): 
+    scratchPad: ScratchPad):
     Boolean = {
 
     source match {
+      case Constant => name match {
+        case null => true
+        case _ => false
+      }
       case Input => (inputRecord \ name) match { 
         case JNull => true
         case _ => false 

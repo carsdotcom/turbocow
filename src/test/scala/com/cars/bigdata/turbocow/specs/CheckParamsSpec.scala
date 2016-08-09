@@ -28,26 +28,26 @@ class CheckParamsSpec extends UnitSpec {
   describe("getValueFrom()") {
 
     it("should return the valid enriched value if specified") {
-      val cp = CheckParams(left = "A", leftSource = Option(FieldSource.Enriched ))
+      val cp = CheckParams(left = "A", leftSource = Option(FieldLocation.Enriched ))
       val input = parse("""{"A": "AInput"}""")
       val enriched = Map("A"->"AEnriched")
       cp.getValueFrom(Option(cp.left), cp.leftSource, input, enriched) should be (Some("AEnriched"))
     }
     it("should return None if enriched is specified but value not in enriched") {
-      val cp = CheckParams(left = "A", leftSource = Option(FieldSource.Enriched ))
+      val cp = CheckParams(left = "A", leftSource = Option(FieldLocation.Enriched ))
       val input = parse("""{"A": "AInput"}""")
       val enriched = Map("XXX"->"XEnriched")
       cp.getValueFrom(Option(cp.left), cp.leftSource, input, enriched) should be (None)
     }
 
     it("should return the valid input value if specified") {
-      val cp = CheckParams(left = "A", leftSource = Option(FieldSource.Input ))
+      val cp = CheckParams(left = "A", leftSource = Option(FieldLocation.Input ))
       val input = parse("""{"A": "AInput"}""")
       val enriched = Map("A"->"AEnriched")
       cp.getValueFrom(Option(cp.left), cp.leftSource, input, enriched) should be (Some("AInput"))
     }
     it("should return None if input is specified but value not in input") {
-      val cp = CheckParams(left = "A", leftSource = Option(FieldSource.Input ))
+      val cp = CheckParams(left = "A", leftSource = Option(FieldLocation.Input ))
       val input = parse("""{"XA": "XAInput"}""")
       val enriched = Map("A"->"AEnriched")
       cp.getValueFrom(Option(cp.left), cp.leftSource, input, enriched) should be (None)
@@ -72,7 +72,7 @@ class CheckParamsSpec extends UnitSpec {
       cp.getValueFrom(Option(cp.left), cp.leftSource, input, enriched) should be (None)
     }
     it("should return the field when field source is constant") {
-      val cp = CheckParams(left = "A", leftSource = Option(FieldSource.Constant))
+      val cp = CheckParams(left = "A", leftSource = Option(FieldLocation.Constant))
       val input = parse("""{"A": "AInput"}""")
       val enriched = Map("A"->"AEnriched")
       cp.getValueFrom(Option(cp.left), cp.leftSource, input, enriched) should be (Some("A"))

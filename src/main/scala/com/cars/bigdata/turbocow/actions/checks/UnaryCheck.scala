@@ -7,7 +7,7 @@ import org.json4s._
 class UnaryCheck(
   val field: String,
   val checker: Checker,
-  val fieldSource: Option[FieldSource.Value] = None,
+  val fieldSource: Option[FieldLocation.Value] = None,
   override val onPass: ActionList = new ActionList,
   override val onFail: ActionList = new ActionList
 ) extends CheckAction(onPass, onFail) {
@@ -49,8 +49,8 @@ class UnaryCheck(
         sourceOpt match {
           case None => None
           case Some(source) => source match {
-            case "input" => Option(FieldSource.Input)
-            case "enriched" => Option(FieldSource.Enriched)
+            case "input" => Option(FieldLocation.Input)
+            case "enriched" => Option(FieldLocation.Enriched)
             case s: String => throw new Exception("unrecognized fieldSource / leftSource for unary check action: "+ s)
           }
         }

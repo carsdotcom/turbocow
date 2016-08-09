@@ -2,7 +2,7 @@ package com.cars.bigdata.turbocow
 
 import com.cars.bigdata.turbocow.actions.checks.{CheckParams, EqualChecker}
 import org.json4s.jackson.JsonMethods._
-
+import FieldLocation._
 class EqualCheckerSpec extends UnitSpec {
 
   val checker = new EqualChecker
@@ -11,7 +11,7 @@ class EqualCheckerSpec extends UnitSpec {
 
   def doCheck1(inputJson: String, checker : EqualChecker): Boolean = {
     checker.performCheck(
-      CheckParams("A", Some("B"), Option(FieldSource.Input), Option(FieldSource.Input)),
+      CheckParams("A", Some("B"), Option(Input), Option(Input)),
       parse(inputJson),
       Map.empty[String, String],
       new ActionContext
@@ -20,7 +20,7 @@ class EqualCheckerSpec extends UnitSpec {
 
   def doCheck2(enrichedMap: Map[String, String], checker : EqualChecker): Boolean = {
     checker.performCheck(
-      CheckParams("A", Some("B"), Option(FieldSource.Enriched), Option(FieldSource.Enriched)),
+      CheckParams("A", Some("B"), Option(Enriched), Option(Enriched)),
       parse("{}"),
       enrichedMap,
       new ActionContext
@@ -78,7 +78,7 @@ class EqualCheckerSpec extends UnitSpec {
       doCheck2(enriched,checker) should be(true)
     }
     it("should return true if A and B are not present") {
-      doCheck2(Map.empty[String, String], checker) should be(true)
+      doCheck2(Map.empty[String, String], checker) should be(false)
     }
     it("should return false if A is null and B is not present") {
       val enriched: Map[String, String] = Map("A" -> null)
@@ -88,7 +88,7 @@ class EqualCheckerSpec extends UnitSpec {
   describe("performCheck() on constant") {
     it("should return true if A and A are compared") {
       checker.performCheck(
-        CheckParams("A", Some("A"), Option(FieldSource.Constant), Option(FieldSource.Constant)),
+        CheckParams("A", Some("A"), Option(Constant), Option(Constant)),
         parse("{}"),
         Map.empty[String, String],
         new ActionContext
@@ -96,7 +96,7 @@ class EqualCheckerSpec extends UnitSpec {
     }
     it("should return false if A and B are compared") {
       checker.performCheck(
-        CheckParams("A", Some("B"), Option(FieldSource.Constant), Option(FieldSource.Constant)),
+        CheckParams("A", Some("B"), Option(Constant), Option(Constant)),
         parse("{}"),
         Map.empty[String, String],
         new ActionContext
@@ -155,7 +155,7 @@ class EqualCheckerSpec extends UnitSpec {
       doCheck2(enriched,checker2) should be(true)
     }
     it("should return true if A and B are not present with caseSensitive false") {
-      doCheck2(Map.empty[String, String], checker2) should be(true)
+      doCheck2(Map.empty[String, String], checker2) should be(false)
     }
     it("should return false if A is null and B is not present with caseSensitive false") {
       val enriched: Map[String, String] = Map("A" -> null)
@@ -166,7 +166,7 @@ class EqualCheckerSpec extends UnitSpec {
 
     it("should return true if A and A are compared with caseSensitive false") {
       checker2.performCheck(
-        CheckParams("A", Some("A"), Option(FieldSource.Constant), Option(FieldSource.Constant)),
+        CheckParams("A", Some("A"), Option(Constant), Option(Constant)),
         parse("{}"),
         Map.empty[String, String],
         new ActionContext
@@ -174,7 +174,7 @@ class EqualCheckerSpec extends UnitSpec {
     }
     it("should return false if A and B are compared with caseSensitive false") {
       checker2.performCheck(
-        CheckParams("A", Some("B"), Option(FieldSource.Constant), Option(FieldSource.Constant)),
+        CheckParams("A", Some("B"), Option(Constant), Option(Constant)),
         parse("{}"),
         Map.empty[String, String],
         new ActionContext
@@ -230,7 +230,7 @@ class EqualCheckerSpec extends UnitSpec {
       doCheck2(enriched,checker3) should be(true)
     }
     it("should return true if A and B are not present with caseSensitive true in specific: overrirde default") {
-      doCheck2(Map.empty[String, String], checker3) should be(true)
+      doCheck2(Map.empty[String, String], checker3) should be(false)
     }
     it("should return false if A is null and B is not present with caseSensitive true in specific: overrirde default") {
       val enriched: Map[String, String] = Map("A" -> null)
@@ -241,7 +241,7 @@ class EqualCheckerSpec extends UnitSpec {
 
     it("should return true if A and A are compared with caseSensitive true in specific: overrirde default") {
       checker2.performCheck(
-        CheckParams("A", Some("A"), Option(FieldSource.Constant), Option(FieldSource.Constant)),
+        CheckParams("A", Some("A"), Option(Constant), Option(Constant)),
         parse("{}"),
         Map.empty[String, String],
         new ActionContext
@@ -249,7 +249,7 @@ class EqualCheckerSpec extends UnitSpec {
     }
     it("should return false if A and B are compared with caseSensitive true in specific: overrirde default") {
       checker2.performCheck(
-        CheckParams("A", Some("B"), Option(FieldSource.Constant), Option(FieldSource.Constant)),
+        CheckParams("A", Some("B"), Option(Constant), Option(Constant)),
         parse("{}"),
         Map.empty[String, String],
         new ActionContext

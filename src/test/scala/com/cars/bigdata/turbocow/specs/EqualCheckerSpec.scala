@@ -36,6 +36,9 @@ class EqualCheckerSpec extends UnitSpec {
     it("should return false if A and B are not equal") {
       doCheck1("""{"A": "testVal", "B": "testVal1"}""", checker) should be(false)
     }
+    it("should return false if A and B are equal but caseSensitive") {
+      doCheck1("""{"A": "testVal", "B": "TESTVAL"}""", checker) should be(false)
+    }
     it("should return false if A exists but not B") {
       doCheck1("""{"A": "X"}""", checker) should be(false)
     }
@@ -109,6 +112,9 @@ class EqualCheckerSpec extends UnitSpec {
     }
     it("should return false if A and B are not equal with caseSensitive false") {
       doCheck1("""{"A": "testVal", "B": "testVal1"}""",checker2) should be(false)
+    }
+    it("should return false if A and B are equal but caseSensitive false") {
+      doCheck1("""{"A": "testVal", "B": "TESTVAL"}""", checker2) should be(true)
     }
     it("should return false if A exists but not B with caseSensitive false") {
       doCheck1("""{"A": "X"}""",checker2) should be(false)

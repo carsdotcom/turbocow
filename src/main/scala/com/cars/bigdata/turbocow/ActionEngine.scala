@@ -174,8 +174,6 @@ object ActionEngine
             scratchPad.setResult("unhandled-exception", message)
 
             // Run the exception action list
-            //println("Running actions: ")
-            //exceptionHandlingActionsBC.value.actions.foreach{ e => println(e.toString) }
             exceptionHandlingActionsBC.value.perform(
               ast, 
               Map.empty[String, String], 

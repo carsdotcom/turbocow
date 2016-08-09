@@ -21,8 +21,8 @@ class EqualChecker(val caseSensitive : Boolean = caseSensitiveDefault) extends C
       val leftSource = FieldSource(checkParams.left, checkParams.leftSource.getOrElse(EnrichedThenInput))
       val rightSource = FieldSource(checkParams.right.get, checkParams.rightSource.getOrElse(EnrichedThenInput))
 
-      val leftIsNull = leftSource.isValueNull(inputRecord, currentEnrichedMap, context.scratchPad, Option(checkParams.left))
-      val rightIsNull = rightSource.isValueNull(inputRecord, currentEnrichedMap, context.scratchPad, checkParams.right)
+      val leftIsNull = leftSource.isValueNull(inputRecord, currentEnrichedMap, context.scratchPad)
+      val rightIsNull = rightSource.isValueNull(inputRecord, currentEnrichedMap, context.scratchPad)
       if ( leftIsNull && rightIsNull )
         true // equal if both are null
       else if (leftIsNull || rightIsNull)
@@ -30,8 +30,8 @@ class EqualChecker(val caseSensitive : Boolean = caseSensitiveDefault) extends C
       else {
         // Both left and right are non-null
         // It's okay if they are missing, getValue() will return None
-        val leftVal = leftSource.getValue(inputRecord, currentEnrichedMap, context.scratchPad, Option(checkParams.left))
-        val rightVal = rightSource.getValue(inputRecord, currentEnrichedMap, context.scratchPad, checkParams.right)
+        val leftVal = leftSource.getValue(inputRecord, currentEnrichedMap, context.scratchPad)
+        val rightVal = rightSource.getValue(inputRecord, currentEnrichedMap, context.scratchPad)
 
         if (leftVal.nonEmpty && rightVal.nonEmpty) {
           if (caseSensitive)

@@ -248,12 +248,12 @@
             // valid where clause here.
             // The field values can be in the form '$location.fieldName' where
             // location can be one of:
-            //     $enriched   TODO TODO TODO LEFTOFF
-            //     $input
-            //     $scratchpad
+            //     $enriched   = read the value from a field in enriched 
+            //     $input      = read the value from a field in the input record
+            //     $scratchpad = read the value from a field in the scratchpad
             // 
             // For example:
-            "where": "fieldA = 'something' and fieldB = 'something else'",
+            "where": "fieldA = '$scratchpad.something' and fieldB = '$input.someField'",
 
             // (OPTIONAL) If the lookup succeeds, all the actions in the onPass 
             // list will be run. 

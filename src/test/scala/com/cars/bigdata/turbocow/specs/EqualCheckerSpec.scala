@@ -240,7 +240,7 @@ class EqualCheckerSpec extends UnitSpec {
   describe("performCheck() on constant") {
 
     it("should return true if A and A are compared with caseSensitive true in specific: overrirde default") {
-      checker2.performCheck(
+      checker3.performCheck(
         CheckParams("A", Some("A"), Option(Constant), Option(Constant)),
         parse("{}"),
         Map.empty[String, String],
@@ -248,9 +248,9 @@ class EqualCheckerSpec extends UnitSpec {
       ) should be(true)
     }
     it("should return false if A and B are compared with caseSensitive true in specific: overrirde default") {
-      checker2.performCheck(
-        CheckParams("A", Some("B"), Option(Constant), Option(Constant)),
-        parse("{}"),
+      checker3.performCheck(
+        CheckParams("A", Some("B"), Option(Input), Option(Constant)),
+        parse("""{ "A" : "b"}"""),
         Map.empty[String, String],
         new ActionContext
       ) should be(false)

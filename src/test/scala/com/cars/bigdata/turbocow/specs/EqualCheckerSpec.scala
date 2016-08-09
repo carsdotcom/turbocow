@@ -1,6 +1,6 @@
 package com.cars.bigdata.turbocow.specs
 
-import com.cars.bigdata.turbocow.{ActionContext, FieldSource, UnitSpec}
+import com.cars.bigdata.turbocow.{ActionContext, FieldLocation, FieldSource, UnitSpec}
 import com.cars.bigdata.turbocow.actions.checks.{CheckParams, EqualChecker}
 import org.json4s.jackson.JsonMethods._
 
@@ -8,12 +8,14 @@ class EqualCheckerSpec extends UnitSpec {
 
   val checker = new EqualChecker
 
+  import FieldLocation._
+
   describe("performCheck() on input record") {
 
     def doCheck(inputJson: String): Boolean = {
 
       checker.performCheck(
-        CheckParams("A", Some("B"), Option(FieldSource.Input), Option(FieldSource.Input)),
+        CheckParams("A", Some("B"), Option(Input), Option(Input)),
         parse(inputJson),
         Map.empty[String, String],
         new ActionContext
@@ -47,7 +49,7 @@ class EqualCheckerSpec extends UnitSpec {
     def doCheck(enrichedMap: Map[String, String]): Boolean = {
 
       checker.performCheck(
-        CheckParams("A", Some("B"), Option(FieldSource.Enriched), Option(FieldSource.Enriched)),
+        CheckParams("A", Some("B"), Option(Enriched), Option(Enriched)),
         parse("{}"),
         enrichedMap,
         new ActionContext
@@ -86,7 +88,7 @@ class EqualCheckerSpec extends UnitSpec {
 
     it("should return true if A and A are compared") {
       checker.performCheck(
-        CheckParams("A", Some("A"), Option(FieldSource.Constant), Option(FieldSource.Constant)),
+        CheckParams("A", Some("A"), Option(Constant), Option(Constant)),
         parse("{}"),
         Map.empty[String, String],
         new ActionContext
@@ -94,7 +96,7 @@ class EqualCheckerSpec extends UnitSpec {
     }
     it("should return false if A and B are compared") {
       checker.performCheck(
-        CheckParams("A", Some("B"), Option(FieldSource.Constant), Option(FieldSource.Constant)),
+        CheckParams("A", Some("B"), Option(Constant), Option(Constant)),
         parse("{}"),
         Map.empty[String, String],
         new ActionContext

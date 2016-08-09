@@ -154,15 +154,35 @@
         },
 
         // --------------------------------------------------------------------
-        // "Replace Null With X" checks for a null value in the input field(s),
-        // and if found, will set the enriched record's field value to be
-        // "X".  (IE. whatever text is following the last dash in
-        // "replace-null-with-X".
-        // Requires "source" field[s].
+        // "ReplaceNull" checks for a null value in the input field(s),
+        // and if the value exists and is null (or does not exist), it will set 
+        // the enriched record's field value to be some hard-coded value.  
         {
-          "actionType": "replace-null-with-0",
+          "actionType": "replace-null",
           "config": {
-            "inputSource": [ "field1", "field2" ] // etc.
+
+            // Either 'field' or 'fields' must be specified, or there is an error.
+            // This is the field (or fields) to check for null, and if they are
+            // null or missing in the input, then the new value is written.
+            // By default, the field is searched for first in the enriched record, 
+            // then if not found, the input record is searched.  This can be 
+            // overridden by specifying a location modifier in front of the field 
+            // like so:
+            //
+            //    "$enriched.fieldA" = search the enriched record only
+            //    "$input.fieldA" = search the input record only
+            "field":  "fieldA",
+            "fields": [ "fieldB", "fieldC", "..."],
+
+            // This is the exact value to write for this field.  
+            "newValue": "Some text",
+
+            // Specify where the new value is written to.  Valid values are:
+            //   "enriched" = the enriched record (the default; not necessary to specify)
+            //   "scratchpad" = the scratchpad (temporary storage, only lives for 
+            //                  while this record is being processed - from this
+            //                  point forward)
+            "outputTo": "scratchpad",
           }
         },
 

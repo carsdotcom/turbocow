@@ -1,15 +1,17 @@
 package com.cars.bigdata.turbocow.actions.checks
 
 import com.cars.bigdata.turbocow.actions.ActionList
-import com.cars.bigdata.turbocow.{ActionContext, ActionFactory, JsonUtil, PerformResult, _}
+import com.cars.bigdata.turbocow._
 import org.json4s._
+
+import FieldLocation._
 
 class BinaryCheck(
   val left: String,
   val right: String,
   val checker: Checker,
-  val leftSource: Option[FieldSource.Value] = None,
-  val rightSource: Option[FieldSource.Value] = None,
+  val leftSource: Option[FieldLocation.Value] = None,
+  val rightSource: Option[FieldLocation.Value] = None,
   override val onPass: ActionList = new ActionList,
   override val onFail: ActionList = new ActionList
 ) extends CheckAction(onPass, onFail) {
@@ -46,9 +48,9 @@ class BinaryCheck(
         sourceOpt match {
           case None => None
           case Some(source) => source match {
-            case "input" => Option(FieldSource.Input)
-            case "enriched" => Option(FieldSource.Enriched)
-            case "constant" => Option(FieldSource.Constant)
+            case "input" => Option(Input)
+            case "enriched" => Option(Enriched)
+            case "constant" => Option(Constant)
             case s: String => throw new Exception("unrecognized leftSource for binary check action: "+ s)
           }
         }
@@ -59,9 +61,9 @@ class BinaryCheck(
         sourceOpt match {
           case None => None
           case Some(source) => source match {
-            case "input" => Option(FieldSource.Input)
-            case "enriched" => Option(FieldSource.Enriched)
-            case "constant" => Option(FieldSource.Constant)
+            case "input" => Option(Input)
+            case "enriched" => Option(Enriched)
+            case "constant" => Option(Constant)
             case s: String => throw new Exception("unrecognized leftSource for binary check action: "+ s)
           }
         }

@@ -6,7 +6,6 @@ import org.json4s.JsonAST.JNull
 
 import scala.util.Try
 
-// Enum that describes all the possible places to read a field or write a field:
 case class FieldSource(
   // the field's name
   name: String,

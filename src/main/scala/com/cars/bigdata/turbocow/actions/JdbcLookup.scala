@@ -10,18 +10,43 @@ import org.json4s.jackson.JsonMethods._
 import com.cars.bigdata.turbocow.ActionFactory
 import com.cars.bigdata.turbocow.PerformResult
 import com.cars.bigdata.turbocow._
-
-import Lookup._
+import com.cars.bigdata.turbocow.JsonUtil._
 
 import scala.io.Source
 
-class Lookup(
+class JdbcLookup(
+  val jdbcClient: String,
   val select: List[String],
   val fromDBTable: String,
   val where: String,
   val onPass: ActionList = new ActionList,
   val onFail: ActionList = new ActionList
 ) extends Action {
+
+  if (onPass.actions.isEmpty && onFail.actions.isEmpty) throw new Exception("'jdbc-lookup': Must have at least one action in either onPass or onFail")
+
+  def this(
+    actionConfig: JValue, 
+    actionFactory: Option[ActionFactory]) = {
+
+    this(
+      jdbcClient = extractValidString(actionConfig \ "jdbcClient").getOrElse(throw new Exception("'jdbc-lookup': must provide a jdbcClient.")),
+      select = {
+        val jval = (actionConfig \ "select")
+        jval match {
+          case JArray(a) => ; // ok
+          case JNothing => throw new Exception("'jdbc-lookup' action requires a 'select' config item")
+          case _ => throw new Exception("'jdbc-lookup' action requires a 'select' config item that is an array of strings")
+        }
+        if (jval.children.isEmpty) throw new Exception("'jdbc-lookup' action requires a nonempty 'select' array")
+        jval.children.map{e => extractString(e) }
+      },
+      fromDBTable = extractValidString(actionConfig \ "fromDBTable").getOrElse(throw new Exception("'jdbc-lookup' action has empty 'fromDBTable' config item.")),
+      where = extractValidString(actionConfig \ "where").getOrElse(throw new Exception("'jdbc-lookup' action has empty 'where' config item")),
+      onPass = new ActionList(actionConfig \ "onPass", actionFactory),
+      onFail = new ActionList(actionConfig \ "onFail", actionFactory)
+    )
+  }
 
   override def toString() = {
     
@@ -52,7 +77,7 @@ class Lookup(
       Option(split(0)) 
     else 
       None
-  ).getOrElse("Problem with 'lookup': couldn't determine table name from 'fromDBTable'.")
+  ).getOrElse("Problem with 'jdbc-lookup': couldn't determine table name from 'fromDBTable'.")
 
   // The select fields separated by commas:
   val fields = if(select.length > 1) {
@@ -78,8 +103,13 @@ class Lookup(
     onPass.getLookupRequirements ++ onFail.getLookupRequirements
   }
 
+//  TODO LEFTOFF
 
-  TODO LEFTOFF
+  def perform(
+    inputRecord: JValue, 
+    currentEnrichedMap: Map[String, String],
+    context: ActionContext): 
+    PerformResult = PerformResult()
 
 //
 //  /** Perform the lookup
@@ -94,7 +124,7 @@ class Lookup(
 //    implicit val jsonFormats = org.json4s.DefaultFormats
 //
 //    // get value of source field from the input JSON:
-//    val lookupValueOpt = JsonUtil.extractOption[String](inputRecord \ equals)
+//    val lookupValueOpt = extractOption[String](inputRecord \ equals)
 //    // TODOTODO if getting this value fails.....  - lookup will fail.....
 //
 //    // Get the table caches
@@ -133,29 +163,4 @@ class Lookup(
 //  }
 
 }
-
-TODO
-//object Lookup
-//{
-//
-//  /** Alternate constructor to parse the Json config.
-//    */
-//  def apply(
-//    actionConfig: JValue, 
-//    actionFactory: Option[ActionFactory]): 
-//    Lookup = {
-//
-//    new Lookup(
-//      select = 
-//        (actionConfig \ "select").children.map{e => JsonUtil.extractString(e) },
-//      fromDBTable = JsonUtil.extractValidString(actionConfig \ "fromDBTable").getOrElse(throw new Exception("'lookup' action has empty 'fromDBTable' config item.")),
-//      fromFile = JsonUtil.extractOption[String](actionConfig \ "fromFile"),
-//      where = JsonUtil.extractString(actionConfig \ "where"),
-//      equals = JsonUtil.extractValidString(actionConfig \ "equals").getOrElse("equals cannot be blank in 'lookup' action."),
-//      onPass = new ActionList(actionConfig \ "onPass", actionFactory),
-//      onFail = new ActionList(actionConfig \ "onFail", actionFactory)
-//    )
-//  }
-//
-//}
 

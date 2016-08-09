@@ -37,8 +37,6 @@ class UnaryCheck(
           case "not-empty" => new InverseChecker(new EmptyChecker)
           case "numeric" => new NumericChecker
           case "non-numeric" => new InverseChecker(new NumericChecker)
-          case "true" => new TrueChecker
-          case "false" => new InverseChecker(new TrueChecker)
           case _ => throw new Exception("undefined unary operation (was 'right' specified where it is not needed?): "+operator)
         }
       },

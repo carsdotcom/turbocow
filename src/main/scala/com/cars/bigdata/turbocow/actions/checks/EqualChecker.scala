@@ -1,9 +1,8 @@
 package com.cars.bigdata.turbocow.actions.checks
 
-import com.cars.bigdata.turbocow.{ActionContext, FieldSource, JsonUtil}
+import com.cars.bigdata.turbocow.actions.checks.BinaryCheck.caseSensitiveDefault
+import com.cars.bigdata.turbocow.{ActionContext, FieldSource}
 import org.json4s.JValue
-import org.json4s.JsonAST.{JNothing, JNull}
-import BinaryCheck.caseSensitiveDefault
 
 class EqualChecker(val caseSensitive : Boolean = caseSensitiveDefault) extends Checker {
 
@@ -15,95 +14,36 @@ class EqualChecker(val caseSensitive : Boolean = caseSensitiveDefault) extends C
     currentEnrichedMap: Map[String, String],
     context: ActionContext): Boolean = {
 
-    val leftJValue = inputRecord \ checkParams.left
-    val leftOption : Option[String] = Option(checkParams.left)
-    val rightOption: Option[String] = checkParams.right
-    if (rightOption.isEmpty) {
-      return false
-    }
-    val rightJValue = inputRecord \ checkParams.right.get
-    if(caseSensitive){
-      // when caseSensitive is set to true or not given in config.
-      // returns false for "abcd" and "ABcD" comparison
-      //grab operand1 value from input / enriched/ as a constant(direct check of that value)
-      val leftVal = checkParams.leftSource match {
-        case Some(FieldSource.Input) => JsonUtil.extractValidString(leftJValue)
-        case Some(FieldSource.Enriched) => currentEnrichedMap.get(checkParams.left)
-        case Some(FieldSource.Constant) => Option(checkParams.left)
-        case None => JsonUtil.extractValidString(leftJValue)
-        case a: Any => throw new Exception("unrecognized field source:" + a.toString)
-      }
-      //grab operand2 value from input / enriched/ as a constant(direct check of that value)
-      val rightVal = checkParams.rightSource match {
-        case Some(FieldSource.Input) => if(leftJValue == JNothing && rightJValue == JNothing){
-          return false
-        }
-          if(leftJValue == JNull && rightJValue == JNull){
-            return true
-          }
-          if(leftJValue == JNull || rightJValue == JNull){
-            return false
-          }
-          JsonUtil.extractValidString(rightJValue)
-        case Some(FieldSource.Enriched) => currentEnrichedMap.get(rightOption.get)
-        case Some(FieldSource.Constant) => rightOption
-        case None => JsonUtil.extractValidString(rightJValue)
-        case a: Any => throw new Exception("unrecognized field source:" + a.toString)
-      }
-      leftVal.equals(rightVal)
-    }
+    if (checkParams.right.isEmpty)
+      false
     else {
-      // when caseSensitive is set to false
-      /// returns true for "abcd" and "ABcD" comparison
-      //grab operand1 value from input / enriched/ as a constant(direct check of that value)
-      val leftVal = checkParams.leftSource match {
-        case Some(FieldSource.Input) =>
-          if(leftJValue == JNothing && rightJValue == JNothing){
-            return false
-          }
-          if(leftJValue == JNull && rightJValue == JNull){
-            return true
-          }
+      val leftSource = FieldSource(checkParams.left, checkParams.leftSource.getOrElse(EnrichedThenInput))
+      val rightSource = FieldSource(checkParams.right, checkParams.rightSource.getOrElse(EnrichedThenInput))
 
-          if(leftJValue == JNull || rightJValue == JNull){
-            return false
-          }
+      val leftIsNull = leftSource.isValueNull(inputRecord, currentEnrichedMap, context.scratchPad)
+      val rightIsNull = rightSource.isValueNull(inputRecord, currentEnrichedMap, context.scratchPad)
+      if ( leftIsNull && rightIsNull )
+        true // equal if both are null
+      else if (leftIsNull || rightIsNull)
+        false // non-null and null are always not equal
+      else {
+        // Both left and right are non-null
+        // It's okay if they are missing, getValue() will return None
+        val leftVal = leftSource.getValue(inputRecord, currentEnrichedMap, context.scratchPad)
+        val rightVal = rightSource.getValue(inputRecord, currentEnrichedMap, context.scratchPad)
 
-          if(leftJValue == JNothing || rightJValue == JNothing){
-            return false
-          }
-          JsonUtil.extractValidString(leftJValue).get.toLowerCase
-        case Some(FieldSource.Enriched) => // when source is from enriched
-          if(! currentEnrichedMap.contains(leftOption.get) && !currentEnrichedMap.contains(rightOption.get)){
-            return true
-          }
-          if(! currentEnrichedMap.contains(leftOption.get) || !currentEnrichedMap.contains(rightOption.get) ){
-            return false
-          }
-          if(currentEnrichedMap(leftOption.get) == currentEnrichedMap(rightOption.get)){
-            return true
-          }
-          if(currentEnrichedMap.contains(leftOption.get)){
-          currentEnrichedMap(leftOption.get).toLowerCase
+        if (leftVal.nonEmpty && rightVal.nonEmpty) {
+          if (caseSensitive)
+            leftVal.equals(rightVal)
+          else
+            leftVal.get.toLowerCase.equals(rightVal.get.toLowerCase)
         }
-        case Some(FieldSource.Constant) => checkParams.left.toLowerCase
-        case None => JsonUtil.extractValidString(leftJValue).get.toLowerCase
-        case a: Any => throw new Exception("unrecognized field source:" + a.toString)
+        else
+          false // one or more of left & right are nonexistent... always nonequal
       }
-
-      //grab operand2 value from input / enriched/ as a constant(direct check of that value)
-      val rightVal = checkParams.rightSource match {
-        case Some(FieldSource.Input) => JsonUtil.extractValidString(rightJValue).get.toLowerCase
-        case Some(FieldSource.Enriched) =>if(currentEnrichedMap.contains(rightOption.get)){
-          currentEnrichedMap(rightOption.get).toLowerCase
-        }
-        case Some(FieldSource.Constant) => rightOption.get.toLowerCase
-        case None => JsonUtil.extractValidString(rightJValue).get.toLowerCase
-        case a: Any => throw new Exception("unrecognized field source:" + a.toString)
-      }
-      leftVal.equals(rightVal)
     }
   }
 }
+
 
 

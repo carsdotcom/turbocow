@@ -403,9 +403,11 @@ class TrueCheckerSpec extends UnitSpec {
                 {
                   "actionType":"check",
                   "config": {
-                    "field": "A",
-                    "op": "true",
-                    "caseSensitive" : false,
+                    "left": "A",
+                    "op": "equals",
+                    "right" : "false",
+                    "rightSource" : "constant",
+
                     "onPass": [
                       {
                         "actionType": "add-enriched-field",

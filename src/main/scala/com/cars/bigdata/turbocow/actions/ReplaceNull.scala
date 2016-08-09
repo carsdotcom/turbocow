@@ -70,7 +70,7 @@ class ReplaceNull(
 
     fields.map{ fieldSource => 
 
-      if (fieldSource.isValueNull(inputRecord, currentEnrichedMap, context.scratchPad, None)) {
+      if (fieldSource.isValueNull(inputRecord, currentEnrichedMap, context.scratchPad)) {
 
         outputTo match {
           case Enriched => PerformResult(Map(fieldSource.name->newValue))

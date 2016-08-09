@@ -1,8 +1,10 @@
 package com.cars.bigdata.turbocow.actions.checks
 
-import com.cars.bigdata.turbocow.{ActionContext, FieldSource, JsonUtil}
+import com.cars.bigdata.turbocow.{ActionContext, FieldLocation, FieldSource, JsonUtil}
 import org.json4s.JsonAST.JValue
 import org.json4s.{JValue, JsonAST}
+
+import FieldLocation._
 
 class EqualChecker extends Checker {
 
@@ -15,9 +17,9 @@ class EqualChecker extends Checker {
     context: ActionContext): Boolean = {
 
     val leftVal = checkParams.leftSource match {
-      case Some(FieldSource.Input) => inputRecord \ checkParams.left
-      case Some(FieldSource.Enriched) => currentEnrichedMap.get(checkParams.left)
-      case Some(FieldSource.Constant) => Option(checkParams.left)
+      case Some(Input) => inputRecord \ checkParams.left
+      case Some(Enriched) => currentEnrichedMap.get(checkParams.left)
+      case Some(Constant) => Option(checkParams.left)
       case None => inputRecord \ checkParams.left
       case a: Any => throw new Exception("unrecognized field source:" + a.toString)
     }
@@ -28,9 +30,9 @@ class EqualChecker extends Checker {
     }
 
     val rightVal = checkParams.rightSource match {
-      case Some(FieldSource.Input) => inputRecord \ rightOption.get
-      case Some(FieldSource.Enriched) => currentEnrichedMap.get(rightOption.get)
-      case Some(FieldSource.Constant) => rightOption
+      case Some(Input) => inputRecord \ rightOption.get
+      case Some(Enriched) => currentEnrichedMap.get(rightOption.get)
+      case Some(Constant) => rightOption
       case None => inputRecord \ rightOption.get
       case a: Any => throw new Exception("unrecognized field source:" + a.toString)
     }

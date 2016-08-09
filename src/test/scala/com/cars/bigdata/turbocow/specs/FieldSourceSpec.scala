@@ -123,7 +123,7 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": "AInput"}"""),
         currentEnrichedMap = Map("A"-> "AEnriched"),
         scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
-      ) should  be (Some("AInput"))
+      ) should be (Some("AInput"))
     }
 
     it("should return a value from the Enriched record") {
@@ -131,7 +131,7 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": "AInput"}"""),
         currentEnrichedMap = Map("A"-> "AEnriched"),
         scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
-      ) should  be (Some("AEnriched"))
+      ) should be (Some("AEnriched"))
     }
 
     it("should return a value from the Scratchpad") {
@@ -139,7 +139,7 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": "AInput"}"""),
         currentEnrichedMap = Map("A"-> "AEnriched"),
         scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
-      ) should  be (Some("AScratch"))
+      ) should be (Some("AScratch"))
     }
 
     it("should return None if a value is missing in Input") {
@@ -147,10 +147,10 @@ class FieldSourceSpec
         inputRecord = parse("""{"AX": "AInput"}"""),
         currentEnrichedMap = Map("A"-> "AEnriched"),
         scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
-      ) should  be (None)
+      ) should be (None)
     }
 
-    it("should return None if a constant is null ") {
+    it("should return None if constant is null ") {
       FieldSource( null , Constant).getValue(
         inputRecord = parse("""{"AX": "AInput"}"""),
         currentEnrichedMap = Map("A"-> "AEnriched"),
@@ -163,7 +163,7 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": null}"""),
         currentEnrichedMap = Map("A"-> "AEnriched"),
         scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
-       ) should  be (None)
+      ) should be (None)
     }
 
     it("should return None if a value is missing in Enriched") {
@@ -171,7 +171,7 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": "AInput"}"""),
         currentEnrichedMap = Map("AX"-> "AEnriched"),
         scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
-      ) should  be (None)
+      ) should be (None)
     }
 
     it("should return None if a value is null in Enriched") {
@@ -179,7 +179,7 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": "AInput"}"""),
         currentEnrichedMap = Map("A"-> null),
         scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
-      ) should  be (None)
+      ) should be (None)
     }
 
     it("should return None if a value is missing in Scratchpad") {
@@ -187,7 +187,7 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": "AInput"}"""),
         currentEnrichedMap = Map("A"-> "AEnriched"),
         scratchPad = { val sp = new ScratchPad; sp.set("AX", "AScratch"); sp }
-       ) should  be (None)
+      ) should be (None)
     }
 
     it("should return None if a value is null in Scratchpad") {
@@ -195,13 +195,13 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": "AInput"}"""),
         currentEnrichedMap = Map("A"-> "AEnriched"),
         scratchPad = { val sp = new ScratchPad; sp.set("A", null); sp }
-        ) should  be (None)
+      ) should be (None)
     }
   }
 
   describe("isValueNull()") {
 
-    it("should return true if a constant is Some(something)") {
+    it("should return false if constant is a String ") {
       FieldSource("A", Constant).isValueNull(
         inputRecord = parse("""{"A": null}"""),
         currentEnrichedMap = Map("A"-> "AEnriched"),
@@ -209,7 +209,7 @@ class FieldSourceSpec
       ) should be (false)
     }
 
-    it("should return true if a constant is null") {
+    it("should return true if constant is null") {
       FieldSource(null, Constant).isValueNull(
         inputRecord = parse("""{"A": null}"""),
         currentEnrichedMap = Map("A"-> "AEnriched"),
@@ -222,7 +222,7 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": null}"""),
         currentEnrichedMap = Map("A"-> "AEnriched"),
         scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
-      ) should  be (true)
+      ) should be (true)
     }
 
     it("should return false if a value is non-null in Input") {
@@ -230,7 +230,7 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": "not null"}"""),
         currentEnrichedMap = Map("A"-> "AEnriched"),
         scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
-      ) should  be (false)
+      ) should be (false)
     }
 
     it("should return true if a value is null in Enriched") {
@@ -238,7 +238,7 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": "AInput"}"""),
         currentEnrichedMap = Map("A"-> null),
         scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
-      ) should  be (true)
+      ) should be (true)
     }
 
 
@@ -247,7 +247,7 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": "AInput"}"""),
         currentEnrichedMap = Map("A"-> "not-null"),
         scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
-      ) should  be (false)
+      ) should be (false)
     }
 
     it("should return true if a value is null in Scratchpad") {
@@ -255,7 +255,7 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": "AInput"}"""),
         currentEnrichedMap = Map("A"-> "AEnriched"),
         scratchPad = { val sp = new ScratchPad; sp.set("A", null); sp }
-      ) should  be (true)
+      ) should be (true)
     }
 
     it("should return false if a value is not-null in Scratchpad") {
@@ -263,7 +263,7 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": "AInput"}"""),
         currentEnrichedMap = Map("A"-> "AEnriched"),
         scratchPad = { val sp = new ScratchPad; sp.set("A", "not-null"); sp }
-      ) should  be (false)
+      ) should be (false)
     }
 
     // enriched then input - if found, do not descend into input
@@ -272,21 +272,21 @@ class FieldSourceSpec
         inputRecord = parse("""{"A": "AInput"}"""),
         currentEnrichedMap = Map("A"-> "A"), // non-null
         scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
-      ) should  be (false)
+      ) should be (false)
     }
     it("should return true if a value is null in Enriched for EnrichedThenInput") {
       FieldSource("A", EnrichedThenInput).isValueNull(
         inputRecord = parse("""{"A": "AInput"}"""),
         currentEnrichedMap = Map("A"-> null),
         scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
-      ) should  be (true)
+      ) should be (true)
     }
     it("should return false if a value is nonexistent in Enriched & non-null in Input for EnrichedThenInput") {
       FieldSource("A", EnrichedThenInput).isValueNull(
         inputRecord = parse("""{"A": ""}"""), // non-null
         currentEnrichedMap = Map("X"-> "X"),
         scratchPad = { val sp = new ScratchPad; sp.set("A", "AScratch"); sp }
-      ) should  be (false)
+      ) should be (false)
     }
     it("should return true if a value is nonexistent in Enriched & null in Input for EnrichedThenInput") {
       FieldSource("A", EnrichedThenInput).isValueNull(

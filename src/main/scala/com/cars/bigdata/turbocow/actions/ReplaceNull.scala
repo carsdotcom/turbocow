@@ -41,9 +41,17 @@ class ReplaceNull(
       },
       newValue = JsonUtil.extractValidString(config \ "newValue").getOrElse(throw new Exception("must provide 'newValue' object in a replace-null action")),
       outputTo = {
-        val locStr = JsonUtil.extractValidString(config \ "outputTo").getOrElse(throw new Exception("must provide 'outputTo' object in a replace-null action"))
-        val loc = Try{ FieldLocation.withName(locStr) }.getOrElse(throw new Exception("Invalid 'outputTo' location: "+locStr))
-        if ( !FieldLocation.isOutput(loc) ) throw new Exception("Invalid 'outputTo' location.  Can't write to this location: "+locStr)
+        val errString = "Must be a string, one of 'Enriched', 'Scratchpad'"
+        val loc = (config \ "outputTo") match {
+          case JNothing => Enriched
+          case JNull => throw new Exception("Invalid 'outputTo' location.  Can't write to this location: null.  "+errString)
+          case JString(s) => {
+            val str = s.toString
+            Try{ FieldLocation.withName(str) }.getOrElse(throw new Exception("Invalid 'outputTo' location: "+str+".  "+errString))
+          }
+          case _ => throw new Exception("Invalid 'outputTo' location.  ")
+        }
+        if ( !FieldLocation.isOutput(loc) ) throw new Exception("Invalid 'outputTo' location.  Can't write to this location: "+loc+".  "+errString)
         loc
       }
     )

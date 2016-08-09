@@ -180,11 +180,14 @@ class ReplaceNullSpec
     }
 
     // outputTo
-    it("should throw if outputTo not specified") {
-      Try{ new ReplaceNull(parse("""{
-        "fields": ["A"],
+    it("should default to Enriched if outputTo is missing") {
+      val a = new ReplaceNull(parse(s"""{
+        "fields": ["A", "B"],
         "newValue": "X"
-      }""")) }.isSuccess should be (false)
+      }"""))
+      a.fields should be (List(FieldSource("A", EnrichedThenInput), FieldSource("B", EnrichedThenInput)))
+      a.newValue should be ("X")
+      a.outputTo should be (Enriched)
     }
     it("should throw if outputTo null") {
       Try{ new ReplaceNull(parse("""{

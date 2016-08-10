@@ -37,6 +37,7 @@ case class FieldSource(
     Option[String] = {
 
     source match {
+      case Constant => Option(name)
       case Input => JsonUtil.extractOptionString(inputRecord \ name)
       case Enriched => {
         val enrOpt = currentEnrichedMap.get(name)
@@ -76,7 +77,8 @@ case class FieldSource(
     Boolean = {
 
     source match {
-      case Input => (inputRecord \ name) match { 
+      case Constant => (name == null)
+      case Input => (inputRecord \ name) match {
         case JNull => true
         case _ => false 
       }

@@ -306,7 +306,18 @@ class JdbcLookupSpec extends UnitSpec {
   describe("function that converts string into value") {
 
     it("should default to $constant if not specified") {
+      val a = new JdbcLookup(
+        parse(s"""{
+          "jdbcClient": "Hive",
+          "select": [ "fieldA", "fieldB" ],
+          "fromDBTable": "Db.Table",
+          "where": "something = 'somethingElse'",
+          "onPass": [{ "actionType": "null-action" }]
+        }"""),
+        Option(new ActionFactory(new CustomActionCreator))
+      )
       fail()
+      //a should be ()
     }
   }
 

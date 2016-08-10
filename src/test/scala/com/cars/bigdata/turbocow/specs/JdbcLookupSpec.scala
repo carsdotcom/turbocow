@@ -303,21 +303,66 @@ class JdbcLookupSpec extends UnitSpec {
     }
   }
 
-  describe("function that converts string into value") {
+  describe("getWhereValue()") {
 
     it("should default to $constant if not specified") {
       val a = new JdbcLookup(
         parse(s"""{
           "jdbcClient": "Hive",
-          "select": [ "fieldA", "fieldB" ],
+          "select": [ "fieldA" ],
           "fromDBTable": "Db.Table",
           "where": "something = 'somethingElse'",
           "onPass": [{ "actionType": "null-action" }]
         }"""),
         Option(new ActionFactory(new CustomActionCreator))
       )
-      fail()
-      //a should be ()
+      val whereOpt = JdbcLookup.getWhereValue(
+        a.where.split("'")(1),
+        inputRecord = parse("""{"A": "AVAL"}"""),
+        currentEnrichedMap = Map("B"->"BVAL"),
+        context = ActionContext()
+      ) 
+      whereOpt should be (Some("somethingElse"))
+    }
+
+    it("should grab the value from the correct place - enriched") {
+      val a = new JdbcLookup(
+        parse("""{
+          "jdbcClient": "Hive",
+          "select": [ "fieldA" ],
+          "fromDBTable": "Db.Table",
+          "where": "something = '$enriched.BBB'",
+          "onPass": [{ "actionType": "null-action" }]
+        }"""),
+        Option(new ActionFactory(new CustomActionCreator))
+      )
+      val whereOpt = JdbcLookup.getWhereValue(
+        a.where.split("'")(1),
+        inputRecord = parse("""{"AAA": "AVAL"}"""),
+        currentEnrichedMap = Map("BBB"->"BVAL"),
+        context = ActionContext()
+      ) 
+      whereOpt should be (Some("BVAL"))
+    }
+
+    it("should grab the value from the correct place - input") {
+      val a = new JdbcLookup(
+        parse("""{
+          "jdbcClient": "Hive",
+          "select": [ "fieldA" ],
+          "fromDBTable": "Db.Table",
+          "where": "something = '$input.AAA'",
+          "onPass": [{ "actionType": "null-action" }]
+        }"""),
+        Option(new ActionFactory(new CustomActionCreator))
+      )
+      val whereOpt = JdbcLookup.getWhereValue(
+        a.where.split("'")(1),
+        inputRecord = parse("""{"AAA": "AVAL"}"""),
+        currentEnrichedMap = Map("BBB"->"BVAL"),
+        context = ActionContext()
+      ) 
+      whereOpt should be (Some("AVAL"))
     }
   }
 

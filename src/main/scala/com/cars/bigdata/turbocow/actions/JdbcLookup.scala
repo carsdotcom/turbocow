@@ -176,6 +176,8 @@ class JdbcLookup(
 
 object JdbcLookup {
 
+  val defaultLocation = FieldLocation.Constant
+
   /** Check the text in the where clause to make sure it is valid.
     * Throw if not.
     * This should only be called from a constructor because it throws.
@@ -191,7 +193,22 @@ object JdbcLookup {
       val element = quoteSplit(index)
 
       // create a fieldsource.  If it doesn't throw, we're good.
-      FieldSource.parseString(element, Option(FieldLocation.Constant))
+      FieldSource.parseString(element, Option(JdbcLookup.defaultLocation))
     }
   }
+
+  /** Get the value from a where string, ie. the Y in "where X = 'Y'".
+    * Normally called from perform(), above
+    */
+  def getWhereValue(
+    whereStr: String,
+    inputRecord: JValue, 
+    currentEnrichedMap: Map[String, String],
+    context: ActionContext): Option[String] = {
+
+    val fs = FieldSource.parseString(whereStr, Option(JdbcLookup.defaultLocation))
+    fs.getValue(inputRecord, currentEnrichedMap, context.scratchPad)
+  }
 }
+
+

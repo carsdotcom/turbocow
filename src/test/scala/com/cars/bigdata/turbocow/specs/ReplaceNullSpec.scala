@@ -45,6 +45,8 @@ class ReplaceNullSpec
   
   import FieldLocation._
 
+  val defLoc = ReplaceNull.defaultLocation
+
   describe("primary (List of fields) constructor") {
 
     it("should throw if fields is null") {
@@ -57,23 +59,23 @@ class ReplaceNullSpec
     }
 
     it("should throw if newValue is null") {
-      Try{ new ReplaceNull(List(FieldSource("X")), null, Input) }.isSuccess should be (false)
+      Try{ new ReplaceNull(List(FieldSource("X", defLoc)), null, Input) }.isSuccess should be (false)
     }
 
     it("should throw if newValue is empty") {
-      Try{ new ReplaceNull(List(FieldSource("X")), "", Input) }.isSuccess should be (false)
+      Try{ new ReplaceNull(List(FieldSource("X", defLoc)), "", Input) }.isSuccess should be (false)
     }
 
     it("should throw if outputTo is null") {
-      Try{ new ReplaceNull(List(FieldSource("X")), "newVal", null) }.isSuccess should be (false)
+      Try{ new ReplaceNull(List(FieldSource("X", defLoc)), "newVal", null) }.isSuccess should be (false)
     }
 
     it("should succeed (happy path)") {
-      Try{ new ReplaceNull(List(FieldSource("X")), "newVal", Input) }.isSuccess should be (true)
+      Try{ new ReplaceNull(List(FieldSource("X", defLoc)), "newVal", Input) }.isSuccess should be (true)
     }
 
-    it("should default outputTo to Enriched if not specified") {
-      (new ReplaceNull(List(FieldSource("X")), "newVal")).outputTo should be (FieldLocation.Enriched)
+    it("should default outputTo to EnrichedThenInput if not specified") {
+      (new ReplaceNull(List(FieldSource("X", defLoc)), "newVal")).outputTo should be (FieldLocation.EnrichedThenInput)
     }
 
   }
@@ -142,7 +144,7 @@ class ReplaceNullSpec
         "newValue": "X",
         "outputTo": "scratchpad"
       }"""))
-      a.fields should be (List(FieldSource("A")))
+      a.fields should be (List(FieldSource("A", defLoc)))
       a.newValue should be ("X")
       a.outputTo should be (Scratchpad)
     }
@@ -210,7 +212,7 @@ class ReplaceNullSpec
         "newValue": "X",
         "outputTo": "enriched"
       }"""))
-      a.fields should be (List(FieldSource("A")))
+      a.fields should be (List(FieldSource("A", defLoc)))
       a.newValue should be ("X")
       a.outputTo should be (Enriched)
     }
@@ -220,7 +222,7 @@ class ReplaceNullSpec
         "newValue": "X",
         "outputTo": "scratchpad"
       }"""))
-      a.fields should be (List(FieldSource("A")))
+      a.fields should be (List(FieldSource("A", defLoc)))
       a.newValue should be ("X")
       a.outputTo should be (Scratchpad)
     }
@@ -263,7 +265,7 @@ class ReplaceNullSpec
 
       // Null Action doesn't implement getLookupRequirements() so they should be
       // the same (the defaults):
-      val a = new ReplaceNull(List(FieldSource("X")), "Value")
+      val a = new ReplaceNull(List(FieldSource("X", defLoc)), "Value")
       val nullAction = new NullAction()
 
       nullAction.getLookupRequirements should be (a.getLookupRequirements)

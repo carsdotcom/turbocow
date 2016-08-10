@@ -13,6 +13,11 @@ import com.cars.bigdata.turbocow._
 import com.cars.bigdata.turbocow.JsonUtil._
 
 import scala.io.Source
+import JdbcLookup._
+
+import scala.util.Try
+
+import com.cars.bigdata.turbocow.utils._
 
 class JdbcLookup(
   val jdbcClient: String,
@@ -25,6 +30,11 @@ class JdbcLookup(
 
   if (onPass.actions.isEmpty && onFail.actions.isEmpty) throw new Exception("'jdbc-lookup': Must have at least one action in either onPass or onFail")
 
+  // check the where to make sure the config is valid
+  checkWhere(where)
+
+  /** Json constructor
+    */
   def this(
     actionConfig: JValue, 
     actionFactory: Option[ActionFactory]) = {
@@ -48,6 +58,8 @@ class JdbcLookup(
     )
   }
 
+  /** toString
+    */
   override def toString() = {
     
     val sb = new StringBuffer
@@ -102,8 +114,6 @@ class JdbcLookup(
   override def getLookupRequirements: List[CachedLookupRequirement] = {
     onPass.getLookupRequirements ++ onFail.getLookupRequirements
   }
-
-//  TODO LEFTOFF
 
   def perform(
     inputRecord: JValue, 
@@ -164,3 +174,43 @@ class JdbcLookup(
 
 }
 
+object JdbcLookup {
+
+  /** Check the text in the where clause to make sure it is valid.
+    * Throw if not.
+    * This should only be called from a constructor because it throws.
+    */
+  def checkWhere(where: String) = {
+    // split on the '. 
+    val quoteSplit = where.split("'")  
+
+    // Every other element should be the thing in quotes.  Check it.
+    var index = 1
+    val error = "Unable to parse where-clause"
+    (1 until quoteSplit.size by 2).foreach{ index =>
+      val element = quoteSplit(index)
+
+      val dotSplit = element.split('.')
+      dotSplit.size match {
+        case 1 => { 
+          val field = dotSplit.head
+          if (field.trim.substring(0,1) == "$") throw new Exception(error + s":  Missing field name or inappropriate placement of '$$'")
+        }
+        case 2 => {
+          // check location string - it must match a FieldLocation
+          val locationStr = { 
+            val trimmed = dotSplit.head.trim
+            if (trimmed.head != '$') throw new Exception(error + s":  expected '$$' at start of where clause: $element")
+            trimmed.tail // get rid of $
+          }
+          Try{ FieldLocation.withName(locationStr) }.getOrElse(throw new Exception(s"$error:  Invalid where clause - can't determine what location to read value from: $element"))
+
+          // make sure the field name or text does not have a $ at start
+          val field = dotSplit.last.ltrim
+          if (field.trim.substring(0,1) == "$") throw new Exception(error + s":  Missing field name or inappropriate placement of '$$'")
+        }
+        case _ => throw new Exception(s"$error:  (Too many '.'):  [$element]")
+      }
+    }
+  }
+}

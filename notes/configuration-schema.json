@@ -245,15 +245,23 @@
 
             // "WHERE ..."
             // The select statement "where" clause.  You can specify any 
-            // valid where clause here.
-            // The field values can be in the form '$location.fieldName' where
+            // valid where clause here, subject to the following limitations.
+            // The field values may be in the form '$location.fieldName' where
             // location can be one of:
             //     $enriched   = read the value from a field in enriched 
             //     $input      = read the value from a field in the input record
             //     $scratchpad = read the value from a field in the scratchpad
             // 
+            // The default, if not specified, is to treat the value as a constant
+            // string.  Ie. "where": "fieldA = 'something'".
+            // 
+            // Please note that the parser will fail to read the data if this format
+            // is incorrect:
+            //   * if there are more than one (.) in the value
+            //   * if the value is not surrounded by single quotes ('like this')
+            // 
             // For example:
-            "where": "fieldA = '$scratchpad.something' and fieldB = '$input.someField'",
+            "where": "fieldA = '$scratchpad.someField' and fieldB = '$input.someField2'",
 
             // (OPTIONAL) If the lookup succeeds, all the actions in the onPass 
             // list will be run. 

@@ -422,7 +422,6 @@ class ReplaceNullSpec
         ac
       ) should be (PerformResult())
     }
-
   }
 }       
 

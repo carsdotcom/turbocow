@@ -77,32 +77,32 @@ class JdbcLookup(
     sb.toString
   }
 
-  // Extract separate database and table names from fromDBTable:
-  private val split = fromDBTable.split('.')
-  val dbName: Option[String] = ValidString(
-    if (split.size > 1) 
-      Option(split.head) 
-    else 
-      None
-  )
-  val tableName = ValidString(
-    if (split.size > 1) 
-      Option(split.tail.mkString(".")) 
-    else if (split.size==1) 
-      Option(split(0)) 
-    else 
-      None
-  ).getOrElse(s"Problem with '$actionName': couldn't determine table name from 'fromDBTable'.")
-
-  // The select fields separated by commas:
-  val fields = if(select.length > 1) {
-    val table = "`" + tableName + "."
-    table + select.mkString("`," + table) + "`"
-  }
-  else if(select.length == 1){
-    select.head
-  }
-  else ""
+  //// Extract separate database and table names from fromDBTable:
+  //private val split = fromDBTable.split('.')
+  //val dbName: Option[String] = ValidString(
+  //  if (split.size > 1) 
+  //    Option(split.head) 
+  //  else 
+  //    None
+  //)
+  //val tableName = ValidString(
+  //  if (split.size > 1) 
+  //    Option(split.tail.mkString(".")) 
+  //  else if (split.size==1) 
+  //    Option(split(0)) 
+  //  else 
+  //    None
+  //).getOrElse(s"Problem with '$actionName': couldn't determine table name from 'fromDBTable'.")
+  //
+  //// The select fields separated by commas:
+  //val fields = if(select.length > 1) {
+  //  val table = "`" + tableName + "."
+  //  table + select.mkString("`," + table) + "`"
+  //}
+  //else if(select.length == 1){
+  //  select.head
+  //}
+  //else ""
 
   //// get all the fields needed in this table (select + where), without dups
   //val allFields = { 

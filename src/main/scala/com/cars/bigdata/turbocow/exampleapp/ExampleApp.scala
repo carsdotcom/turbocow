@@ -28,14 +28,12 @@ import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable.ListBuffer
 
+/***********************************************************
 
 // Example spark application that handles ingestion of impression data
 object ExampleApp {
 
-  /** run this.  this is only really for manually testing.  See ExampleAppSpec
-    * for detailed integration tests.
-    *
-    */
+  // this is only an example function, not meant to be run
   def main(args: Array[String]) = {
 
     // parse arguments:
@@ -94,3 +92,5 @@ object ExampleApp {
     }
   }
 }
+
+******************************************************************/

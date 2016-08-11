@@ -31,13 +31,12 @@ class UnaryCheck(
           throw new Exception("""JSON configuration for checks are required to have a 'left' or 'field' object"""))),
       {
         val operator = JsonUtil.extractValidString(config \ "op").getOrElse(throw new Exception("must specify an operator"))
+
         operator match {
           case "empty" => new EmptyChecker
           case "not-empty" => new InverseChecker(new EmptyChecker)
           case "numeric" => new NumericChecker
           case "non-numeric" => new InverseChecker(new NumericChecker)
-          case "true" => new TrueChecker
-          case "false" => new InverseChecker(new TrueChecker)
           case _ => throw new Exception("undefined unary operation (was 'right' specified where it is not needed?): "+operator)
         }
       },

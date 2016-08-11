@@ -33,7 +33,7 @@ case class FieldSource(
   def getValue(
     inputRecord: JValue, 
     currentEnrichedMap: Map[String, String],
-    scratchPad: ScratchPad): 
+    scratchPad: ScratchPad):
     Option[String] = {
 
     source match {
@@ -73,7 +73,7 @@ case class FieldSource(
   def isValueNull(
     inputRecord: JValue, 
     currentEnrichedMap: Map[String, String],
-    scratchPad: ScratchPad): 
+    scratchPad: ScratchPad):
     Boolean = {
 
     source match {

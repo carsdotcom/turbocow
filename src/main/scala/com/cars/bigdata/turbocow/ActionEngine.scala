@@ -45,7 +45,7 @@ object ActionEngine
     // Get the input file
     val inputJsonRDD = sc.textFile(inputDir.toString)
 
-    processJsonRDD(inputJsonRDD, config, sc, hiveContext, actionFactory, initialScratchPad)
+    processJsonRDD(inputJsonRDD, config, sc, hiveContext, actionFactory, initialScratchPad, jdbcClientConfigs)
   }
 
   /** Process a set of JSON strings rather than reading from a directory.
@@ -76,7 +76,7 @@ object ActionEngine
     // Create RDD from the inputJson strings
     val inputJsonRDD = sc.parallelize(inputJson)
 
-    processJsonRDD(inputJsonRDD, config, sc, hiveContext, actionFactory, initialScratchPad)
+    processJsonRDD(inputJsonRDD, config, sc, hiveContext, actionFactory, initialScratchPad, jdbcClientConfigs)
   }
 
   /** Process a set of JSON strings rather than reading from a directory.
@@ -228,6 +228,7 @@ object ActionEngine
   def createJdbcClients(jdbcClientConfigs: Seq[JdbcClientConfig]): 
     Map[String, Statement] = {
 
+    //println("jcc = "+jdbcClientConfigs)
     val jdbcMap = jdbcClientConfigs.map{ jdbcConfig => 
 
       val driver = "org.apache.hive.jdbc.HiveDriver"
@@ -237,13 +238,10 @@ object ActionEngine
       val statement = try {
 
         // make the connection
-        println("JJJ ---1")
         Class.forName(driver)
-        println("JJJ ---2")
         val connection:Connection = DriverManager.getConnection(uri)
 
         // create the statement, and run the select query
-        println("JJJ ---3")
         connection.createStatement()
       } 
       catch {
@@ -253,7 +251,6 @@ object ActionEngine
           throw e 
         }
       } 
-      println("JJJ ---7")
 
       (jdbcConfig.name, statement)
     }.toMap

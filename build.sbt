@@ -1,7 +1,7 @@
 name := "turbocow"
 
 // Set the version.  Doing it this way makes it accessible later on via the val.
-val ver = "0.17"
+val ver = "0.18"
 version := ver
 
 // Set scalaVersion.   Doing it this way makes it accessible later on via the val.

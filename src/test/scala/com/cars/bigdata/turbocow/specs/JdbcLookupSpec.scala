@@ -8,7 +8,7 @@ import com.cars.bigdata.turbocow._
 import com.cars.bigdata.turbocow.test.SparkTestContext
 import org.apache.spark.sql.hive._
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 class JdbcLookupSpec extends UnitSpec {
 
@@ -363,6 +363,45 @@ class JdbcLookupSpec extends UnitSpec {
         context = ActionContext()
       ) 
       whereOpt should be (Some("AVAL"))
+    }
+  }
+
+  describe("createQuery()") {
+
+    it("should correctly create a query based on perform params") {
+      val a = new JdbcLookup(
+        parse(s"""{
+          "jdbcClient": "Hive",
+          "select": [ "fieldA", "fieldB" ],
+          "fromDBTable": "Db.Table",
+          "where": "X = '$$input.fieldX' AND Y='$$enriched.fieldY' AND Z='ZZZ'",
+          "onPass": [{ "actionType": "null-action" }]
+        }"""),
+        Option(new ActionFactory(new CustomActionCreator))
+      )
+      a.createQuery(
+        inputRecord = parse("""{"fieldX": "XVAL"}"""),
+        currentEnrichedMap = Map("fieldY"->"YVAL"),
+        context = ActionContext()
+      ) should be (Success("select fieldA,fieldB from Db.Table where X = 'XVAL' AND Y='YVAL' AND Z='ZZZ'"))
+    }
+
+    it("should return Failure if where-values can't be found") {
+      val a = new JdbcLookup(
+        parse("""{
+          "jdbcClient": "Hive",
+          "select": [ "fieldA", "fieldB" ],
+          "fromDBTable": "Db.Table",
+          "where": "X = '$input.fieldX' AND Y='$enriched.field_NOT_FOUND",
+          "onPass": [{ "actionType": "null-action" }]
+        }"""),
+        Option(new ActionFactory(new CustomActionCreator))
+      )
+      a.createQuery(
+        inputRecord = parse("""{"fieldX": "XVAL"}"""),
+        currentEnrichedMap = Map("fieldY"->"YVAL"),
+        context = ActionContext()
+      ).isSuccess should be (false)
     }
   }
 

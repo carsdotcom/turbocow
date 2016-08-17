@@ -142,6 +142,7 @@ class JdbcLookup(
 
       // perform the query
       val resultSet = statement.executeQuery(query)
+      println("output directly from hive(immediatley after hive) for query:"+query)
 
       // get all the fields from select list as a list of (fieldname, option-strings).
       // I know there's vars... jdbc api forces it.  (Need to count the number of rows)
@@ -150,8 +151,11 @@ class JdbcLookup(
       while ( resultSet.next() ) {
         recordCount += 1
         if (recordCount == 1) {
-          resultsList = (1 to select.size).toList.map{ index => 
-            (select(index-1), Option(resultSet.getString(index)))
+          resultsList = (1 to select.size).toList.map{ index =>
+            if(select(index-1).contains(" "))
+              (select(index-1).split(" ").last, Option(resultSet.getString(index)))
+            else
+              (select(index-1), Option(resultSet.getString(index)))
           }
         } 
       }
@@ -169,10 +173,12 @@ class JdbcLookup(
       val enrichedAdditions = resultsList.map{ e=> (e._1, e._2.get) }.toMap
       //if onPass is has list of actions
       if(onPass.actions.nonEmpty){
+        println("result success.onPass list is given in config for jdbc-lookup:"+enrichedAdditions)
         onPass.perform(inputRecord, currentEnrichedMap ++ enrichedAdditions, context)
-
       }
       else{
+        println("resultList before making map:"+resultsList)
+        println("result success.onPass list is not given in config for jdbc-lookup:"+enrichedAdditions)
         PerformResult(enrichedAdditions)
       }
     } 

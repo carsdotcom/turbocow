@@ -6,11 +6,13 @@ import org.json4s.JsonAST.JNull
 
 import scala.util.Try
 
+import utils._
+
 case class FieldSource(
-  // the field's name
+  // the field's name (or if Constant location, the actual value)
   name: String,
   // Where to pull it from.  
-  source: FieldLocation.Value = EnrichedThenInput
+  source: FieldLocation.Value
 )
 {
   
@@ -75,11 +77,8 @@ case class FieldSource(
     Boolean = {
 
     source match {
-      case Constant => name match {
-        case null => true
-        case _ => false
-      }
-      case Input => (inputRecord \ name) match { 
+      case Constant => (name == null)
+      case Input => (inputRecord \ name) match {
         case JNull => true
         case _ => false 
       }
@@ -113,20 +112,31 @@ case class FieldSource(
 
 object FieldSource {
 
-  /** Parse an (expected) string value into a FieldSource of the form:
-    * 
-    * "$input.fieldName" = Input
-    * "$enriched.fieldName" = Enriched
-    * "$scratchpad.fieldName" = Scratchpad
-    * "fieldName" = EnrichedThenInput
+  /** Parse a string value into a FieldSource of the form:
+    *
+    * @param fieldLocationStr a string of the form:
+    *     "$input.fieldName" = Input
+    *     "$enriched.fieldName" = Enriched
+    *     "$scratchpad.fieldName" = Scratchpad
+    *     "$enriched-then-input.fieldName = EnrichedThenInput
+    *     "@constant.fieldName" = Constant
+    * @param defaultLocation is needed to set the default location if none is specified.
+    *        The default may be different based on the context(ie, input fields vs. 
+    *        where-clause fields).  If you are sure that there is a location specified
+    *        (via $, for example during tests), then you can safely not pass the 
+    *        defaultLocation.  If None is specified, and there is no location
+    *        specified in the string, then this will throw.
     */
-  def apply(jval: JValue): FieldSource = {
-    val wholeStr = JsonUtil.extractValidString(jval).getOrElse(throw new Exception("could not find a valid value for a field name"))
-    val split = wholeStr.split('.')
+  def parseString(
+    fieldLocationStr: String, 
+    defaultLocation: Option[FieldLocation.Value] = None):
+    FieldSource = {
+    
+    val split = fieldLocationStr.split('.')
     if (split.size == 1) {
       val field = split.head.trim
-      if (field.head == '$') throw new Exception("field - location specified with $ but no field name specified!")
-      FieldSource(field)
+      if (field.head == '$') throw new Exception("location specified with $ but no field name specified:  "+fieldLocationStr)
+      FieldSource(field, defaultLocation.getOrElse(throw new Exception("Must specify a defaultLocation if you're not sure if a location is specified!")))
     }
     else if (split.size == 2) {
       val location: FieldLocation.Value = { 
@@ -143,13 +153,33 @@ object FieldSource {
     else throw new Exception("Can only have one '.' in the field name.")
   }
 
+  /** Parse an (expected) string value into a FieldSource of the form:
+    * 
+    * "$input.fieldName" = Input
+    * "$enriched.fieldName" = Enriched
+    * "$scratchpad.fieldName" = Scratchpad
+    * "fieldName" = EnrichedThenInput
+    */
+  def parseJVal(
+    jval: JValue, 
+    defaultLocation: Option[FieldLocation.Value] = None): 
+    FieldSource = {
+
+    val fieldLocationStr: String = JsonUtil.extractValidString(jval).getOrElse(throw new Exception("could not find a valid value for a field name"))
+    parseString(fieldLocationStr, defaultLocation)
+  }
+
   /** Parse a list of FieldSources.  Expecting a parsed JArray of the form
     * [ "$location.fieldname", "$location2.fieldname2" ] 
     */
-  def parseList(jval: JValue): List[FieldSource] = {
+  def parseJArray(
+    jval: JValue, 
+    defaultLocation: Option[FieldLocation.Value] = None): 
+    List[FieldSource] = {
+
     jval match {
       case jarray: JArray => {
-        jarray.children.map{ str => FieldSource(str) }
+        jarray.children.map{ jElement => parseJVal(jElement, defaultLocation) }
       }
       case _ => throw new Exception("expected an array.")
     }

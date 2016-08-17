@@ -1,5 +1,6 @@
-package com.cars.bigdata.turbocow
+package com.cars.bigdata.turbocow.actions
 
+import com.cars.bigdata.turbocow.{Action, ActionContext, PerformResult}
 import org.json4s.JValue
 
 class Custom1 extends Action

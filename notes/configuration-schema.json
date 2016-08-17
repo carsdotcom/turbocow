@@ -2,7 +2,34 @@
 // in the library.
 
 {
+  // Provide the type of activity this is enriching.  This should be the same
+  // as the name of the kafka queue.
   "activityType": "impressions",
+
+  // Some global configuration settings.
+  "global": {
+
+    // This is an action list containing any actions that you need to perform in
+    // the event that an action throws an (unhandled) exception during perform().
+    // Any action can be provided.  These actions should not throw!  
+    "exceptionHandlingList": [ { "actionType": "...", "config": {} } ],
+
+//    // You can configure JDBC client(s) to be used here.  They are set up on each
+//    // executor via sc.mapPartitions(), and each action will have access to them 
+//    // through the ActionContext.
+//    "jdbcClients": [
+//      {
+//        // The name must be unique so it can be accessed in the jdbcClients collection.
+//        "name": "hive",
+//
+//        // The connection string needed to connect to the JDBC resource.
+//        // This can be hardcoded, but if it starts with "$", it will be read from 
+//        // the current environment.
+//        "connectionUri": "$HIVE_JDBC_CONNECTION_URI"
+//        //"connectionUri": """jdbc:hive2://$HOST.cars.com:10000/master_data;principal=hive/$HOST@CORP.CLASSIFIEDVENTURES.COM""" // todo update wiki if this works
+//      }
+//    ]
+  }
 
   "items": [
     {
@@ -187,9 +214,88 @@
         },
 
         // --------------------------------------------------------------------
+        // jdbc-lookup 
+        // Does a lookup using a JDBC connector.  This is much slower than a 
+        // cached lookup, but can handle more complicated queries.
+        {
+          "actionType": "jdbc-lookup",
+          "config": {
+
+            // Jdbc client name (this is given to the framework from the 
+            // application code.  See the developer of the app if you are not 
+            // sure what to enter here).
+            "jdbcClient": "hive",
+
+            // "SELECT ..."
+            // All of these fields (if found), will be selected and added to the 
+            // enriched record (the X in "select X from ....")
+            "select": [
+              "some_field",
+              "some_other_field"
+            ],
+
+            // -------------------------------------------------------
+            // "FROM ..."
+            // How to access the hive table to do the lookup.  
+            // Usually this should be in the form "databaseName.tableName",
+            // but may be just "tableName" if running tests with a test 
+            // hive table.
+            "fromDBTable": "als_search.local_offer_group",
+            // -------------------------------------------------------
+
+            // "WHERE ..."
+            // The select statement "where" clause.  You can specify any 
+            // valid where clause here, subject to the following limitations.
+            // The field values may be in the form '$location.fieldName' where
+            // location can be one of:
+            //     $enriched   = read the value from a field in enriched 
+            //     $input      = read the value from a field in the input record
+            //     $scratchpad = read the value from a field in the scratchpad
+            // 
+            // The default, if not specified, is to treat the value as a constant
+            // string.  Ie. "where": "fieldA = 'something'".
+            // 
+            // Please note that the parser will fail to read the data if this format
+            // is incorrect:
+            //   * if there are more than one (.) in the value
+            //   * if the value is not surrounded by single quotes ('like this')
+            // 
+            // For example:
+            "where": "fieldA = '$scratchpad.someField' and fieldB = '$input.someField2'",
+
+            // (OPTIONAL) If the lookup succeeds, all the actions in the onPass 
+            // list will be run. 
+            "onPass": [
+              {
+                "actionType": "custom-action",
+                "config": { "key": "val" }
+              },
+              {
+                "actionType": "custom-action2",
+                "config": { "key": "val2" }
+              }
+            ],
+
+            // (OPTIONAL) If the lookup fails, all the actions in the onFail list 
+            // will be run. 
+            "onFail": [
+               {
+                 "actionType": "custom-action",
+                 "config": { "key": "val" }
+               },
+               {
+                 "actionType": "reject",
+                 "config": {
+                   "reasonFrom": "lookup"
+                 }
+               }
+            ]
+          }
+        },
+
+        // --------------------------------------------------------------------
         // Lookup 
         // Does a lookup into a pre-cached table.
-        // Requires "source" field[s].
         {
           "actionType": "lookup",
           "config": {

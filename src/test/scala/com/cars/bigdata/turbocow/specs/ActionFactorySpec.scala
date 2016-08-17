@@ -1,5 +1,7 @@
 package com.cars.bigdata.turbocow
 
+import com.cars.bigdata.turbocow.actions._
+
 import scala.io.Source
 
 // Fix for Scalatest on Gradle:  (from http://stackoverflow.com/questions/18823855/cant-run-scalatest-with-gradle)

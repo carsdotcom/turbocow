@@ -16,7 +16,7 @@ import FieldLocation._
 class ReplaceNull(
   val fields: List[FieldSource],
   val newValue: String,
-  val outputTo: FieldLocation.Value = FieldLocation.Enriched) 
+  val outputTo: FieldLocation.Value = ReplaceNull.defaultLocation) 
   extends Action {
 
   // Check the input
@@ -32,9 +32,9 @@ class ReplaceNull(
     this(
       fields = {
         (config \ "field").toOption match {
-          case Some(f) => List(FieldSource(f))
+          case Some(f) => List(FieldSource.parseJVal(f, Option(ReplaceNull.defaultLocation)))
           case None => (config \ "fields").toOption match {
-            case Some(f) => FieldSource.parseList(f)
+            case Some(f) => FieldSource.parseJArray(f, Option(ReplaceNull.defaultLocation))
             case None => throw new Exception("expected either 'field' or 'fields' object in 'replace-null'")
           }
         }
@@ -90,4 +90,8 @@ class ReplaceNull(
   }
 }
 
+object ReplaceNull
+{
+  val defaultLocation = FieldLocation.EnrichedThenInput
+}
 

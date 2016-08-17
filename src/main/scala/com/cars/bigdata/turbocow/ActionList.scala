@@ -54,12 +54,12 @@ extends Action
   //  }
   //}
 
-   /** All actions need to be able to return their table-caching needs for
-    * cached lookups.  The default is to return nothing.
-    */
- override def getLookupRequirements: List[CachedLookupRequirement] = {
-   actions.flatMap(action => action.getLookupRequirements)
- }
+  /** All actions need to be able to return their table-caching needs for
+   * cached lookups.  The default is to return nothing.
+   */
+  override def getLookupRequirements: List[CachedLookupRequirement] = {
+    actions.flatMap(action => action.getLookupRequirements)
+  }
 
   /** Run through all actions and perform each in order.
     */

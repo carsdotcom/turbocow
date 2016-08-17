@@ -167,8 +167,14 @@ class JdbcLookup(
       // Success; set result and run onPass...
       context.scratchPad.setResult(actionName, s"""$actionName query succeeded:  $query""")
       val enrichedAdditions = resultsList.map{ e=> (e._1, e._2.get) }.toMap
-    
-      onPass.perform(inputRecord, currentEnrichedMap ++ enrichedAdditions, context)
+      //if onPass is has list of actions
+      if(onPass.actions.nonEmpty){
+        onPass.perform(inputRecord, currentEnrichedMap ++ enrichedAdditions, context)
+
+      }
+      else{
+        PerformResult(enrichedAdditions)
+      }
     } 
     catch {
       case e: LookupFailure => {

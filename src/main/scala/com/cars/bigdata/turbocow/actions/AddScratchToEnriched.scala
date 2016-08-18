@@ -30,8 +30,6 @@ class AddScratchToEnriched(keyArray: List[String]) extends Action
       }
     }.reduce(_ ++ _)
   )
-
-
   }
 }
 

@@ -306,6 +306,12 @@
             // Will not be added if there are no collected rejection reasons.
             "field": "reasonForReject"
           }
+        {
+          "actionType":"add-scratch-to-enriched",
+          "config": {
+            "keys": ["appID", "timestamp"]
+          }
+        }
         }
       ]
     }

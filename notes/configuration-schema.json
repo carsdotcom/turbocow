@@ -213,6 +213,306 @@
           }
         },
 
+        //-------------------------------------------------------------------
+        //translate
+        // Does multiple customized lookups directly to enrichment
+        //this custom action mainly focuses on fields like 'classified_ad_id' and 'seller_role_pty_id' in impressions
+        //the action performs two sets of actions depending on valid classified_ad_id and invalid classified_ad_id
+        //some of the values inside this action are hardcoded which are very specific to impressions topic
+        {
+          "actionType" : "translate",
+          "config":{
+
+            //mandatory inputSource. we check for this value in input if valid or notvalid.
+            //the schema of lookups inside ifValid and IfNotValid resembles the schema of 'lookup' action
+            "inputSource" : "inputField",
+
+            //valid meaning inputField is greater than 0 and not null
+            //ifValid is a list of lookups.
+            //As long as the "inputField" value in input is valid ,
+            //we dont have to mention an 'inputSource' in each element of 'ifValid' list
+            "ifValid" : [
+              {
+                //"overrideSource" is entirely optional.
+                //for OverrideSource, "xyz" is searched as a key inside the results collected so far in ifValid list processing.
+                // the list of ifValid is a cumulative map datastructure
+                //if overrideSource key is not found in the so far collected ifValid resultSet, "onFail" segment of that element gets executed
+                //unlike "equals" in "lookup" action, we take inputSource's value from input to grab enriched fields for select fields.
+                //overrideSource is added for situations like do a lookup get the enriched key/value("X"/"something") in a temp map, if another lookup needs X's value as inputSource,
+                //then just mention overrideSource : "X" in the config for the latter lookup.
+                // overrideSource looks for a key ONLY in a temp map or result Set of ifValid config in translate action.
+                "overrideSource" : "xyz",
+                "select" : [""],
+                "fromDBTable" : "",
+                "where" : "",
+                //list of any valid actions when lookup is successful. Optional
+                "onPass" : [
+                  {
+                    "actionType": "custom-action",
+                    "config": { "key": "val" }
+                  },
+                  {
+                    "actionType": "custom-action2",
+                    "config": { "key": "val2" }
+                  }
+                ],
+                //list of any valid actions when lookup is unsuccessful. Mandatory
+                "onFail" : [
+                  {
+                    "actionType": "custom-action",
+                    "config": { "key": "val" }
+                  },
+                  {
+                    "actionType": "custom-action2",
+                    "config": { "key": "val2" }
+                  }
+                ]
+              },
+
+              {
+                //overrideSOurce is ignored here..this is just an example.
+                "select" : [""],
+                "fromDBTable" : "",
+                "where" : "",
+                "onPass" : [
+                  {
+                    "actionType": "custom-action",
+                    "config": { "key": "val" }
+                  },
+                  {
+                    "actionType": "custom-action2",
+                    "config": { "key": "val2" }
+                  }
+                ],
+                "onFail" : [
+                  {
+                    "actionType": "custom-action",
+                    "config": { "key": "val" }
+                  },
+                  {
+                    "actionType": "custom-action2",
+                    "config": { "key": "val2" }
+                  }
+                ]
+              },
+
+              {
+                //another ifValid element of lookup actions and so on..
+              }
+
+            ],
+
+            //list of all lookups to be done when value of inputSource is invalid.meaning <=0 or ==null
+            "ifNotValid" : [
+              {
+                //since the value of "inputSource" (top) is Invalid,
+                //each individual element inside ifNotValid list is gonna have its own "inputSource"
+                //"inputSource" key/value pair inside each element of ifNotValid list is mandatory.
+                "inputSource" : "BField",
+
+                //ifZero is optional. this comes into picture when inputValue of "inputSource" ("BField") is "0"
+                //In this case, if the raw input value of  BField is "0" then "BField" is assigned "abc" in enriched without performing any lookup
+                "ifZero" : "abc",
+
+                //list of non-null and valid select string fields. Mandatory
+                "select" : [""],
+                //fromDbTable should non-null and valid db.tablename. Mandatory
+                "fromDBTable" : "",
+                //fromDbTable should non-null and valid where field. Mandatory.
+                //"equals" is not required here because by default "inputSource" is acting like "equals"
+                "where" : "",
+
+                //list of any valid actions when lookup is successful. Optional
+                "onPass" : [
+                  {
+                    "actionType": "custom-action",
+                    "config": { "key": "val" }
+                  },
+                  {
+                    "actionType": "custom-action2",
+                    "config": { "key": "val2" }
+                  }
+                ],
+                //list of any valid actions when lookup is unsuccessful. Mandatory
+                "onFail" : [{
+
+                }]
+              },
+
+              {
+                "inputSource" : "CField",
+                "ifZero" : "value2",
+                "select" : [""],
+                "fromDBTable" : "",
+                "where" : "",
+                "onPass" : [
+                  {
+                    "actionType": "custom-action",
+                    "config": { "key": "val" }
+                  },
+                  {
+                    "actionType": "custom-action2",
+                    "config": { "key": "val2" }
+                  }
+                ],
+                "onFail" : [{
+
+                }]
+              },
+
+              {
+                //another ifNotValid element of lookup actions and so on..
+              }
+            ]
+          }
+        },
+
+        //-------------------------------------------------------------------//
+        //split-sort-concat
+        //this is a custom action that takes an input value , splits it with a comma delimiter, sorts it and returns a string seperated by with a comma on a sorted list
+        {
+          "actionType" : "split-sort-concat",
+          "config" : {
+            //mandatory field. needs an inputSource such as "xyz" to split ,sort and concat.
+            //same inputSoure key is used to push enriched value to enriched.
+            //e.g: "xyz" : "b,c,a" enriches to "xyz" : "a,b,c"
+            "inputSource" : "xyz"
+          }
+
+
+        },
+
+
+
+        //-------------------------------------------------------------------//
+        //split-sort-concat-lookup
+        //this is a custom action that takes an input value , splits it with a comma delimiter, sorts it and
+        //forms a string seperated by with a comma on a sorted list
+        // the sorted listed is now used against "in-memory" table cache lookup. This config or action should not used for JDBC. Since this action only supports tablecache lookup.
+        //if JDBC is condered for the input fields,use "split-sort-concat" in the config instead.
+        {
+          "actionType":"split-sort-concat-lookup",
+          "config":{
+            "list":[
+              {
+                "inputSource":"special_offers_id2",
+                "where":"local_offer_list",
+                "select":[
+                  "local_offer_group_id"
+                ],
+                "fromFile":"./src/test/resources/hiveTables/local_offer_group-table.json",
+                "fromDBTable":"master_data.local_offer_group",
+                "onFail":[
+                  {
+                    "actionType":"add-enriched-fields",
+                    "config":[
+                      {
+                        "key":"local_offer_group_id",
+                        "value":"0"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        },
+
+        //------------------------------------------------------------------
+        //add-device-type action
+        //this is a custom action that takes input raw values of keys "channel_id", "userAgent", "deviceType",
+        //processes them and outputs a hardcoded value to the field "XYZ" (see below)
+        {
+          "actionType" : "add-device-type",
+          "config" : {
+            //enrich field key name. mandatory
+            "outputTarget" : "XYZ"
+          }
+        },
+
+
+        //------------------------------------------------------------------
+        //time-lookup
+        //this is a custom action that takes input value from "inputSource", enriches/output to "outputTarget" field
+        //by calculating the second of the day when a 24-hour time value is found in "inputSource" input value
+        //if the inputValue is invalid, respective action is performed (see below)
+        {
+          "actionType" : "time-lookup",
+          "config" : {
+            //value of submitted_time to be found in input. Mandatory "inputSource"
+            "inputSource":"submitted_time",
+
+            //enrich key. Mandatory
+            "outputTarget":"time_id",
+
+            //list of actions to be mentioned when the inputvalue of submitted_time is invalid.Mandatory
+            "ifInValid" : [{
+              "actionType" : "reject",
+              "config" : {
+                "reason" : "invalid submitted_time",
+                "stopProcessingActionList":false
+              }
+            }]
+          }
+        },
+
+        //--------------------------------------------------------------------------
+        //transform
+        //this is a custom action where we can grab the values of the keys which are enriched so far..below is the example.
+        // if input: { "a" : "A" , "b" : "B"} enriched to enriched : { "a" : "this is A" , "b" :"this is B"}
+        // and if a new field needs to be added to enriched that depends on "a" and "b"
+        //just use the below config which gives a new field in enriched as the following.
+        //enriched : { "a" : "this is A", "b" : "this is B", "C" : "now this is A   and this is B"}
+        //the transform action config MUST be put at the end of all action configs in the config file. that way we can have access to all the enriched fields.
+        //this may be similar function to scratchpad.
+        {
+          "actionType" : "transform",
+          "config" : {
+            //destination is mandatory.
+            "destination" : "C",
+            //updateWith can be literally any text but if it has a '$' sign before a word, the compiler takes it as a key to be searched in enriched.
+            //it can be combination of any text with varibles in it. example: "updateWith" : "POINT($longitude $latitude)" should give us "POINT(-67.90  86.40)",
+            //if the values of latitude and longitude are in enriched. if they are not present in enriched, then an empty string is appended in place of $variable.
+            //e.g: "updateWith" : "this is $xyz" should give us "this is " if 'xyz' is not enriched.
+            "updateWith" : "now $a   and $b"
+          }
+        },
+
+        //---------------------------------------------------------------------
+        //check-web-page-type-id
+        //this is a custom action that checks for value of "inputSource" from config in raw input data.
+        //if "xyz" is "0" in raw input data and
+        //(hardcoded in action)"web_page_type_id" value in raw input data is "2289", the actions mentioned inside "list" inner config
+        //are performed.
+        {
+          "actionType": "check-web-page-type-id",
+          "config": {
+            //inputSource from input. Mandatory
+            "inputSource" : "xyz",
+            //list of actions to be done when "xyz" is "0" in input and "web_page_type_id" is "2289" in input. Mandatory
+            "list" : [{
+              "actionType" : "add-enriched-fields",
+              "config" : [{
+                "key" : "XXX",
+                "value" : "listed"
+              }]
+            }]
+          }
+        },
+
+        //-------------------------------------------------------------------
+        //gmt-to-cst
+        //custom action to change a time stamp , resgister it as GMT and convert it to CST
+        {
+          "actionType":"gmt-to-cst",
+          "config":{
+            //this inputSource value in raw input is converted to cst. Mandatory
+            //any invalid value in "xyz" returns an empty enriched key/value pari
+            "inputSource" : "xyz"
+          }
+        },
+
+
         // --------------------------------------------------------------------
         // jdbc-lookup 
         // Does a lookup using a JDBC connector.  This is much slower than a 

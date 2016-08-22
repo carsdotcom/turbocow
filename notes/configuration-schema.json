@@ -309,7 +309,7 @@
         {
           "actionType":"add-scratch-to-enriched",
           "config": {
-            "keys": ["appID", "timestamp"]
+            "fields": ["applicationID", "jobRunTime"]
           }
         }
         }

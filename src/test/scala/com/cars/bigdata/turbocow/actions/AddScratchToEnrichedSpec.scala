@@ -37,8 +37,8 @@ class AddScratchToEnrichedSpec
   describe("AddScratchedToEnriched"){
   it("should be able to enrich from the scratchpad when a test value is set") {
     val scratchPad: ScratchPad = new ScratchPad()
-    scratchPad.set("timestamp","test123")
-    scratchPad.set("appID", "applicationID_1234567890")
+    scratchPad.set("jobRunTime","test123")
+    scratchPad.set("applicationID", "applicationID_1234567890")
     val enriched: Array[Map[String, String]] = ActionEngine.processDir(
       new URI("./src/test/resources/input-integration.json"),
       """{
@@ -49,7 +49,7 @@ class AddScratchToEnrichedSpec
         |        {
         |          "actionType":"add-scratch-to-enriched",
         |           "config": {
-        |            "keys": ["appID", "timestamp"]
+        |            "fields": ["applicationID", "jobRunTime"]
         |             }
         |         }
         |      ]
@@ -61,8 +61,8 @@ class AddScratchToEnrichedSpec
       scratchPad).collect()
 
     enriched.size should be (1) // always one because there's only one json input object
-    enriched.head("timestamp") should be ("test123")
-    enriched.head("appID") should be ("applicationID_1234567890")
+    enriched.head("jobRunTime") should be ("test123")
+    enriched.head("applicationID") should be ("applicationID_1234567890")
   }
 
   it("should return empty map in enriched when trying to enrich on an empty scratchpad") {

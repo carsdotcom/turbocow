@@ -7,7 +7,7 @@ class AddScratchToEnriched(keyArray: List[String]) extends Action
 {
   def this(actionConfig: JValue) = {
     this(
-      keyArray = (actionConfig \ "keys").children.map(eachKey => JsonUtil.extractString(eachKey))
+      keyArray = (actionConfig \ "fields").children.map(eachKey => JsonUtil.extractString(eachKey))
     )
   }
   /** Perform the action
@@ -21,10 +21,10 @@ class AddScratchToEnriched(keyArray: List[String]) extends Action
   // How do wrap in Option to avoid null checks on context.scratchPad.get("dateId")
   PerformResult(
     keyArray.map { eachKey =>
-      val testVal: Option[Any] = context.scratchPad.get(eachKey)
-      if (!testVal.isEmpty) {
+      val getVal: Option[Any] = context.scratchPad.get(eachKey)
+      if (getVal isDefined) {
         // Just add this to the enriched data - doesn't matter
-        Map(eachKey -> testVal.get.toString)
+        Map(eachKey -> getVal.get.toString)
       } else {
         Map.empty[String, String]
       }

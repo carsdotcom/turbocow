@@ -16,7 +16,6 @@ class CustomActionCreator extends ActionCreator {
       case "custom-1" => Option(new Custom1)
       case "custom-add-enriched-fields" => Option(new AddEnrichedFields(actionConfig))
       //case "custom-remove-enriched-fields" => Option(new RemoveEnrichedField(actionConfig))
-      case "add-scratch-to-enriched" => Option(new AddScratchToEnriched)
       case "mock-action" => Option(new MockAction(actionConfig))
       case "null-action" => Option(new NullAction(actionConfig))
       case _ => None

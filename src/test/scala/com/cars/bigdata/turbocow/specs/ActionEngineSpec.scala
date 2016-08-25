@@ -504,55 +504,6 @@ class ActionEngineSpec
       enriched.head("enrichedE") should be ("EEE")
       enriched.head("enrichedF") should be ("FFF")
     }
-
-    it("should be able to enrich from the scratchpad when a test value is set") {
-
-      val scratchPad: ScratchPad = new ScratchPad()
-      scratchPad.set("test","test123")
-      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
-        new URI("./src/test/resources/input-integration.json"),
-        """{
-          |  "activityType":"impressions",
-          |  "items":[
-          |    {
-          |      "actions":[
-          |        {
-          |          "actionType":"add-scratch-to-enriched"
-          |        }
-          |      ]
-          |    }
-          |  ]
-          |}""".stripMargin, sc,
-        None,
-        new ActionFactory(new CustomActionCreator),
-        scratchPad).collect()
-
-      enriched.size should be (1) // always one because there's only one json input object
-      enriched.head("test") should be ("test123")
-
-    }
-
-    it("should return empty map in enriched when trying to enrich on an empty scratchpad") {
-
-      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
-        new URI("./src/test/resources/input-integration.json"),
-        """{
-          |  "activityType":"impressions",
-          |  "items":[
-          |    {
-          |      "actions":[
-          |        {
-          |          "actionType":"add-scratch-to-enriched"
-          |        }
-          |      ]
-          |    }
-          |  ]
-          |}""".stripMargin, sc,
-        None,
-        new ActionFactory(new CustomActionCreator)).collect()
-
-      enriched.size should be (0) // empty enriched records get filtered out
-    }
   }
 
   describe("AvroOutputWriter") {

@@ -157,4 +157,17 @@ class AddScratchToEnrichedSpec
     }
 
   }
+
+  describe("getLookupRequirements") {
+
+    it("should return default requirements") {
+
+      // Null Action doesn't implement getLookupRequirements() so they should be
+      // the same:
+      val a = new AddScratchToEnriched(List("applicationID", "jobRunTime"))
+      val nullAction = new NullAction()
+
+      nullAction.getLookupRequirements should be (a.getLookupRequirements)
+    }
+  }
 }

@@ -46,6 +46,17 @@
           }
         },
 
+        // AddScratchedToEnriched takes the key value pairs from scratchPad and places them in Enriched.
+        // The fields List is the list of keys to copy from scratch to enriched.
+        // The key name is scratch will match the destination field name in enriched.
+        // Fields is the only config type allowed and can be as many keys as desired.
+        {
+          "actionType":"add-scratch-to-enriched",
+          "config": {
+            "fields": ["applicationID", "jobRunTime"]
+          }
+        },
+
         // --------------------------------------------------------------------
         // Simple copy copies each source field from the input record directly to 
         // the same-named field in the output record.
@@ -305,12 +316,6 @@
             // The name of the field to add to the enriched record.
             // Will not be added if there are no collected rejection reasons.
             "field": "reasonForReject"
-          }
-        },
-        {
-          "actionType":"add-scratch-to-enriched",
-          "config": {
-            "fields": ["applicationID", "jobRunTime"]
           }
         }
       ]

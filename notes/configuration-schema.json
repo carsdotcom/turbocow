@@ -59,6 +59,21 @@
         },
 
         // --------------------------------------------------------------------
+        // Add a field or fields with a simple hard-coded value to the enriched 
+        // record.
+        "actionType": "add-enriched-field", // can also be "add-enriched-fields" (doesn't matter)
+        "config": [ // must be an array
+          {
+            "key": "A",
+            "value": "A Value"
+          },
+          {
+            "key": "B",
+            "value": "B Value"
+          }
+        ]
+
+        // --------------------------------------------------------------------
         // AddRejectionReason adds the rejection reason stored in the scratchpad
         // (as a result of Reject action(s) - see below) to the field below, and
         // copies the rest of the input record to the enriched record.

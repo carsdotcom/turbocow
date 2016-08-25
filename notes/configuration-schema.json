@@ -300,18 +300,18 @@
         // This action is best done at the end of all the items, in its own 
         // action list.
         {
-          "actionType":"add-rejection-reason",
+          "actionType": "add-rejection-reason",
           "config": {
             // The name of the field to add to the enriched record.
             // Will not be added if there are no collected rejection reasons.
             "field": "reasonForReject"
           }
+        },
         {
           "actionType":"add-scratch-to-enriched",
           "config": {
             "fields": ["applicationID", "jobRunTime"]
           }
-        }
         }
       ]
     }

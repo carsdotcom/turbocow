@@ -93,8 +93,8 @@ class BinaryCheckSpec extends UnitSpec {
       val config = parse(
         s"""{
         "left": "A",
-         "right": "B",
         "op": "equals",
+        "right": "B",
         "onPass": [ 
           { 
             "actionType": "null",
@@ -141,7 +141,34 @@ class BinaryCheckSpec extends UnitSpec {
         ]
       }""")
 
-      intercept[Exception](new BinaryCheck(config, Some(new ActionFactory())))
+      intercept[Exception](
+        new BinaryCheck(config, Some(new ActionFactory()))
+      ).getMessage should be ("JSON configuration for binary checks are required to have a 'left' object")
+    }
+
+    it("should throw if a binary check uses 'field' rather than 'left'") {
+      val config = parse(
+        s"""{
+        "field": "A",
+        "op": "equals",
+        "right": "B",
+        "onPass": [ 
+          { 
+            "actionType": "null",
+            "config": { "name": "A PASS" }
+          }
+        ],
+        "onFail": [ 
+          { 
+            "actionType": "null",
+            "config": { "name": "A FAIL" }
+          }
+        ]
+      }""")
+
+      intercept[Exception]{ 
+        new BinaryCheck(config, Some(new ActionFactory()))
+      }.getMessage() should be ("JSON configuration for binary checks must use 'left' rather than 'field'")
     }
 
     it("should throw if right is missing") {

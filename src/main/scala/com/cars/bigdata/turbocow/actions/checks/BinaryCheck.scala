@@ -20,7 +20,7 @@ class BinaryCheck(
   ValidString(left).getOrElse(throw new Exception("""'left' was nonexistent or empty ("")"""))
   ValidString(right).getOrElse(throw new Exception("""'right' was nonexistent or empty ("")"""))
 
-  if(checker==null) throw new Exception("Hey buddy, we need a Checker object")
+  if(checker==null) throw new Exception("missing the Checker object")
 
   /** Get the lookup requirements
     */
@@ -32,10 +32,13 @@ class BinaryCheck(
     */
   def this(config: JValue, actionFactory: Option[ActionFactory]) = {
     this(
-        JsonUtil.extractOptionString(config \ "left").getOrElse(
-          throw new Exception("""JSON configuration for checks are required to have a 'left' object""")),
+      JsonUtil.extractOptionString(config \ "left").getOrElse(
+        if (JsonUtil.extractOptionString(config \ "field").nonEmpty)
+          throw new Exception("""JSON configuration for binary checks must use 'left' rather than 'field'""")
+        else 
+          throw new Exception("""JSON configuration for binary checks are required to have a 'left' object""")),
       JsonUtil.extractOptionString(config \ "right").getOrElse(
-          throw new Exception("""JSON configuration for checks are required to have a 'right object""")),
+        throw new Exception("""JSON configuration for binary checks are required to have a 'right object""")),
       {
         val operator = JsonUtil.extractValidString(config \ "op").getOrElse(throw new Exception("must specify an operator"))
         val caseSensitive = JsonUtil.extractOption[Boolean](config \ "caseSensitive").getOrElse(caseSensitiveDefault)

@@ -1,6 +1,6 @@
 package com.cars.bigdata.turbocow
 
-import java.io.File
+import java.io.{BufferedWriter, File, FileWriter}
 import java.net.URI
 import java.nio.file.Files
 
@@ -12,11 +12,10 @@ import org.apache.spark.sql.Row
 
 import scala.io.Source
 import scala.util.{Success, Try}
-
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
-class AvroOutputWriterSsspec 
+class AvroOutputWriterSpec
   extends UnitSpec 
 {
   // before all tests have run
@@ -39,9 +38,7 @@ class AvroOutputWriterSsspec
     super.afterAll()
   }
 
-  /** Helper fn
-    */
-  def fileToString(filePath: String) = Source.fromFile(filePath).getLines.mkString
+  import FileUtil._
 
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
@@ -51,8 +48,31 @@ class AvroOutputWriterSsspec
   describe("write") {
 
     it("should only output the fields in the schema regardless of what is in the input RDD") {
-      val enriched: RDD[Map[String, String]] = ActionEngine.processDir(
-        new URI("./src/test/resources/input-integration.json"),
+
+      val avroSchema = """{
+          "namespace": "ALS",
+          "type": "record",
+          "name": "impression",
+          "fields": [
+          {
+            "name": "CField",
+            "type": [ "string" ],
+            "doc": "Type of the consumer activity. It is always IMPRESSION",
+            "default": ""
+          },
+          {
+            "name": "DField",
+            "type": [ "null", "int" ],
+            "doc": "Date when impression activity happened. Format of the date is yyyy-mm-dd",
+            "default": 0
+          }
+        ],
+        "doc": ""
+      }"""
+      val avroFile = writeTempFile(avroSchema, "avroschema.avsc")
+
+      val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
+        List("""{ "md": { "AField": "A", "BField": "B" }, "activityMap": { "CField": "C", "DField": 11, "EField": true }}"""),
         """{
             "activityType": "impressions",
             "items": [
@@ -60,7 +80,7 @@ class AvroOutputWriterSsspec
                 "actions":[{
                     "actionType":"simple-copy",
                     "config": {
-                      "inputSource": [ "AField", "BField" ]
+                      "inputSource": [ "BField", "CField" ]
                     }
                   }
                 ]
@@ -73,10 +93,11 @@ class AvroOutputWriterSsspec
       // this should be the enriched record:
 
       val enrichedAll = enriched.collect()
+      //println("========= enrichedAll = "+enrichedAll.mkString("//"))
       enrichedAll.size should be (1) // always one because there's only one json input object
       enrichedAll.head.size should be (2)
-      enrichedAll.head.get("AField") should be (Some("A"))
       enrichedAll.head.get("BField") should be (Some("B"))
+      enrichedAll.head.get("CField") should be (Some("C"))
 
       // now write to avro
       //val tempFile = File.createTempFile("testoutput-", ".avro", null).deleteOnExit()
@@ -88,15 +109,17 @@ class AvroOutputWriterSsspec
       println("%%%%%%%%%%%%%%%%%%%%%%%%% outputDir = "+outputDir.toString)
 
       // write
-      AvroOutputWriter.write(enriched, List("BField"), outputDir.toString, sc)
+      AvroOutputWriter.write(enriched, avroFile, outputDir.toString, sc)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
+      //println("======== rows = ")
       rows.size should be (1) // one row only
       val row = rows.head
-      row.size should be (1) // only one field in that row
+      row.size should be (2) // only one field in that row
       Try( row.getAs[String]("AField") ).isFailure should be (true)
-      Try( row.getAs[String]("BField") ) should be (Success("B"))
+      Try( row.getAs[String]("BField") ).isFailure should be (true)
+      Try( row.getAs[String]("CField") ) should be (Success("C"))
     }
   }
 

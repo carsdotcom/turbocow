@@ -60,7 +60,7 @@ class AvroOutputWriterSsspec
                 "actions":[{
                     "actionType":"simple-copy",
                     "config": {
-                      "inputSource": [ "AField", "BField", "CField" ]
+                      "inputSource": [ "AField", "BField" ]
                     }
                   }
                 ]

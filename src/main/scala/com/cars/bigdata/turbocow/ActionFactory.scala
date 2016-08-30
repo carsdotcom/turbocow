@@ -79,6 +79,9 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
       val actionType = JsonUtil.extractString(jval \ "actionType")
       val actionConfig = jval \ "config"
 
+      println(s"ActionFactory:  Parsing actionType: $actionType")
+      //println(s"    actionConfig: ${pretty(render(actionConfig))}")
+
       // First, attempt to create an action using custom creators, if any:
       val customAction: Option[Action] = if (customActionCreators.nonEmpty) {
         var action: Option[Action] = None

@@ -131,13 +131,16 @@
             // more sense in this context.
             "leftSource": "enriched|input"
 
-            // The operator.  Valid operators are currently:
+            // The operator.  
+            // Valid unary operators (one operand) are currently:
             //   * empty
             //   * non-empty
             //   * null
             //   * non-null
             //   * numeric
             //   * non-numeric
+            // Valid binary operators (two operands) are currently:
+            //   * equals
             "op": "non-empty",
 
             // Note - binary checks are unimplemented yet, but this is how they

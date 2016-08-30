@@ -121,7 +121,7 @@ object HiveTableCache
       SELECT $fields
         FROM ${dbTableName}
     """
-    //println("HiveContext.sql - query = "+query)
+    println("HiveContext.sql - query = "+query)
     val df = hiveContext.get.sql(query)
     
     //println("SSSSSSSSSSSSSSSSSSS showing df:")

@@ -24,7 +24,7 @@ object AvroOutputWriter {
     Unit = {
 
     // get the list of field names from avro schema
-    val schema: List[String] = getAvroSchema(schemaPath, sc)
+    val schema: List[String] = getAvroSchemaFromHdfs(schemaPath, sc)
 
     write(rdd, schema, outputDir, sc)
   }
@@ -67,12 +67,26 @@ object AvroOutputWriter {
     * @param hdfsPath
     * @param sc SparkContext
     */
-  def getAvroSchema(
+  def getAvroSchemaFromHdfs(
     hdfsPath: String,
     sc: SparkContext):
     List[String] = {
 
     val jsonSchema = sc.textFile(hdfsPath).collect().mkString("")
+    getAvroSchema(jsonSchema, sc)
+  }
+
+  /** Process AvroSchema (schema as string)
+    *
+    * @param jsonSchema the schema (from a .avsc file which is just JSON)
+    * @param sc SparkContext
+    */
+  def getAvroSchema(
+    jsonSchema: String,
+    sc: SparkContext):
+    List[String] = {
+
+    println("=================== jsonSchema = "+jsonSchema)
     val parsedSchema = parse(jsonSchema)
 
     implicit val formats = org.json4s.DefaultFormats

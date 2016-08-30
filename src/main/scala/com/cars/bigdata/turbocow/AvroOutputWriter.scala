@@ -8,6 +8,7 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
 object AvroOutputWriter {
+
   /** Output data to avro using a specific Avro schema file.
     *
     * @param rdd        RDD to write out
@@ -19,7 +20,8 @@ object AvroOutputWriter {
     rdd: RDD[Map[String, String]],
     schemaPath: String,
     outputDir: String,
-    sc: SparkContext): Unit = {
+    sc: SparkContext): 
+    Unit = {
 
     // get the list of field names from avro schema
     val schema: List[String] = getAvroSchema(schemaPath, sc)
@@ -39,7 +41,7 @@ object AvroOutputWriter {
     schema: List[String],
     outputDir: String,
     sc: SparkContext):
-  Unit = {
+    Unit = {
 
     // Loop through enriched record fields, and extract the value of each field 
     // in the order of schema list (so the order matches the Avro schema).
@@ -68,7 +70,7 @@ object AvroOutputWriter {
   def getAvroSchema(
     hdfsPath: String,
     sc: SparkContext):
-  List[String] = {
+    List[String] = {
 
     val jsonSchema = sc.textFile(hdfsPath).collect().mkString("")
     val parsedSchema = parse(jsonSchema)

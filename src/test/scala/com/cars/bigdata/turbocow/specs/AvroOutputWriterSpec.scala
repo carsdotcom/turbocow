@@ -212,23 +212,23 @@ class AvroOutputWriterSpec
         "fields": [{
             "name": "StringField",
             "type": [ "string" ],
-            "default": ""
+            "default": "0"
           }, {
             "name": "IntField",
             "type": [ "null", "int" ],
-            "default": 0
+            "default": 1
           }, {
             "name": "LongField",
             "type": [ "null", "long" ],
-            "default": 0
+            "default": 2
           }, {
             "name": "DoubleField",
             "type": [ "double" ],
-            "default": 0.0
+            "default": 0.3
           }, {
             "name": "FloatField",
             "type": [ "null", "float" ],
-            "default": 0.0
+            "default": 0.4
           }, {
             "name": "BooleanField",
             "type": [ "null", "boolean" ],
@@ -244,13 +244,13 @@ class AvroOutputWriterSpec
 
       val schema = AvroOutputWriter.getAvroSchema(avroSchema, sc)
       schema.size should be (7)
-      schema.head should be (StructField("StringField", StringType, false))
-      schema(1) should be (StructField("IntField", IntegerType, true))
-      schema(2) should be (StructField("LongField", LongType, true))
-      schema(3) should be (StructField("DoubleField", DoubleType, false))
-      schema(4) should be (StructField("FloatField", FloatType, true))
-      schema(5) should be (StructField("BooleanField", BooleanType, true))
-      schema(6) should be (StructField("NullField", NullType, true))
+      schema.head should be (AvroFieldConfig(StructField("StringField", StringType, false), JString("0")))
+      schema(1) should be (AvroFieldConfig(StructField("IntField", IntegerType, true), JInt(1)))
+      schema(2) should be (AvroFieldConfig(StructField("LongField", LongType, true), JInt(2)))
+      schema(3) should be (AvroFieldConfig(StructField("DoubleField", DoubleType, false), JDouble(0.3)))
+      schema(4) should be (AvroFieldConfig(StructField("FloatField", FloatType, true), JDouble(0.4)))
+      schema(5) should be (AvroFieldConfig(StructField("BooleanField", BooleanType, true), JBool(false)))
+      schema(6) should be (AvroFieldConfig(StructField("NullField", NullType, true), JNull))
     }
   }
 
@@ -463,7 +463,113 @@ class AvroOutputWriterSpec
     }
 
     it("should write out default values as specified in the schema") {
-      fail()
+
+      // avro schema
+      val avroSchema = """{
+          "namespace": "ALS",
+          "type": "record",
+          "name": "impression",
+          "fields": [{
+            "name": "StringField",
+            "type": [ "string" ],
+            "default": "0"
+          }, {
+            "name": "IntField",
+            "type": [ "null", "int" ],
+            "default": 1
+          }, {
+            "name": "IntField2",
+            "type": [ "null", "int" ],
+            "default": null
+          }, {
+            "name": "LongField",
+            "type": [ "null", "long" ],
+            "default": 3
+          }, {
+            "name": "FloatField",
+            "type": [ "null", "float" ],
+            "default": 4.0
+          }, {
+            "name": "DoubleField",
+            "type": [ "null", "double" ],
+            "default": 5.0
+          }, {
+            "name": "DoubleField2",
+            "type": [ "null", "double" ],
+            "default": null
+          }, {
+            "name": "BooleanField",
+            "type": [ "null", "boolean" ],
+            "default": false
+          }, {
+            "name": "BooleanField2",
+            "type": [ "null", "boolean" ],
+            "default": null
+          }
+        ],
+        "doc": ""
+      }"""
+      val avroFile = writeTempFile(avroSchema, "avroschema.avsc")
+
+      val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
+        // input record:
+        List("""{ "md":{}, "activityMap": { 
+            "UnknownField": "String"
+          }}"""),
+        // config:  no fields added from schema
+        """{
+            "activityType": "impressions",
+            "items": [
+              {
+                "actions":[{
+                    "actionType":"add-enriched-field",
+                    "config": [{
+                      "key": "X",
+                      "value": "XVal"
+                    }]
+                  }
+                ]
+              }
+            ]
+          }
+        """,
+        sc).persist()
+  
+      // this should be the enriched record:
+
+      val enrichedAll = enriched.collect()
+      //println("========= enrichedAll = "+enrichedAll.mkString("//"))
+      enrichedAll.size should be (1)
+      enrichedAll.head.size should be (1)
+      enrichedAll.head.get("X") should be (Some("XVal"))
+
+      // now write to avro
+      val outputDir = {
+        val dir = Files.createTempDirectory("testoutput-")
+        new File(dir.toString).delete()
+        dir.toString
+      }
+
+      // write
+      AvroOutputWriter.write(enriched, avroFile, outputDir.toString, sc)
+
+      // now read what we wrote
+      val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
+      //println("======== rows = ")
+      rows.size should be (1) // one row only
+      val row = rows.head
+      row.size should be (9)
+
+      // these are all actual non-string types (except the first)
+      Try( row.getAs[String]("StringField") )    should be (Success("0"))
+      Try( row.getAs[Int]("IntField") )          should be (Success(1))
+      row.isNullAt( row.fieldIndex("IntField2") ) should be (true)
+      Try( row.getAs[Long]("LongField") )        should be (Success(3L))
+      Try( row.getAs[Float]("FloatField") )      should be (Success(4.0))
+      Try( row.getAs[Double]("DoubleField") )    should be (Success(5.0))
+      row.isNullAt( row.fieldIndex("DoubleField2") ) should be (true)
+      Try( row.getAs[Boolean]("BooleanField") )  should be (Success(false))
+      row.isNullAt( row.fieldIndex("BooleanField2") ) should be (true)
     }
   }
 

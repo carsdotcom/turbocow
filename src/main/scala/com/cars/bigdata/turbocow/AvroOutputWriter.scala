@@ -25,7 +25,7 @@ object AvroOutputWriter {
     Unit = {
 
     // get the list of field names from avro schema
-    val schema: List[StructField] = getAvroSchemaFromHdfs(schemaPath, sc)
+    val schema: List[AvroFieldConfig] = getAvroSchemaFromHdfs(schemaPath, sc)
 
     write(rdd, schema, outputDir, sc)
   }
@@ -39,7 +39,7 @@ object AvroOutputWriter {
     */
   def write(
     rdd: RDD[Map[String, String]],
-    schema: List[StructField],
+    schema: List[AvroFieldConfig],
     outputDir: String,
     sc: SparkContext):
     Unit = {
@@ -48,15 +48,21 @@ object AvroOutputWriter {
     // in the order of schema list (so the order matches the Avro schema). 
     // Convert to the correct type as well.
     val rowRDD: RDD[Row] = rdd.map { record =>
-      val vals: List[Any] = schema.map{ structField => 
-        val v = record.get(structField.name).getOrElse(null)
-        convertToType(v, structField).get  // TODOTODO this may throw!  Shouldn't this be rejected if can't convert the value to the proper type?  How to do that here?
+      val vals: List[Any] = schema.map{ fieldConfig =>
+        val v = record.get(fieldConfig.structField.name)
+        if (v.isDefined) {
+          convertToType(v.get, fieldConfig.structField).get  // TODOTODO this may throw!  Shouldn't this be rejected if can't convert the value to the proper type?  How to do that here?
+        }
+        else {
+          // add the default value
+          fieldConfig.getDefaultValue
+        }
       }
       Row.fromSeq(vals)
     }
 
     // create a dataframe of RDD[row] and Avro schema
-    val structTypeSchema = StructType(schema.toArray)
+    val structTypeSchema = StructType(schema.map{ _.structField }.toArray)
     val sqlContext = new SQLContext(sc)
     val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema).repartition(10)
 
@@ -75,7 +81,7 @@ object AvroOutputWriter {
   def getAvroSchemaFromHdfs(
     hdfsPath: String,
     sc: SparkContext):
-    List[StructField] = {
+    List[AvroFieldConfig] = {
 
     val jsonSchema = sc.textFile(hdfsPath).collect().mkString("")
     getAvroSchema(jsonSchema, sc)
@@ -89,7 +95,7 @@ object AvroOutputWriter {
   def getAvroSchema(
     jsonSchema: String,
     sc: SparkContext):
-    List[StructField] = {
+    List[AvroFieldConfig] = {
 
     println("=================== jsonSchema = "+jsonSchema)
     val parsedSchema = parse(jsonSchema)
@@ -99,9 +105,7 @@ object AvroOutputWriter {
     // collect fields list from avro schema
     val fields = (parsedSchema \ "fields").children
 
-    fields.map { eachChild =>
-      getStructFieldFromAvroElement(eachChild)
-    }
+    fields.map { eachChild => AvroFieldConfig(eachChild) }
   }
 
   /** get the DataType type from a string description

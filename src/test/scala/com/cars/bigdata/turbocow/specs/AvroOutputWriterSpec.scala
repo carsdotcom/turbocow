@@ -3,6 +3,9 @@ package com.cars.bigdata.turbocow
 import java.io.File
 import java.nio.file.Files
 
+import org.json4s._
+import org.json4s.jackson.JsonMethods._
+
 import com.cars.bigdata.turbocow.FileUtil._
 import com.cars.bigdata.turbocow.test.SparkTestContext._
 import com.databricks.spark.avro._
@@ -10,6 +13,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 
+import scala.io.Source
 import scala.util.{Success, Try}
 
 class AvroOutputWriterSpec
@@ -254,6 +258,7 @@ class AvroOutputWriterSpec
 
     it("should only output the fields in the schema regardless of what is in the input RDD") {
 
+      // schema has C & D
       val avroSchema = """{
           "namespace": "ALS",
           "type": "record",
@@ -275,9 +280,13 @@ class AvroOutputWriterSpec
         "doc": ""
       }"""
       val avroFile = writeTempFile(avroSchema, "avroschema.avsc")
+      // check we wrote to file correctly
+      parse(Source.fromFile(avroFile).getLines.mkString).toString should be ((parse(avroSchema)).toString)
 
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
+        // Input has A-E
         List("""{ "md": { "AField": "A", "BField": "B" }, "activityMap": { "CField": "C", "DField": 11, "EField": true }}"""),
+        // Config has B & C
         """{
             "activityType": "impressions",
             "items": [
@@ -296,7 +305,6 @@ class AvroOutputWriterSpec
         sc).persist()
   
       // this should be the enriched record:
-
       val enrichedAll = enriched.collect()
       //println("========= enrichedAll = "+enrichedAll.mkString("//"))
       enrichedAll.size should be (1) // always one because there's only one json input object
@@ -311,20 +319,21 @@ class AvroOutputWriterSpec
         new File(dir.toString).delete()
         dir.toString
       }
-      println("%%%%%%%%%%%%%%%%%%%%%%%%% outputDir = "+outputDir.toString)
 
       // write
       AvroOutputWriter.write(enriched, avroFile, outputDir.toString, sc)
 
-      // now read what we wrote
+      // now read what we wrote - should only have the union, field C
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
       //println("======== rows = ")
       rows.size should be (1) // one row only
       val row = rows.head
       row.size should be (2) // only one field in that row
-      Try( row.getAs[String]("AField") ).isFailure should be (true)
-      Try( row.getAs[String]("BField") ).isFailure should be (true)
+      Try( row.getAs[String]("AField") ).isSuccess should be (false)
+      Try( row.getAs[String]("BField") ).isSuccess should be (false)
       Try( row.getAs[String]("CField") ) should be (Success("C"))
+      //Try( row.getAs[String]("DField") ).get should be ("") // TODO default
+      Try( row.getAs[String]("EField") ).isSuccess should be (false)
     }
 
     it("should write out correct data types as specified in the schema") {
@@ -412,7 +421,6 @@ class AvroOutputWriterSpec
         new File(dir.toString).delete()
         dir.toString
       }
-      println("%%%%%%%%%%%%%%%%%%%%%%%%% outputDir = "+outputDir.toString)
 
       // write
       AvroOutputWriter.write(enriched, avroFile, outputDir.toString, sc)

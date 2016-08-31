@@ -45,11 +45,12 @@ object AvroOutputWriter {
     Unit = {
 
     // Loop through enriched record fields, and extract the value of each field 
-    // in the order of schema list (so the order matches the Avro schema).
-    val rowRDD = rdd.map { record =>
+    // in the order of schema list (so the order matches the Avro schema). 
+    // Convert to the correct type as well.
+    val rowRDD: RDD[Row] = rdd.map { record =>
       val vals: List[Any] = schema.map{ structField => 
         val v = record.get(structField.name).getOrElse(null)
-        v //v.convertToType(structField.dataType, )
+        convertToType(v, structField).get  // TODOTODO this may throw!  Shouldn't this be rejected if can't convert the value to the proper type?  How to do that here?
       }
       Row.fromSeq(vals)
     }
@@ -128,7 +129,6 @@ object AvroOutputWriter {
     *      }
     * 
     * @return StructField
-    * 
     */
   def getStructFieldFromAvroElement(fieldConfig: JValue): StructField = {
     
@@ -164,49 +164,43 @@ object AvroOutputWriter {
     */
   def convertToType(string: String, structField: StructField): Try[Any] = Try {
 
-    // For numeric types, trim the input and check for these slip through the 
-    // [type].toString conversion because they are valid numeric postfixes in 
-    // scala.
-    val trimmedStr = structField.dataType match {
-      case IntegerType | LongType | FloatType | DoubleType => {
-        string match {
-          case null => null;
-          case _ => {
-            val t = string.trim()
-            if (List( 'd', 'D', 'f', 'F', 'l', 'L').contains(t.last)) {
-              throw new NumberFormatException(s"can't convert '$string' to ${structField.dataType.toString} type. (No alphanumeric characters are allowed in numeric fields.)")
-            }
-            else t
-          }
-        }
-      }
-      case _ => string;
-    }
-
-    // Do the core conversion.
-    val typedVal = structField.dataType match {
-      case StringType => trimmedStr
-      case IntegerType => trimmedStr.toInt
-      case LongType => trimmedStr.toLong
-      case FloatType => trimmedStr.toFloat
-      case DoubleType => trimmedStr.toDouble
-      case BooleanType => trimmedStr.trim.toBoolean // boolean can be safely trimmed (it is not above)
-      case NullType => trimmedStr match {
-        case null => null
-        case _ => throw new Exception("attempt to convert non-null value into 'NullType'.")
-      }
-      case _ => throw new Exception("unsupported type: "+structField.toString)
-    }
-
     // Check for null value and throw if not allowed.
-    structField.dataType match {
-      case NullType => typedVal
-      case _ => typedVal match {
-        case null => structField.nullable match {
-          case true => typedVal
-          case false => throw new Exception("attempt to store null value into a field that is non-nullable")
+    if (string == null && !(structField.dataType==NullType || structField.nullable) ) {
+      throw new Exception("attempt to store null value into a field that is non-nullable")
+    }
+
+    // If value is actually null, just return null
+    if (string == null) null
+    else {
+      // value is not null
+
+      // For numeric types, trim the input and check for these slip through the
+      // [type].toString conversion because they are valid numeric postfixes in
+      // scala.
+      val trimmedStr = structField.dataType match {
+        case IntegerType | LongType | FloatType | DoubleType => {
+          val t = string.trim()
+          if (List( 'd', 'D', 'f', 'F', 'l', 'L').contains(t.last)) {
+            throw new NumberFormatException(s"can't convert '$string' to ${structField.dataType.toString} type. (No alphanumeric characters are allowed in numeric fields.)")
+          }
+          else t
         }
-        case _ => typedVal
+        case _ => string;
+      }
+
+      // Do the core conversion.
+      structField.dataType match {
+        case StringType => trimmedStr
+        case IntegerType => trimmedStr.toInt
+        case LongType => trimmedStr.toLong
+        case FloatType => trimmedStr.toFloat
+        case DoubleType => trimmedStr.toDouble
+        case BooleanType => trimmedStr.trim.toBoolean // boolean can be safely trimmed (it is not above)
+        case NullType => trimmedStr match {
+          case null => null
+          case _ => throw new Exception("attempt to convert non-null value into 'NullType'.")
+        }
+        case _ => throw new Exception("unsupported type: "+structField.toString)
       }
     }
   }

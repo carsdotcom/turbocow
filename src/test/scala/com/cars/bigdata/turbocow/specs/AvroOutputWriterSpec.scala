@@ -356,7 +356,19 @@ class AvroOutputWriterSpec
             "type": [ "null", "int" ],
             "default": 0
           }, {
+            "name": "LongField",
+            "type": [ "null", "long" ],
+            "default": 0
+          }, {
+            "name": "FloatField",
+            "type": [ "null", "float" ],
+            "default": 0.0
+          }, {
             "name": "DoubleField",
+            "type": [ "null", "double" ],
+            "default": 0.0
+          }, {
+            "name": "DoubleField2",
             "type": [ "null", "double" ],
             "default": 0.0
           }, {
@@ -379,7 +391,10 @@ class AvroOutputWriterSpec
             "StringField": "String", 
             "IntField": "10",
             "IntField2": "-10",
+            "LongField": "11",
+            "FloatField": "-11.1",
             "DoubleField": "10.1",
+            "DoubleField2": "-10.1",
             "BooleanField": "true",
             "BooleanField2": "false"
           }}"""),
@@ -391,7 +406,7 @@ class AvroOutputWriterSpec
                 "actions":[{
                     "actionType":"simple-copy",
                     "config": {
-                      "inputSource": [ "StringField", "IntField", "IntField2", "DoubleField", "BooleanField", "BooleanField2" ]
+                      "inputSource": [ "StringField", "IntField", "IntField2", "LongField", "FloatField", "DoubleField", "DoubleField2", "BooleanField", "BooleanField2" ]
                     }
                   }
                 ]
@@ -406,11 +421,14 @@ class AvroOutputWriterSpec
       val enrichedAll = enriched.collect()
       //println("========= enrichedAll = "+enrichedAll.mkString("//"))
       enrichedAll.size should be (1) // always one because there's only one json input object
-      enrichedAll.head.size should be (6)
+      enrichedAll.head.size should be (9)
       enrichedAll.head.get("StringField") should be (Some("String"))
       enrichedAll.head.get("IntField") should be (Some("10"))
       enrichedAll.head.get("IntField2") should be (Some("-10"))
+      enrichedAll.head.get("LongField") should be (Some("11"))
+      enrichedAll.head.get("FloatField") should be (Some("-11.1"))
       enrichedAll.head.get("DoubleField") should be (Some("10.1"))
+      enrichedAll.head.get("DoubleField2") should be (Some("-10.1"))
       enrichedAll.head.get("BooleanField") should be (Some("true"))
       enrichedAll.head.get("BooleanField2") should be (Some("false"))
 
@@ -430,13 +448,16 @@ class AvroOutputWriterSpec
       //println("======== rows = ")
       rows.size should be (1) // one row only
       val row = rows.head
-      row.size should be (6)
+      row.size should be (9)
 
       // these are all actual non-string types (except the first)
       Try( row.getAs[String]("StringField") ) should be (Success("String"))
       Try( row.getAs[Int]("IntField") ) should be (Success(10))
       Try( row.getAs[Int]("IntField2") ) should be (Success(-10))
+      Try( row.getAs[Long]("LongField") ) should be (Success(11L))
+      Try( row.getAs[Float]("FloatField") ) should be (Success(-11.1f))
       Try( row.getAs[Double]("DoubleField") ) should be (Success(10.1))
+      Try( row.getAs[Double]("DoubleField2") ) should be (Success(-10.1))
       Try( row.getAs[Boolean]("BooleanField") ) should be (Success(true))
       Try( row.getAs[Boolean]("BooleanField2") ) should be (Success(false))
     }

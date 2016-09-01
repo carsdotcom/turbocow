@@ -194,12 +194,12 @@ object AvroOutputWriter {
 
       // Do the core conversion.
       structField.dataType match {
-        case StringType => trimmedStr
+        case StringType => string
         case IntegerType => trimmedStr.toInt
         case LongType => trimmedStr.toLong
         case FloatType => trimmedStr.toFloat
         case DoubleType => trimmedStr.toDouble
-        case BooleanType => trimmedStr.trim.toBoolean // boolean can be safely trimmed (it is not above)
+        case BooleanType => string.trim.toBoolean // boolean can be safely trimmed (it is not above)
         case NullType => trimmedStr match {
           case null => null
           case _ => throw new Exception("attempt to convert non-null value into 'NullType'.")

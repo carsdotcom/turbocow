@@ -4,6 +4,8 @@ import org.apache.spark.sql.types._
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
+import scala.util.Try
+
 class AvroFieldConfigSpec
   extends UnitSpec 
 {
@@ -130,6 +132,61 @@ class AvroFieldConfigSpec
 
     }
   }
+
+  describe("getDefaultValue()") {
+    it("should return the right default value and type") {
+
+      // string ---------------------------------------------------
+
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "string" ],
+        "default": null
+      }""")).getDefaultValue match { case null => ; case _ => fail() }
+
+      AvroFieldConfig(parse("""{ 
+        "name": "n",
+        "type": [ "string" ],
+        "default": "defString"
+      }""")).getDefaultValue should be ("defString")
+
+      // integral ---------------------------------------------------
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "int" ],
+        "default": 10
+      }""")).getDefaultValue should be (10)
+
+      // floating ---------------------------------------------------
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "float" ],
+        "default": 0.1
+      }""")).getDefaultValue should be (0.1f)
+
+      // boolean ---------------------------------------------------
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "boolean" ],
+        "default": true
+      }""")).getDefaultValue match { case true => ; case _ => fail() }
+
+      // null ---------------------------------------------------
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "null" ],
+        "default": null
+      }""")).getDefaultValue match { case null => ; case _ => fail() }
+
+      // this should throw - default config is required to getDefaultValue
+      Try { AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "int" ]
+      }""")).getDefaultValue }.isSuccess should be (false)
+
+    }
+  }
+
     
 }
 

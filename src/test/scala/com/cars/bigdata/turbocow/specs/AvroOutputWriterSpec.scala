@@ -174,6 +174,13 @@ class AvroOutputWriterSpec
       convertToType("false ", StructField("", BooleanType)).get match { case b: Boolean => b should be (false); case _ => fail() }
       convertToType(" true ", StructField("", BooleanType)).get match { case b: Boolean => b should be (true); case _ => fail() }
       convertToType(" false ", StructField("", BooleanType)).get match { case b: Boolean => b should be (false); case _ => fail() }
+
+      convertToType("xfalse", StructField("", BooleanType)).isSuccess should be (false)
+      convertToType("falsex", StructField("", BooleanType)).isSuccess should be (false)
+      convertToType("falxse", StructField("", BooleanType)).isSuccess should be (false)
+      convertToType("atrue", StructField("", BooleanType)).isSuccess should be (false)
+      convertToType("tru", StructField("", BooleanType)).isSuccess should be (false)
+      convertToType("10", StructField("", BooleanType)).isSuccess should be (false)
     }
 
     // null

@@ -145,11 +145,17 @@ object AvroOutputWriter {
 
     val nullable = typeList.contains(NullType)
 
+    // Filter out the non-null types.
+    // Can only have one non-null data type listed.  We wouldn't know how to handle 
+    // a type that can be string OR int.
     val filtered = typeList.filter( _ != NullType )
     val dataType = filtered.size match {
+      // No non-nulls.  Only allowed if NullType is the only type (nullable is set)
       case 0 => if (nullable) NullType; else throw new Exception("couldn't determine type for avro field name="+name)
+      // One non-null, perfect.
       case 1 => filtered.head
-      case i: Int => throw new Exception("not able to parse type list for avro field: "+name)
+      // cannot have more than one (non-null) data type listed.
+      case i: Int => throw new Exception("not able to parse type list for avro field: '"+name"'.  Cannot have more than one non-null data type listed.")
     }
 
     println(s"========== name = $name, dataType=$dataType, nullable=$nullable")

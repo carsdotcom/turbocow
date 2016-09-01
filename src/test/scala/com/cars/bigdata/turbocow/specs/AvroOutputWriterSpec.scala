@@ -267,13 +267,11 @@ class AvroOutputWriterSpec
           {
             "name": "CField",
             "type": [ "string" ],
-            "doc": "Type of the consumer activity. It is always IMPRESSION",
             "default": ""
           },
           {
             "name": "DField",
             "type": [ "null", "int" ],
-            "doc": "Date when impression activity happened. Format of the date is yyyy-mm-dd",
             "default": 0
           }
         ],

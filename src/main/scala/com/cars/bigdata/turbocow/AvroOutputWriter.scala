@@ -155,7 +155,7 @@ object AvroOutputWriter {
       // One non-null, perfect.
       case 1 => filtered.head
       // cannot have more than one (non-null) data type listed.
-      case i: Int => throw new Exception("not able to parse type list for avro field: '"+name"'.  Cannot have more than one non-null data type listed.")
+      case i: Int => throw new Exception(s"not able to parse type list for avro field: '$name'.  Cannot have more than one non-null data type listed.")
     }
 
     println(s"========== name = $name, dataType=$dataType, nullable=$nullable")

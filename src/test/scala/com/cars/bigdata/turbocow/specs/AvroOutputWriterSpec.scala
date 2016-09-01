@@ -88,6 +88,14 @@ class AvroOutputWriterSpec
       convertToType("10L", StructField("", IntegerType)).isSuccess should be (false)
 
       convertToType("10.1", StructField("", IntegerType)).isSuccess should be (false)
+
+      // blanks should fail
+      convertToType("", StructField("", IntegerType)).isSuccess should be (false)
+      convertToType(" ", StructField("", IntegerType)).isSuccess should be (false)
+
+      // nulls should fail unless it is nullable
+      convertToType(null, StructField("", IntegerType, nullable = false)).isSuccess should be (false)
+      convertToType(null, StructField("", IntegerType, nullable = true)).get match { case null =>; case _ => fail() }
     }
 
     // Long
@@ -120,6 +128,14 @@ class AvroOutputWriterSpec
       convertToType("10L", StructField("", LongType)).isSuccess should be (false)
 
       convertToType("10.1", StructField("", LongType)).isSuccess should be (false)
+
+      // blanks should fail
+      convertToType("", StructField("", LongType)).isSuccess should be (false)
+      convertToType(" ", StructField("", LongType)).isSuccess should be (false)
+
+      // null should fail unless it is nullable
+      convertToType(null, StructField("", LongType, nullable = false)).isSuccess should be (false)
+      convertToType(null, StructField("", LongType, nullable = true)).get match { case null =>; case _ => fail() }
     }
 
     // Float
@@ -141,6 +157,14 @@ class AvroOutputWriterSpec
       convertToType("10.1F", StructField("", FloatType)).isSuccess should be (false)
       convertToType("10.1l", StructField("", FloatType)).isSuccess should be (false)
       convertToType("10.1L", StructField("", FloatType)).isSuccess should be (false)
+
+      // blanks should fail
+      convertToType("", StructField("", FloatType)).isSuccess should be (false)
+      convertToType(" ", StructField("", FloatType)).isSuccess should be (false)
+
+      // nulls should fail unless it is nullable
+      convertToType(null, StructField("", FloatType, nullable = false)).isSuccess should be (false)
+      convertToType(null, StructField("", FloatType, nullable = true)).get match { case null =>; case _ => fail() }
     }
 
     // Double
@@ -162,6 +186,14 @@ class AvroOutputWriterSpec
       convertToType("10.1F", StructField("", DoubleType)).isSuccess should be (false)
       convertToType("10.1l", StructField("", DoubleType)).isSuccess should be (false)
       convertToType("10.1L", StructField("", DoubleType)).isSuccess should be (false)
+
+      // blanks should fail
+      convertToType("", StructField("", DoubleType)).isSuccess should be (false)
+      convertToType(" ", StructField("", DoubleType)).isSuccess should be (false)
+
+      // nulls should fail unless it is nullable
+      convertToType(null, StructField("", DoubleType, nullable = false)).isSuccess should be (false)
+      convertToType(null, StructField("", DoubleType, nullable = true)).get match { case null =>; case _ => fail() }
     }
 
     // Boolean
@@ -181,6 +213,14 @@ class AvroOutputWriterSpec
       convertToType("atrue", StructField("", BooleanType)).isSuccess should be (false)
       convertToType("tru", StructField("", BooleanType)).isSuccess should be (false)
       convertToType("10", StructField("", BooleanType)).isSuccess should be (false)
+
+      // blanks should fail
+      convertToType("", StructField("", BooleanType)).isSuccess should be (false)
+      convertToType(" ", StructField("", BooleanType)).isSuccess should be (false)
+
+      // nulls should fail unless it is nullable
+      convertToType(null, StructField("", BooleanType, nullable = false)).isSuccess should be (false)
+      convertToType(null, StructField("", BooleanType, nullable = true)).get match { case null =>; case _ => fail() }
     }
 
     // null
@@ -191,6 +231,9 @@ class AvroOutputWriterSpec
     it("should throw if null types have non-null value") {
       convertToType("", StructField("", NullType, nullable=true)).isSuccess should be (false)
       convertToType("", StructField("", NullType, nullable=false)).isSuccess should be (false)
+
+      convertToType(" ", StructField("", NullType, nullable=false)).isSuccess should be (false)
+
       convertToType("X", StructField("", NullType, nullable=true)).isSuccess should be (false)
       convertToType("X", StructField("", NullType, nullable=false)).isSuccess should be (false)
     }

@@ -126,6 +126,7 @@ object FieldSource {
     *        (via $, for example during tests), then you can safely not pass the 
     *        defaultLocation.  If None is specified, and there is no location
     *        specified in the string, then this will throw.
+    * @return FieldSource
     */
   def parseString(
     fieldLocationStr: String, 
@@ -159,6 +160,10 @@ object FieldSource {
     * "$enriched.fieldName" = Enriched
     * "$scratchpad.fieldName" = Scratchpad
     * "fieldName" = EnrichedThenInput
+    *
+    * @param jval the jvalue to parse
+    * @param defaultLocation
+    * @return FieldSource
     */
   def parseJVal(
     jval: JValue, 
@@ -171,6 +176,10 @@ object FieldSource {
 
   /** Parse a list of FieldSources.  Expecting a parsed JArray of the form
     * [ "$location.fieldname", "$location2.fieldname2" ] 
+    * 
+    * @param jval the jvalue to parse
+    * @param defaultLocation
+    * @return List[FieldSource]
     */
   def parseJArray(
     jval: JValue, 

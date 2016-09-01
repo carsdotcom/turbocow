@@ -506,57 +506,6 @@ class ActionEngineSpec
     }
   }
 
-  describe("AvroOutputWriter") {
-    it("should only output the fields in the schema regardless of what is in the input RDD") {
-      val enriched: RDD[Map[String, String]] = ActionEngine.processDir(
-        new URI("./src/test/resources/input-integration.json"),
-        """{
-            "activityType": "impressions",
-            "items": [
-              {
-                "actions":[{
-                    "actionType":"simple-copy",
-                    "config": {
-                      "inputSource": [ "AField", "BField" ]
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        """,
-        sc).persist()
-  
-      // this should be the enriched record:
-
-      val enrichedAll = enriched.collect()
-      enrichedAll.size should be (1) // always one because there's only one json input object
-      enrichedAll.head.size should be (2)
-      enrichedAll.head.get("AField") should be (Some("A"))
-      enrichedAll.head.get("BField") should be (Some("B"))
-
-      // now write to avro
-      //val tempFile = File.createTempFile("testoutput-", ".avro", null).deleteOnExit()
-      val outputDir = { 
-        val dir = Files.createTempDirectory("testoutput-")
-        new File(dir.toString).delete()
-        dir.toString
-      }
-      println("%%%%%%%%%%%%%%%%%%%%%%%%% outputDir = "+outputDir.toString)
-
-      // write
-      AvroOutputWriter.write(enriched, List("BField"), outputDir.toString, sc)
-
-      // now read what we wrote
-      val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
-      rows.size should be (1) // one row only
-      val row = rows.head
-      row.size should be (1) // only one field in that row
-      Try( row.getAs[String]("AField") ).isFailure should be (true)
-      Try( row.getAs[String]("BField") ) should be (Success("B"))
-    }
-  }
-
   describe("getAllFrom") {
     it("should create a map with all the lookup requirements for each table in a map") {
 

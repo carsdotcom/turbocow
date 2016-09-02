@@ -35,6 +35,34 @@ case class AvroFieldConfig(
     }
   }
 
+
+  /** Check for existence of the default value as well as its type.
+    * 
+    * @throws Exception if default value does not exist, or the 
+    *         type is not compatible with the field StructField.
+    */
+  def checkDefaultValue: Unit = {
+
+    /*
+    config.defaultValue match {
+      case j: JString => if (structField.)
+      case j: JInt => structField.dataType match {
+        case IntegerType => j.extract[Int]
+        case LongType => j.extract[Long]
+      }
+      case j: JDouble => structField.dataType match {
+        case FloatType => j.extract[Float]
+        case DoubleType => j.extract[Double]
+      }
+      case j: JBool => j.extract[Boolean]
+      case JNull => null
+      case JNothing => throw new Exception("no default value was specified")
+      case _ => throw new Exception(s"unsupported JSON type specified as 'default' value for '${structField.name}' field.")
+      
+    }
+*/
+  }
+
 }
 
 object AvroFieldConfig {
@@ -43,10 +71,13 @@ object AvroFieldConfig {
     */
   def apply(config: JValue): AvroFieldConfig = {
     implicit val jsonFormats = org.json4s.DefaultFormats
-    AvroFieldConfig(
+    val config = AvroFieldConfig(
       getStructFieldFromAvroElement(config),
       (config \ "default")
     )
+
+    config.checkDefaultValue
+    config
   }
 }
 

@@ -9,6 +9,9 @@ case class AvroFieldConfig(
   defaultValue: JValue
 ) {
 
+  // perform some checks on the data
+  checkDefaultValue
+
   /** Get the default value according to what type it is.
     *  
     * @return 'primitive' type (Int, Float, etc.) in an Any;
@@ -43,24 +46,27 @@ case class AvroFieldConfig(
     */
   def checkDefaultValue: Unit = {
 
-    /*
-    config.defaultValue match {
-      case j: JString => if (structField.)
+    implicit val jsonFormats = org.json4s.DefaultFormats
+    lazy val mustBe = "(Must be " + {
+      val dt = {structField.dataType.toString}
+      if (structField.nullable) s"null or a $dt"
+      else s"a $dt"
+    } + ".)"
+    defaultValue match {
+      case j: JString => if (structField.dataType != StringType ) throw new Exception(s"invalid default value specified as 'default' value for '${structField.name}' field.  $mustBe")
       case j: JInt => structField.dataType match {
-        case IntegerType => j.extract[Int]
-        case LongType => j.extract[Long]
+        case IntegerType | LongType => ;
+        case _ => throw new Exception(s"invalid default value specified as 'default' value for '${structField.name}' field.  $mustBe")
       }
       case j: JDouble => structField.dataType match {
-        case FloatType => j.extract[Float]
-        case DoubleType => j.extract[Double]
+        case FloatType | DoubleType => ;
+        case _ => throw new Exception(s"invalid default value specified as 'default' value for '${structField.name}' field.  $mustBe")
       }
-      case j: JBool => j.extract[Boolean]
-      case JNull => null
-      case JNothing => throw new Exception("no default value was specified")
-      case _ => throw new Exception(s"unsupported JSON type specified as 'default' value for '${structField.name}' field.")
-      
+      case j: JBool => if (structField.dataType != BooleanType) throw new Exception(s"invalid default value specified as 'default' value for '${structField.name}' field.  $mustBe")
+      case JNull => if (structField.dataType != NullType && !structField.nullable) throw new Exception(s"invalid default value specified as 'default' value for '${structField.name}' field.  $mustBe")
+      case JNothing => throw new Exception("a default value MUST be specified for every avro output field.")
+      case _ => throw new Exception(s"an unsupported JSON type was specified as 'default' value for '${structField.name}' field.")
     }
-*/
   }
 
 }
@@ -71,13 +77,36 @@ object AvroFieldConfig {
     */
   def apply(config: JValue): AvroFieldConfig = {
     implicit val jsonFormats = org.json4s.DefaultFormats
-    val config = AvroFieldConfig(
+    AvroFieldConfig(
       getStructFieldFromAvroElement(config),
       (config \ "default")
     )
-
-    config.checkDefaultValue
-    config
   }
+
+  lazy val allSupportedAvroTypesMap = Map( 
+    "string"-> StringType,
+    "int"-> IntegerType,
+    "long"-> LongType,
+    "float"-> FloatType,
+    "double"-> DoubleType,
+    "boolean"-> BooleanType,
+    "null"-> NullType
+  )
+
+  lazy val exampleJsonTypesMap = Map(
+    "string"-> JString(""),
+    "int"-> JInt(0),
+    "long"-> JInt(0),
+    "float"-> JDouble(0.0),
+    "double"-> JDouble(0.0),
+    "boolean"-> JBool(false),
+    "null"-> JNull
+  )
+
+  // Helper to get the unique values out of exampleJsonTypesMap.
+  def exampleJsonTypesMapUniqueValues: List[JValue] = {
+    exampleJsonTypesMap.values.toList.distinct
+  }
+
 }
 

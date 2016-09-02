@@ -35,17 +35,75 @@ class AvroFieldConfigSpec
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
+  describe("primary constructor") {
+
+    val JNOTHING = parse("{}") \ "X"
+    val JNULL = parse("null")
+
+    it("should enforce having a default value") {
+
+      // jnothing as the default will throw
+      AvroFieldConfig.allSupportedAvroTypesMap.values.foreach{ theType =>
+        println("theType = "+theType.toString)
+        Try{ AvroFieldConfig(
+          StructField("", theType, nullable=false), 
+          defaultValue = JNOTHING
+        )}.isSuccess should be (false)
+      }
+
+      // with a valid default value, we should succeed
+      AvroFieldConfig.allSupportedAvroTypesMap.foreach{ case(typeStr, theType) =>
+        Try{ AvroFieldConfig(
+          StructField("", theType, nullable=false), 
+          defaultValue = AvroFieldConfig.exampleJsonTypesMap(typeStr)
+        )}.isSuccess should be (true)
+      }
+
+      // JNull should succeed but only if nullable == true
+      AvroFieldConfig.allSupportedAvroTypesMap.values.foreach{ theType =>
+        Try{ AvroFieldConfig(
+          StructField("", theType, nullable=true), 
+          defaultValue = JNULL
+        )}.isSuccess should be (true)
+      }
+    }
+
+    it("should error out if the default value is a JSON type incompatible with Avro type") {
+
+      AvroFieldConfig.allSupportedAvroTypesMap.foreach{ case( typeStr, avroType ) =>
+        
+        // the 'good json' type should pass
+        val goodJson = AvroFieldConfig.exampleJsonTypesMap(typeStr)
+        Try{ AvroFieldConfig(
+          StructField("", avroType, nullable=false), 
+          goodJson
+        )}.isSuccess should be (true)
+
+        // the rest of the json types are bad and should fail
+        println("good json = "+goodJson)
+        val badJsons = AvroFieldConfig.exampleJsonTypesMapUniqueValues.filter( _ != goodJson )
+        println("+++++++++++++++++++++++++++ badJsons = "+badJsons)
+        badJsons.foreach{ badJson =>
+          Try{ AvroFieldConfig(
+            StructField("", avroType, nullable=false), 
+            badJson
+          )}.isSuccess should be (false)
+        }
+      }
+    }
+  }
+
   describe("apply()") {
     it("should create the correct default type") {
 
       // string ---------------------------------------------------
       AvroFieldConfig(parse("""{
         "name": "n",
-        "type": [ "string" ],
+        "type": [ "null", "string" ],
         "default": null
       }""")) should be (
         AvroFieldConfig(
-          StructField("n", StringType, nullable=false),
+          StructField("n", StringType, nullable=true),
           JNull
         )
       )
@@ -108,28 +166,20 @@ class AvroFieldConfigSpec
           JNull
         )
       )
+    }
 
-      AvroFieldConfig(parse("""{
-        "name": "n",
-        "type": [ "null" ]
-      }""")) should be (
-        AvroFieldConfig(
-          StructField("n", NullType, nullable=true),
-          JNothing
-        )
-      )
-
+    it("should enforce having a default value") {
       // missing default:
-      AvroFieldConfig(parse("""{
+      Try{ AvroFieldConfig(parse("""{
         "name": "n",
-        "type": [ "null" ]
-      }""")) should be (
-        AvroFieldConfig(
-          StructField("n", NullType, nullable=true),
-          JNothing
-        )
-      )
-
+        "type": [ "string" ]
+      }"""))}.isSuccess should be (false)
+      // add the default and we're ok:
+      Try{ AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "string" ],
+        "default": "X"
+      }"""))}.isSuccess should be (true)
     }
   }
 
@@ -140,7 +190,7 @@ class AvroFieldConfigSpec
 
       AvroFieldConfig(parse("""{
         "name": "n",
-        "type": [ "string" ],
+        "type": [ "null", "string" ],
         "default": null
       }""")).getDefaultValue match { case null => ; case _ => fail() }
 

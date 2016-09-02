@@ -119,7 +119,7 @@ object AvroOutputWriter {
       case "double" => DoubleType
       case "boolean" => BooleanType
       case "null" => NullType
-      case s: String => throw new Exception("unrecognized avro type in avro schema: "+s)
+      case s: String => throw new Exception("unrecognized avro type in avro schema: \""+s+"\"")
     }
   }
 

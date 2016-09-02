@@ -168,19 +168,6 @@ class AvroFieldConfigSpec
       )
     }
 
-    it("should enforce having a default value") {
-      // missing default:
-      Try{ AvroFieldConfig(parse("""{
-        "name": "n",
-        "type": [ "string" ]
-      }"""))}.isSuccess should be (false)
-      // add the default and we're ok:
-      Try{ AvroFieldConfig(parse("""{
-        "name": "n",
-        "type": [ "string" ],
-        "default": "X"
-      }"""))}.isSuccess should be (true)
-    }
   }
 
   describe("getDefaultValue()") {

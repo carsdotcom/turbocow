@@ -84,7 +84,7 @@ object AvroOutputWriter {
     List[AvroFieldConfig] = {
 
     val jsonSchema = sc.textFile(hdfsPath).collect().mkString("")
-    getAvroSchema(jsonSchema, sc)
+    getAvroSchema(jsonSchema)
   }
 
   /** Process AvroSchema (schema as string)
@@ -93,8 +93,7 @@ object AvroOutputWriter {
     * @param sc SparkContext
     */
   def getAvroSchema(
-    jsonSchema: String,
-    sc: SparkContext):
+    jsonSchema: String):
     List[AvroFieldConfig] = {
 
     println("=================== jsonSchema = "+jsonSchema)

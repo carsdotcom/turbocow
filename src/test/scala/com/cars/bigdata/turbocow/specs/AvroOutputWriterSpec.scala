@@ -292,7 +292,7 @@ class AvroOutputWriterSpec
         "doc": ""
       }"""
 
-      val schema = AvroOutputWriter.getAvroSchema(avroSchema, sc)
+      val schema = AvroOutputWriter.getAvroSchema(avroSchema)
       schema.size should be (7)
       schema.head should be (AvroFieldConfig(StructField("StringField", StringType, false), JString("0")))
       schema(1) should be (AvroFieldConfig(StructField("IntField", IntegerType, true), JInt(1)))

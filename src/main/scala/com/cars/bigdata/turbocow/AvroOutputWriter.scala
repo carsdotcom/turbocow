@@ -51,7 +51,15 @@ object AvroOutputWriter {
       val vals: List[Any] = schema.map{ fieldConfig =>
         val v = record.get(fieldConfig.structField.name)
         if (v.isDefined) {
-          convertToType(v.get, fieldConfig.structField).get  // TODOTODO this may throw!  Shouldn't this be rejected if can't convert the value to the proper type?  How to do that here?
+          try{
+            convertToType(v.get, fieldConfig.structField).get  // TODOTODO this may throw!  Shouldn't this be rejected if can't convert the value to the proper type?  How to do that here?
+          }
+          catch {
+            case e: Throwable => {
+              val message = s"MJS MJS MJS MJS MJS Data type error while processing field '${fieldConfig.structField.name}':  " + e.getMessage
+              throw new RuntimeException(message, e)
+            }
+          }
         }
         else {
           // add the default value
@@ -165,7 +173,9 @@ object AvroOutputWriter {
     * 
     * Most types are supported.
     * 
-    * @todo pull out core type conversion logic into another function and wrap with this
+    * @throws exceptions if the data cannot be converted, for whatever reason.
+    *
+    * @todo pull out core type conversion logic into another function and wrap with this?
     *
     * @param  structField
     * @return Try[ Any ] (String, Int, etc..).  Will be an Failure if an exception 
@@ -194,22 +204,33 @@ object AvroOutputWriter {
           }
           else t
         }
+        case BooleanType => string.trim()
         case _ => string;
       }
 
       // Do the core conversion.
-      structField.dataType match {
-        case StringType => string
-        case IntegerType => trimmedStr.toInt
-        case LongType => trimmedStr.toLong
-        case FloatType => trimmedStr.toFloat
-        case DoubleType => trimmedStr.toDouble
-        case BooleanType => string.trim.toBoolean // boolean can be safely trimmed (it is not above)
-        case NullType => trimmedStr match {
-          case null => null
-          case _ => throw new Exception("attempt to convert non-null value into 'NullType'.")
+      try {
+        structField.dataType match {
+          case StringType => string
+          case IntegerType => trimmedStr.toInt
+          case LongType => trimmedStr.toLong
+          case FloatType => trimmedStr.toFloat
+          case DoubleType => trimmedStr.toDouble
+          case BooleanType => trimmedStr.toBoolean
+          case NullType => trimmedStr match {
+            case null => null
+            case _ => throw new Exception("attempt to convert non-null value into 'NullType'.")
+          }
+          case _ => throw new Exception("unsupported type: "+structField.toString)
         }
-        case _ => throw new Exception("unsupported type: "+structField.toString)
+      }
+      catch {
+        // for numeric and boolean conversions, add more info to say why
+        case e: java.lang.IllegalArgumentException => {
+          val message = s"could not convert value '${trimmedStr}' to a '${structField.dataType.toString}' type."
+          throw new java.lang.IllegalArgumentException(message, e)
+        }
+        case e: java.lang.Throwable => throw e
       }
     }
   }

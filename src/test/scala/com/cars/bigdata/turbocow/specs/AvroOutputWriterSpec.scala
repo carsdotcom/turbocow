@@ -978,8 +978,8 @@ class AvroOutputWriterSpec
         r.count{ case(k,v) => v.substring(0,1) == "X" } should be (1)
 
         // One extra field should be present, for the reason for the error:
-        r.get(avroOutputWriterTypeErrorMarker).nonEmpty should be (true)
-        r.get(avroOutputWriterTypeErrorMarker).get.trim.nonEmpty should be (true)
+        r.get(avroTypeErrorMarker).nonEmpty should be (true)
+        r.get(avroTypeErrorMarker).get.trim.nonEmpty should be (true)
       }
     }
   }

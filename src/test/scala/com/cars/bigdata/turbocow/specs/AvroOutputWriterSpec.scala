@@ -984,5 +984,80 @@ class AvroOutputWriterSpec
     }
   }
 
+  describe("convertToAllStringsSchema()") {
+    it("should properly convert to strings") {
+      val inputSchemaJson = """{
+        "namespace": "ALS",
+        "type": "record",
+        "name": "impression",
+        "fields": [{
+            "name": "StringField",
+            "type": [ "string" ],
+            "default": "0"
+          }, {
+            "name": "IntField",
+            "type": [ "null", "int" ],
+            "default": 1
+          }, {
+            "name": "LongField",
+            "type": [ "null", "long" ],
+            "default": 2
+          }, {
+            "name": "DoubleField",
+            "type": [ "double" ],
+            "default": 0.3
+          }, {
+            "name": "FloatField",
+            "type": [ "null", "float" ],
+            "default": 0.4
+          }, {
+            "name": "BooleanField",
+            "type": [ "null", "boolean" ],
+            "default": false
+          }, {
+            "name": "NullField",
+            "type": [ "null" ],
+            "default": null
+          }
+        ],
+        "doc": ""
+      }"""
+
+      val inputSchema = AvroOutputWriter.getAvroSchema(inputSchemaJson)
+
+      val schemaF = AvroOutputWriter.convertToAllStringSchema(inputSchema, forceNullable=false)
+      schemaF(0) should be (
+        AvroFieldConfig(StructField("StringField", StringType, false), JString("0")))
+      schemaF(1) should be (
+        AvroFieldConfig(StructField("IntField", StringType, true), JString("1")))
+      schemaF(2) should be (
+        AvroFieldConfig(StructField("LongField", StringType, true), JString("2")))
+      schemaF(3) should be (
+        AvroFieldConfig(StructField("DoubleField", StringType, false), JString("0.3")))
+      schemaF(4) should be (
+        AvroFieldConfig(StructField("FloatField", StringType, true), JString("0.4")))
+      schemaF(5) should be (
+        AvroFieldConfig(StructField("BooleanField", StringType, true), JString("false")))
+      schemaF(6) should be (
+        AvroFieldConfig(StructField("NullField", StringType, true), JNull))
+
+      val schemaT = AvroOutputWriter.convertToAllStringSchema(inputSchema, forceNullable=true)
+      schemaT(0) should be (
+        AvroFieldConfig(StructField("StringField", StringType, true), JString("0")))
+      schemaT(1) should be (
+        AvroFieldConfig(StructField("IntField", StringType, true), JString("1")))
+      schemaT(2) should be (
+        AvroFieldConfig(StructField("LongField", StringType, true), JString("2")))
+      schemaT(3) should be (
+        AvroFieldConfig(StructField("DoubleField", StringType, true), JString("0.3")))
+      schemaT(4) should be (
+        AvroFieldConfig(StructField("FloatField", StringType, true), JString("0.4")))
+      schemaT(5) should be (
+        AvroFieldConfig(StructField("BooleanField", StringType, true), JString("false")))
+      schemaT(6) should be (
+        AvroFieldConfig(StructField("NullField", StringType, true), JNull))
+    }
+  }
+
 }
 

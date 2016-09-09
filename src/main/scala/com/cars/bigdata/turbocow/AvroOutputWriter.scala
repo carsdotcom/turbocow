@@ -54,7 +54,7 @@ class AvroOutputWriter(
     RDD[Map[String, String]] = {
 
     val writerConfig = avroWriterConfig // make local ref so whole obj doesn't get serialized (which includes the sc and therefore can't be serialized)
-    val errorMarker = avroOutputWriterTypeErrorMarker
+    val errorMarker = avroTypeErrorMarker
 
     // Loop through enriched record fields, and extract the value of each field 
     // in the order of schema list (so the order matches the Avro schema). 
@@ -133,7 +133,7 @@ class AvroOutputWriter(
 
 object AvroOutputWriter {
 
-  val avroOutputWriterTypeErrorMarker = "____TURBOCOW_AVROOUTPUTWRITER_TYPE_ERROR____"
+  val avroTypeErrorMarker = "____TURBOCOW_AVROOUTPUTWRITER_TYPE_ERROR____"
 
   /** Process AvroSchema from HDFS
     *

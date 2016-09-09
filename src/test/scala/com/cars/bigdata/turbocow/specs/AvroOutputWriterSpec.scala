@@ -876,14 +876,54 @@ class AvroOutputWriterSpec
       val avroFile = writeTempFile(avroSchema, "avroschema.avsc")
 
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
-        // input record:
+        // input records:
         List("""{ "md":{}, "activityMap": { 
-            "IntField": "Int",
-            "LongField": "Long",
-            "FloatField": "Float",
-            "DoubleField": "Double",
-            "BooleanField": "Boolean",
+            "IntField": "X1",
+            "LongField": "1",
+            "FloatField": "1",
+            "DoubleField": "1",
+            "BooleanField": "true",
             "StringField": "String"
+          }}""",
+          """{ "md":{}, "activityMap": { 
+            "IntField": "1",
+            "LongField": "X1",
+            "FloatField": "1",
+            "DoubleField": "1",
+            "BooleanField": "true",
+            "StringField": "String"
+          }}""",
+          """{ "md":{}, "activityMap": { 
+            "IntField": "1",
+            "LongField": "1",
+            "FloatField": "X1",
+            "DoubleField": "1",
+            "BooleanField": "true",
+            "StringField": "String"
+          }}""",
+          """{ "md":{}, "activityMap": { 
+            "IntField": "1",
+            "LongField": "1",
+            "FloatField": "1",
+            "DoubleField": "X1",
+            "BooleanField": "true",
+            "StringField": "String"
+          }}""",
+          """{ "md":{}, "activityMap": { 
+            "IntField": "1",
+            "LongField": "1",
+            "FloatField": "1",
+            "DoubleField": "1",
+            "BooleanField": "Xtrue",
+            "StringField": "String"
+          }}""",
+          """{ "md":{}, "activityMap": { 
+            "IntField": "1",
+            "LongField": "1",
+            "FloatField": "1",
+            "DoubleField": "1",
+            "BooleanField": "true",
+            "StringField": "XString"
           }}"""),
         // config
         """{
@@ -907,14 +947,8 @@ class AvroOutputWriterSpec
 
       val enrichedAll = enriched.collect()
       //println("========= enrichedAll = "+enrichedAll.mkString("//"))
-      enrichedAll.size should be (1)
-      enrichedAll.head.size should be (6)
-      enrichedAll.head.get("IntField") should be (Some("Int"))
-      enrichedAll.head.get("LongField") should be (Some("Long"))
-      enrichedAll.head.get("FloatField") should be (Some("Float"))
-      enrichedAll.head.get("DoubleField") should be (Some("Double"))
-      enrichedAll.head.get("BooleanField") should be (Some("Boolean"))
-      enrichedAll.head.get("StringField") should be (Some("String"))
+      enrichedAll.size should be (6)
+      enrichedAll.foreach{ _.size should be (6) }
 
       // now write to avro
       val outputDir = {
@@ -926,15 +960,23 @@ class AvroOutputWriterSpec
       // write
       val rejectedRDD = (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
       val rejects = rejectedRDD.collect()
-      rejects.size should be (1)
-      val record = rejects.head
-      record.size should be (6)
-      record.get("IntField") should be (Some("Int"))
-      record.get("LongField") should be (Some("Long"))
-      record.get("FloatField") should be (Some("Float"))
-      record.get("DoubleField") should be (Some("Double"))
-      record.get("BooleanField") should be (Some("Boolean"))
-      record.get("StringField") should be (Some("String"))
+
+      // all but one will be rejected
+      rejects.size should be (enrichedAll.size - 1)
+
+      val fields = List("IntField", "LongField", "FloatField", "DoubleField", "BooleanField", "StringField")
+
+      rejects.foreach{ r => 
+        r.size should be (6)
+
+        // all fields should be present.
+        fields.foreach{ field =>
+          r.get(field).nonEmpty should be (true)
+        }
+
+        // for each field, if one field has an X, none of the others should:
+        r.count{ case(k,v) => v.substring(0,1) == "X" } should be (1)
+      }
     }
   }
 

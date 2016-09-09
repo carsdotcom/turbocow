@@ -961,13 +961,13 @@ class AvroOutputWriterSpec
       val rejectedRDD = (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
       val rejects = rejectedRDD.collect()
 
-      // all but one will be rejected
+      // all but one will be rejected.
       rejects.size should be (enrichedAll.size - 1)
 
       val fields = List("IntField", "LongField", "FloatField", "DoubleField", "BooleanField", "StringField")
 
       rejects.foreach{ r => 
-        r.size should be (6)
+        r.size should be (7)
 
         // all fields should be present.
         fields.foreach{ field =>
@@ -976,6 +976,10 @@ class AvroOutputWriterSpec
 
         // for each field, if one field has an X, none of the others should:
         r.count{ case(k,v) => v.substring(0,1) == "X" } should be (1)
+
+        // One extra field should be present, for the reason for the error:
+        r.get(avroOutputWriterTypeErrorMarker).nonEmpty should be (true)
+        r.get(avroOutputWriterTypeErrorMarker).get.trim.nonEmpty should be (true)
       }
     }
   }

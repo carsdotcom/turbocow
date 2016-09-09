@@ -43,7 +43,9 @@ class AvroOutputWriter(
     * @param outputDir the dir to write to (hdfs:// typically)
     * @param schema    list of fields to write
     * @return RDD of rejected records due to data types.  The RDD will
-    *         be empty if no records are rejected.
+    *         be empty if all records write successfully.  Each record will have an 
+    *         additional field named AvroOutputWriter.avroOutputWriterTypeErrorMarker,
+    *         with all of the type errors separated by semicolons.
     */
   def write(
     rdd: RDD[Map[String, String]],
@@ -51,16 +53,15 @@ class AvroOutputWriter(
     outputDir: String): 
     RDD[Map[String, String]] = {
 
-    val errorMarker = "____TURBOCOW_TYPE_ERROR_DETECTED____"
-
     val writerConfig = avroWriterConfig // make local ref so whole obj doesn't get serialized (which includes the sc and therefore can't be serialized)
+    val errorMarker = avroOutputWriterTypeErrorMarker
 
     // Loop through enriched record fields, and extract the value of each field 
     // in the order of schema list (so the order matches the Avro schema). 
     // Convert to the correct type as well.
     val anyRDD: RDD[Map[String, Any]] = rdd.map{ record => 
 
-      var errorDetected = false
+      var errors = List.empty[String]
 
       val newRecord: Map[String, Any] = schema.map{ fieldConfig =>
 
@@ -77,8 +78,7 @@ class AvroOutputWriter(
                 fieldConfig.getDefaultValue
               }
               case e: Throwable => {
-                val message = s"Data type error while processing field '${fieldConfig.structField.name}':  " + e.getMessage
-                errorDetected = true
+                errors = errors :+ (s"Data type error while processing field '${fieldConfig.structField.name}':  " + e.getMessage)
                 v.get
               }
             }
@@ -92,24 +92,21 @@ class AvroOutputWriter(
         (key, value)
       }.toMap
 
-      if (errorDetected) newRecord + (errorMarker->errorMarker)
+      if (errors.nonEmpty) newRecord + (errorMarker-> errors.mkString("; "))
       else newRecord
     }
 
     // Now filter out the error records for later returning.
     val errorRDD: RDD[Map[String, String]] = anyRDD.filter{ 
-      _.get(errorMarker) == Some(errorMarker)
+      _.get(errorMarker).nonEmpty
     }.map{ record =>  
-      // convert to strings
-      record.map{ case(k,v) => (k, v.toString) }.filter{ case(k,v) =>
-        // filter out the marker before returning:
-        k != errorMarker && v != errorMarker
-      }
+      // convert to strings - can't write out if the type is incorrect
+      record.map{ case(k,v) => (k, v.toString) }
     }
 
     // Filter them out in the main rdd.
     val rowRDD: RDD[Row] = anyRDD.filter {
-      _.get(errorMarker) != Some(errorMarker)
+      _.get(errorMarker).isEmpty
     }.map{ record =>
       val vals: List[Any] = schema.map{ fieldConfig =>
         val field = fieldConfig.structField.name
@@ -135,6 +132,8 @@ class AvroOutputWriter(
 }
 
 object AvroOutputWriter {
+
+  val avroOutputWriterTypeErrorMarker = "____TURBOCOW_AVROOUTPUTWRITER_TYPE_ERROR____"
 
   /** Process AvroSchema from HDFS
     *

@@ -5,6 +5,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.sql._
 import org.apache.spark.sql.types._
 import org.json4s._
+import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 import scala.util.Try;
 import utils._
@@ -307,6 +308,42 @@ object AvroOutputWriter {
       }
     }
   }
+
+
+  /** Helper to convert an existing schema to all-strings, suitable for writing
+    * a record that has data values incompatible with the avro types.
+    *
+    * @param  inputSchema
+    * @param  forceNullable (default true) if true, will set all nullable fields to true.
+    *                       It is safest to allow nullable when writing a rejected record.
+    * @return a modified schema with only strings
+    */
+  def convertToAllStringSchema(
+    inputSchema: List[AvroFieldConfig],
+    forceNullable: Boolean = true ):
+    List[AvroFieldConfig] = {
+
+    inputSchema.map{ fc => 
+      val newNullable = { if (forceNullable) true; else fc.structField.nullable }
+      val newStructField = fc.structField.copy(
+        dataType = StringType, 
+        nullable = newNullable)
+
+      val newDefaultValue: JValue = fc.defaultValue match {
+        case v: JString => JString(v.values.toString)
+        case v: JInt => JString(v.values.toString)
+        case v: JDouble => JString(v.values.toString)
+        case v: JBool => JString(v.values.toString)
+        case JNull => JNull
+        // This should never happen because a valid default value is enforced elsewhere:
+        case v: JValue => throw new Exception("unexpected jvalue: "+v.toString)
+      }
+
+      AvroFieldConfig(newStructField, newDefaultValue)
+    }
+    
+  }
+
 }
 
 class EmptyStringConversionException(message: String) extends RuntimeException(message)

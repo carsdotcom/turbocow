@@ -22,12 +22,14 @@ class AvroOutputWriter(
     * @param rdd              RDD to write out
     * @param outputDir        the dir to write to (hdfs:// typically)
     * @param schemaPath       path to schema file
+    * @return RDD of rejected records due to data types.  The RDD will
+    *         be empty if no records are rejected.
     */
   def write(
     rdd: RDD[Map[String, String]],
     schemaPath: String,
     outputDir: String):
-    Unit = {
+    RDD[Map[String, String]] = {
 
     // get the list of field names from avro schema
     val schema: List[AvroFieldConfig] = getAvroSchemaFromHdfs(schemaPath, sc)
@@ -40,39 +42,78 @@ class AvroOutputWriter(
     * @param rdd       RDD to write out
     * @param outputDir the dir to write to (hdfs:// typically)
     * @param schema    list of fields to write
+    * @return RDD of rejected records due to data types.  The RDD will
+    *         be empty if no records are rejected.
     */
   def write(
     rdd: RDD[Map[String, String]],
     schema: List[AvroFieldConfig],
     outputDir: String): 
-    Unit = {
+    RDD[Map[String, String]] = {
+
+    val errorMarker = "____TURBOCOW_TYPE_ERROR_DETECTED____"
+
+    val writerConfig = avroWriterConfig // make local ref so whole obj doesn't get serialized (which includes the sc and therefore can't be serialized)
 
     // Loop through enriched record fields, and extract the value of each field 
     // in the order of schema list (so the order matches the Avro schema). 
     // Convert to the correct type as well.
-    val writerConfig = avroWriterConfig // make local ref so whole obj doesn't get serialized (which includes the sc and therefore can't be serialized)
-    val rowRDD: RDD[Row] = rdd.map { record =>
+    val anyRDD: RDD[Map[String, Any]] = rdd.map{ record => 
+
+      var errorDetected = false
+
+      val newRecord: Map[String, Any] = schema.map{ fieldConfig =>
+
+        val key = fieldConfig.structField.name
+        val v = record.get(key)
+        val value = {
+          if (v.isDefined) {
+            try{
+              convertToType(v.get, fieldConfig.structField, writerConfig).get
+            }
+            catch {
+              case e: EmptyStringConversionException => {
+                println(s"Detected empty string in '${fieldConfig.structField.name}' when trying to convert; using default value.")
+                fieldConfig.getDefaultValue
+              }
+              case e: Throwable => {
+                val message = s"Data type error while processing field '${fieldConfig.structField.name}':  " + e.getMessage
+                errorDetected = true
+                v.get
+              }
+            }
+          }
+          else {
+            // add the default value
+            fieldConfig.getDefaultValue
+          }
+        }
+
+        (key, value)
+      }.toMap
+
+      if (errorDetected) newRecord + (errorMarker->errorMarker)
+      else newRecord
+    }
+
+    // Now filter out the error records for later returning.
+    val errorRDD: RDD[Map[String, String]] = anyRDD.filter{ 
+      _.get(errorMarker) == Some(errorMarker)
+    }.map{ record =>  
+      // convert to strings
+      record.map{ case(k,v) => (k, v.toString) }.filter{ case(k,v) =>
+        // filter out the marker before returning:
+        k != errorMarker && v != errorMarker
+      }
+    }
+
+    // Filter them out in the main rdd.
+    val rowRDD: RDD[Row] = anyRDD.filter {
+      _.get(errorMarker) != Some(errorMarker)
+    }.map{ record =>
       val vals: List[Any] = schema.map{ fieldConfig =>
-        val v = record.get(fieldConfig.structField.name)
-        if (v.isDefined) {
-          try{
-            convertToType(v.get, fieldConfig.structField, writerConfig).get
-          }
-          catch {
-            case e: EmptyStringConversionException => {
-              println(s"Detected empty string in '${fieldConfig.structField.name}' when trying to convert; using default value.")
-              fieldConfig.getDefaultValue
-            }
-            case e: Throwable => {
-              val message = s"MJS MJS MJS MJS MJS Data type error while processing field '${fieldConfig.structField.name}':  " + e.getMessage
-              throw new RuntimeException(message, e)
-            }
-          }
-        }
-        else {
-          // add the default value
-          fieldConfig.getDefaultValue
-        }
+        val field = fieldConfig.structField.name
+        record.getOrElse(field, throw new Exception(s"couldn't find field name $field in anyRDD"))
       }
       Row.fromSeq(vals)
     }
@@ -87,6 +128,9 @@ class AvroOutputWriter(
     //dataFrame.show
 
     dataFrame.write.format("com.databricks.spark.avro").save(outputDir)
+
+    // return the errors
+    errorRDD
   }
 }
 
@@ -109,7 +153,6 @@ object AvroOutputWriter {
   /** Process AvroSchema (schema as string)
     *
     * @param jsonSchema the schema (from a .avsc file which is just JSON)
-    * @param sc SparkContext
     */
   def getAvroSchema(
     jsonSchema: String):

@@ -838,6 +838,104 @@ class AvroOutputWriterSpec
       Try( row.getAs[Boolean]("BooleanField") )  should be (Success(false))
     }
 
+    it("should return an RDD of rejected records that were not written due to datatype conversion problems") {
+
+      // avro schema
+      val avroSchema = """{
+          "namespace": "ALS",
+          "type": "record",
+          "name": "impression",
+          "fields": [{
+            "name": "StringField",
+            "type": [ "null", "string" ],
+            "default": ""
+          }, {
+            "name": "IntField",
+            "type": [ "null", "int" ],
+            "default": 1
+          }, {
+            "name": "LongField",
+            "type": [ "null", "long" ],
+            "default": 3
+          }, {
+            "name": "FloatField",
+            "type": [ "null", "float" ],
+            "default": 4.0
+          }, {
+            "name": "DoubleField",
+            "type": [ "null", "double" ],
+            "default": 5.0
+          }, {
+            "name": "BooleanField",
+            "type": [ "null", "boolean" ],
+            "default": false
+          }
+        ],
+        "doc": ""
+      }"""
+      val avroFile = writeTempFile(avroSchema, "avroschema.avsc")
+
+      val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
+        // input record:
+        List("""{ "md":{}, "activityMap": { 
+            "IntField": "Int",
+            "LongField": "Long",
+            "FloatField": "Float",
+            "DoubleField": "Double",
+            "BooleanField": "Boolean",
+            "StringField": "String"
+          }}"""),
+        // config
+        """{
+            "activityType": "impressions",
+            "items": [
+              {
+                "actions":[{
+                    "actionType":"simple-copy",
+                    "config": {
+                      "inputSource": ["IntField", "LongField", "FloatField", "DoubleField", "BooleanField", "StringField"]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        """,
+        sc).persist()
+  
+      // this should be the enriched record:
+
+      val enrichedAll = enriched.collect()
+      //println("========= enrichedAll = "+enrichedAll.mkString("//"))
+      enrichedAll.size should be (1)
+      enrichedAll.head.size should be (6)
+      enrichedAll.head.get("IntField") should be (Some("Int"))
+      enrichedAll.head.get("LongField") should be (Some("Long"))
+      enrichedAll.head.get("FloatField") should be (Some("Float"))
+      enrichedAll.head.get("DoubleField") should be (Some("Double"))
+      enrichedAll.head.get("BooleanField") should be (Some("Boolean"))
+      enrichedAll.head.get("StringField") should be (Some("String"))
+
+      // now write to avro
+      val outputDir = {
+        val dir = Files.createTempDirectory("testoutput-")
+        new File(dir.toString).delete()
+        dir.toString
+      }
+
+      // write
+      val rejectedRDD = (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
+      val rejects = rejectedRDD.collect()
+      rejects.size should be (1)
+      val record = rejects.head
+      record.size should be (6)
+      record.get("IntField") should be (Some("Int"))
+      record.get("LongField") should be (Some("Long"))
+      record.get("FloatField") should be (Some("Float"))
+      record.get("DoubleField") should be (Some("Double"))
+      record.get("BooleanField") should be (Some("Boolean"))
+      record.get("StringField") should be (Some("String"))
+    }
   }
 
 }

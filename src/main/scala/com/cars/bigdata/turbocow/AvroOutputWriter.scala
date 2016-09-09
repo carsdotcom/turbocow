@@ -7,27 +7,32 @@ import org.apache.spark.sql.types._
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import scala.util.Try;
+import utils._
 
-object AvroOutputWriter {
+import AvroOutputWriter._
+
+class AvroOutputWriter(
+  sc: SparkContext,
+  val avroWriterConfig: AvroOutputWriterConfig = AvroOutputWriterConfig()
+) 
+{
 
   /** Output data to avro using a specific Avro schema file.
     *
-    * @param rdd        RDD to write out
-    * @param outputDir  the dir to write to (hdfs:// typically)
-    * @param schemaPath path to schema file
-    * @param sc         spark context
+    * @param rdd              RDD to write out
+    * @param outputDir        the dir to write to (hdfs:// typically)
+    * @param schemaPath       path to schema file
     */
   def write(
     rdd: RDD[Map[String, String]],
     schemaPath: String,
-    outputDir: String,
-    sc: SparkContext): 
+    outputDir: String):
     Unit = {
 
     // get the list of field names from avro schema
     val schema: List[AvroFieldConfig] = getAvroSchemaFromHdfs(schemaPath, sc)
 
-    write(rdd, schema, outputDir, sc)
+    write(rdd, schema, outputDir)
   }
 
   /** Output data to avro - with list of fields for the schema (useful for testing)
@@ -35,26 +40,29 @@ object AvroOutputWriter {
     * @param rdd       RDD to write out
     * @param outputDir the dir to write to (hdfs:// typically)
     * @param schema    list of fields to write
-    * @param sc        spark context
     */
   def write(
     rdd: RDD[Map[String, String]],
     schema: List[AvroFieldConfig],
-    outputDir: String,
-    sc: SparkContext):
+    outputDir: String): 
     Unit = {
 
     // Loop through enriched record fields, and extract the value of each field 
     // in the order of schema list (so the order matches the Avro schema). 
     // Convert to the correct type as well.
+    val writerConfig = avroWriterConfig // make local ref so whole obj doesn't get serialized (which includes the sc and therefore can't be serialized)
     val rowRDD: RDD[Row] = rdd.map { record =>
       val vals: List[Any] = schema.map{ fieldConfig =>
         val v = record.get(fieldConfig.structField.name)
         if (v.isDefined) {
           try{
-            convertToType(v.get, fieldConfig.structField).get  // TODOTODO this may throw!  Shouldn't this be rejected if can't convert the value to the proper type?  How to do that here?
+            convertToType(v.get, fieldConfig.structField, writerConfig).get
           }
           catch {
+            case e: EmptyStringConversionException => {
+              println(s"Detected empty string in '${fieldConfig.structField.name}' when trying to convert; using default value.")
+              fieldConfig.getDefaultValue
+            }
             case e: Throwable => {
               val message = s"MJS MJS MJS MJS MJS Data type error while processing field '${fieldConfig.structField.name}':  " + e.getMessage
               throw new RuntimeException(message, e)
@@ -80,6 +88,9 @@ object AvroOutputWriter {
 
     dataFrame.write.format("com.databricks.spark.avro").save(outputDir)
   }
+}
+
+object AvroOutputWriter {
 
   /** Process AvroSchema from HDFS
     *
@@ -173,7 +184,9 @@ object AvroOutputWriter {
     * 
     * Most types are supported.
     * 
-    * @throws exceptions if the data cannot be converted, for whatever reason.
+    * @throws NumberFormatException if string data cannot be converted to numeric value
+    * @throws Exception if the data cannot be converted, for another reason.
+    * @throws Exception if attempting to store null value into non-nullable field.
     *
     * @todo pull out core type conversion logic into another function and wrap with this?
     *
@@ -181,7 +194,11 @@ object AvroOutputWriter {
     * @return Try[ Any ] (String, Int, etc..).  Will be an Failure if an exception 
     *         is thrown, either through our checks or checks in the .toX conversion.
     */
-  def convertToType(string: String, structField: StructField): Try[Any] = Try {
+  def convertToType(
+    string: String, 
+    structField: StructField, 
+    conf: AvroOutputWriterConfig = AvroOutputWriterConfig()): 
+    Try[Any] = Try {
 
     // Check for null value and throw if not allowed.
     if (string == null && !(structField.dataType==NullType || structField.nullable) ) {
@@ -193,19 +210,33 @@ object AvroOutputWriter {
     else {
       // value is not null
 
-      // For numeric types, trim the input and check for these slip through the
-      // [type].toString conversion because they are valid numeric postfixes in
-      // scala.
+      // For numeric types, trim the input and check for these things that slip 
+      // through the [type].toString conversion because they are valid numeric 
+      // postfixes in scala.
       val trimmedStr = structField.dataType match {
         case IntegerType | LongType | FloatType | DoubleType => {
-          val t = string.trim()
-          if (List( 'd', 'D', 'f', 'F', 'l', 'L').contains(t.last)) {
+          val t = string.optionalTrim(conf.alwaysTrimNumerics)
+          if (t.nonEmpty && List( 'd', 'D', 'f', 'F', 'l', 'L').contains(t.last)) {
             throw new NumberFormatException(s"can't convert '$string' to ${structField.dataType.toString} type. (No alphanumeric characters are allowed in numeric fields.)")
           }
           else t
         }
-        case BooleanType => string.trim()
+        // Optionally trim bools and strings too, per the config.
+        case BooleanType => string.optionalTrim(conf.alwaysTrimBooleans)
+        case StringType => string.optionalTrim(conf.alwaysTrimStrings)
         case _ => string;
+      }
+
+      // For numeric and boolean types, if the config specifies, then throw a 
+      // EmptyStringConversionException (a custom exception) so it can be potentially 
+      // handled differently by the caller.
+      structField.dataType match {
+        case IntegerType | LongType | FloatType | DoubleType | BooleanType => {
+          if (trimmedStr.trim == "") { // (may not have trimmed it above)
+            throw new EmptyStringConversionException("cannot convert empty string to numeric or boolean value")
+          }
+        }
+        case _ => ;
       }
 
       // Do the core conversion.
@@ -235,4 +266,6 @@ object AvroOutputWriter {
     }
   }
 }
+
+class EmptyStringConversionException(message: String) extends RuntimeException(message)
 

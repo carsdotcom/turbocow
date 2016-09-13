@@ -4,6 +4,9 @@ import org.json4s._
 import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.{read, write}
 
+import scala.io.Source
+import utils.FileUtil
+
 object AvroSchemaStringifier
 {
   implicit val jsonFormats = org.json4s.DefaultFormats
@@ -44,6 +47,21 @@ object AvroSchemaStringifier
     )
 
     // convert back to string and return
-    write(outputSchema)
+    outputSchema.toJson
+  }
+
+  /** write an all-string schema out to a file.  The file is always overwritten.
+    * 
+    */
+  def writeStringSchema(inputAvroSchemaFile: String, outputFilePath: String): Unit = {
+
+    // read in the file
+    val inputStr = Source.fromFile(inputAvroSchemaFile).getLines.mkString
+
+    // convert to string
+    val outputStr = convertToStringTypes(inputStr)
+
+    // Write out
+    FileUtil.writeFile(outputStr, outputFilePath)
   }
 }

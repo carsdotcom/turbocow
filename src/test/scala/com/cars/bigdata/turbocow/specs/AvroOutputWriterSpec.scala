@@ -6,7 +6,7 @@ import java.nio.file.Files
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
-import com.cars.bigdata.turbocow.FileUtil._
+import com.cars.bigdata.turbocow.utils.FileUtil._
 import com.cars.bigdata.turbocow.test.SparkTestContext._
 import com.databricks.spark.avro._
 import org.apache.spark.rdd.RDD

@@ -1,4 +1,4 @@
-package com.cars.bigdata.turbocow
+package com.cars.bigdata.turbocow.utils
 
 import java.io.{BufferedWriter, File, FileWriter}
 import java.nio.file.Files
@@ -20,6 +20,17 @@ object FileUtil {
     bw.write(text)
     bw.close()
     path
+  }
+
+
+  /** write out a file.  the file is overwritten.
+    */
+  def writeFile(text: String, filename: String) = {
+    val outputFile = new java.io.File(filename)
+    outputFile.delete()
+    val bw = new java.io.BufferedWriter(new java.io.FileWriter(outputFile))
+    bw.write(text)
+    bw.close()
   }
 
 }

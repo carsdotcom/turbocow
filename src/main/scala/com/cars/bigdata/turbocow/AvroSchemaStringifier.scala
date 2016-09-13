@@ -53,10 +53,10 @@ object AvroSchemaStringifier
   /** write an all-string schema out to a file.  The file is always overwritten.
     * 
     */
-  def writeStringSchema(inputAvroSchemaFile: String, outputFilePath: String): Unit = {
+  def writeStringSchema(inputAvroSchemaFilePath: String, outputFilePath: String): Unit = {
 
     // read in the file
-    val inputStr = Source.fromFile(inputAvroSchemaFile).getLines.mkString
+    val inputStr = Source.fromFile(inputAvroSchemaFilePath).getLines.mkString
 
     // convert to string
     val outputStr = convertToStringTypes(inputStr)

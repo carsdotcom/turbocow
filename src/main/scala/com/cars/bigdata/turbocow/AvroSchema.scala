@@ -18,7 +18,7 @@ case class AvroSchema(
     */
   def toJson: String = {
     implicit val jsonFormats = org.json4s.DefaultFormats
-    write(this)
+    pretty(render(parse(write(this))))
   }
 }
 

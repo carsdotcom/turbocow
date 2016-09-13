@@ -1018,6 +1018,14 @@ class AvroOutputWriterSpec
             "name": "NullField",
             "type": [ "null" ],
             "default": null
+          }, {
+            "name": "LongNullDefault",
+            "type": [ "null", "long" ],
+            "default": null
+          }, {
+            "name": "StringNullDefault",
+            "type": [ "null", "string" ],
+            "default": null
           }
         ],
         "doc": ""
@@ -1040,6 +1048,10 @@ class AvroOutputWriterSpec
         AvroFieldConfig(StructField("BooleanField", StringType, true), JString("false")))
       schemaF(6) should be (
         AvroFieldConfig(StructField("NullField", StringType, true), JNull))
+      schemaF(7) should be ( 
+        AvroFieldConfig(StructField("LongNullDefault", StringType, true), JNull))
+      schemaF(8) should be (
+        AvroFieldConfig(StructField("StringNullDefault", StringType, true), JNull))
 
       val schemaT = AvroOutputWriter.convertToAllStringSchema(inputSchema, forceNullable=true)
       schemaT(0) should be (
@@ -1056,6 +1068,10 @@ class AvroOutputWriterSpec
         AvroFieldConfig(StructField("BooleanField", StringType, true), JString("false")))
       schemaT(6) should be (
         AvroFieldConfig(StructField("NullField", StringType, true), JNull))
+      schemaF(7) should be ( 
+        AvroFieldConfig(StructField("LongNullDefault", StringType, true), JNull))
+      schemaF(8) should be (
+        AvroFieldConfig(StructField("StringNullDefault", StringType, true), JNull))
     }
   }
 

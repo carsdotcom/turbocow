@@ -75,7 +75,7 @@ class AvroOutputWriter(
             }
             catch {
               case e: EmptyStringConversionException => {
-                println(s"Detected empty string in '${fieldConfig.structField.name}' when trying to convert; using default value.")
+                //println(s"Detected empty string in '${fieldConfig.structField.name}' when trying to convert; using default value.")
                 fieldConfig.getDefaultValue
               }
               case e: Throwable => {

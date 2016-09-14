@@ -102,7 +102,10 @@ class AvroOutputWriter(
       _.get(errorMarker).nonEmpty
     }.map{ record =>  
       // convert to strings - can't write out if the type is incorrect
-      record.map{ case(k,v) => (k, v.toString) }
+      record.map{ case(k,v) => v match {
+        case null => (k, null)
+        case _ => (k, v.toString) 
+      }}
     }
 
     // Filter them out in the main rdd.
@@ -219,7 +222,7 @@ object AvroOutputWriter {
       case i: Int => throw new Exception(s"not able to parse type list for avro field: '$name'.  Cannot have more than one non-null data type listed.")
     }
 
-    println(s"========== name = $name, dataType=$dataType, nullable=$nullable")
+    //println(s"========== name = $name, dataType=$dataType, nullable=$nullable")
     StructField(name, dataType, nullable)
   }
 

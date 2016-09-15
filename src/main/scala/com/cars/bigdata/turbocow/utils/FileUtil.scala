@@ -16,9 +16,7 @@ object FileUtil {
   def writeTempFile(text: String, nameOfFile: String): String = {
     val dir = Files.createTempDirectory("testoutput-")
     val path = dir + "/" + nameOfFile
-    val bw = new BufferedWriter(new FileWriter(new File(path)))
-    bw.write(text)
-    bw.close()
+    writeFile(text, path)
     path
   }
 

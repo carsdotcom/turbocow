@@ -9,6 +9,14 @@ package object utils {
     // Add ltrim & rtrim methods to String
     def ltrim = s.replaceAll("^\\s+", "")
     def rtrim = s.replaceAll("\\s+$", "")
+
+    // Method that optionally trims based on a boolean flag.
+    def optionalTrim(trim: Boolean): String = {
+      trim match {
+        case true => s.trim
+        case false => s
+      }
+    }
   }
 
 }

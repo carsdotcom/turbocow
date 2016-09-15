@@ -3,7 +3,7 @@ package com.cars.bigdata.turbocow
 import java.io.File
 import java.nio.file.Files
 
-import com.cars.bigdata.turbocow.FileUtil._
+import com.cars.bigdata.turbocow.utils.FileUtil._
 import com.cars.bigdata.turbocow.test.SparkTestContext._
 import com.databricks.spark.avro._
 import org.apache.spark.rdd.RDD

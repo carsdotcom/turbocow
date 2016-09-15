@@ -6,7 +6,7 @@ import java.nio.file.Files
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
-import com.cars.bigdata.turbocow.FileUtil._
+import com.cars.bigdata.turbocow.utils.FileUtil._
 import com.cars.bigdata.turbocow.test.SparkTestContext._
 import com.databricks.spark.avro._
 import org.apache.spark.rdd.RDD
@@ -49,6 +49,27 @@ class AvroOutputWriterSpec
 
   describe("convertToType()") {
     
+    it("should throw a EmptyStringConversionException if converting a blank string to number or boolean") {
+      intercept[EmptyStringConversionException]{ convertToType("", StructField("", IntegerType)).get }
+      intercept[EmptyStringConversionException]{ convertToType("", StructField("", LongType)).get }
+      intercept[EmptyStringConversionException]{ convertToType("", StructField("", FloatType)).get }
+      intercept[EmptyStringConversionException]{ convertToType("", StructField("", DoubleType)).get }
+      intercept[EmptyStringConversionException]{ convertToType("", StructField("", BooleanType)).get }
+    }
+
+    it("should throw a EmptyStringConversionException if converting an only-spaces string to number or boolean") {
+      intercept[EmptyStringConversionException]{ convertToType(" ", StructField("", IntegerType)).get }
+      intercept[EmptyStringConversionException]{ convertToType("  ", StructField("", LongType)).get }
+      intercept[EmptyStringConversionException]{ convertToType("   ", StructField("", FloatType)).get }
+      intercept[EmptyStringConversionException]{ convertToType(" ", StructField("", DoubleType)).get }
+      intercept[EmptyStringConversionException]{ convertToType(" ", StructField("", BooleanType)).get }
+    }
+
+    it("should not throw when converting empty string or strings with spaces") {
+      convertToType("", StructField("", StringType)).isSuccess should be (true)
+      convertToType("  ", StructField("", StringType)).isSuccess should be (true)
+    }
+
     it("should properly convert String types") {
       convertToType("testStr", StructField("", StringType)).get should be("testStr")
       convertToType("", StructField("", StringType)).get should be("")
@@ -292,7 +313,7 @@ class AvroOutputWriterSpec
         "doc": ""
       }"""
 
-      val schema = AvroOutputWriter.getAvroSchema(avroSchema, sc)
+      val schema = AvroOutputWriter.getAvroSchema(avroSchema)
       schema.size should be (7)
       schema.head should be (AvroFieldConfig(StructField("StringField", StringType, false), JString("0")))
       schema(1) should be (AvroFieldConfig(StructField("IntField", IntegerType, true), JInt(1)))
@@ -369,7 +390,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      AvroOutputWriter.write(enriched, avroFile, outputDir.toString, sc)
+      (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
 
       // now read what we wrote - should only have the union, field C
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -492,7 +513,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      AvroOutputWriter.write(enriched, avroFile, outputDir.toString, sc)
+      (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -602,7 +623,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      AvroOutputWriter.write(enriched, avroFile, outputDir.toString, sc)
+      (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -621,6 +642,436 @@ class AvroOutputWriterSpec
       row.isNullAt( row.fieldIndex("DoubleField2") ) should be (true)
       Try( row.getAs[Boolean]("BooleanField") )  should be (Success(false))
       row.isNullAt( row.fieldIndex("BooleanField2") ) should be (true)
+    }
+
+    it("should write out default values for numerics and booleans on blank input") {
+
+      // avro schema
+      val avroSchema = """{
+          "namespace": "ALS",
+          "type": "record",
+          "name": "impression",
+          "fields": [{
+            "name": "IntField",
+            "type": [ "null", "int" ],
+            "default": 1
+          }, {
+            "name": "LongField",
+            "type": [ "null", "long" ],
+            "default": 3
+          }, {
+            "name": "FloatField",
+            "type": [ "null", "float" ],
+            "default": 4.0
+          }, {
+            "name": "DoubleField",
+            "type": [ "null", "double" ],
+            "default": 5.0
+          }, {
+            "name": "BooleanField",
+            "type": [ "null", "boolean" ],
+            "default": false
+          }
+        ],
+        "doc": ""
+      }"""
+      val avroFile = writeTempFile(avroSchema, "avroschema.avsc")
+
+      val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
+        // input record:
+        List("""{ "md":{}, "activityMap": { 
+            "IntField": "",
+            "LongField": "",
+            "FloatField": "",
+            "DoubleField": "",
+            "BooleanField": ""
+          }}"""),
+        // config
+        """{
+            "activityType": "impressions",
+            "items": [
+              {
+                "actions":[{
+                    "actionType":"simple-copy",
+                    "config": {
+                      "inputSource": ["IntField", "LongField", "FloatField", "DoubleField", "BooleanField"]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        """,
+        sc).persist()
+  
+      // this should be the enriched record:
+
+      val enrichedAll = enriched.collect()
+      //println("========= enrichedAll = "+enrichedAll.mkString("//"))
+      enrichedAll.size should be (1)
+      enrichedAll.head.size should be (5)
+      enrichedAll.head.get("IntField") should be (Some(""))
+      enrichedAll.head.get("LongField") should be (Some(""))
+      enrichedAll.head.get("FloatField") should be (Some(""))
+      enrichedAll.head.get("DoubleField") should be (Some(""))
+      enrichedAll.head.get("BooleanField") should be (Some(""))
+
+      // now write to avro
+      val outputDir = {
+        val dir = Files.createTempDirectory("testoutput-")
+        new File(dir.toString).delete()
+        dir.toString
+      }
+
+      // write
+      (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
+
+      // now read what we wrote
+      val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
+      //println("======== rows = ")
+      rows.size should be (1) // one row only
+      val row = rows.head
+      row.size should be (5)
+
+      // The default values should have been provided because the inputs were all blank strings
+      Try( row.getAs[Int]("IntField") )          should be (Success(1))
+      Try( row.getAs[Long]("LongField") )        should be (Success(3L))
+      Try( row.getAs[Float]("FloatField") )      should be (Success(4.0))
+      Try( row.getAs[Double]("DoubleField") )    should be (Success(5.0))
+      Try( row.getAs[Boolean]("BooleanField") )  should be (Success(false))
+    }
+
+    it("should write out default values for numerics and booleans with only blanks in the input") {
+
+      // avro schema
+      val avroSchema = """{
+          "namespace": "ALS",
+          "type": "record",
+          "name": "impression",
+          "fields": [{
+            "name": "IntField",
+            "type": [ "null", "int" ],
+            "default": 1
+          }, {
+            "name": "LongField",
+            "type": [ "null", "long" ],
+            "default": 3
+          }, {
+            "name": "FloatField",
+            "type": [ "null", "float" ],
+            "default": 4.0
+          }, {
+            "name": "DoubleField",
+            "type": [ "null", "double" ],
+            "default": 5.0
+          }, {
+            "name": "BooleanField",
+            "type": [ "null", "boolean" ],
+            "default": false
+          }
+        ],
+        "doc": ""
+      }"""
+      val avroFile = writeTempFile(avroSchema, "avroschema.avsc")
+
+      val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
+        // input record:
+        List("""{ "md":{}, "activityMap": { 
+            "IntField": " ",
+            "LongField": "  ",
+            "FloatField": "   ",
+            "DoubleField": "     ",
+            "BooleanField": "      "
+          }}"""),
+        // config
+        """{
+            "activityType": "impressions",
+            "items": [
+              {
+                "actions":[{
+                    "actionType":"simple-copy",
+                    "config": {
+                      "inputSource": ["IntField", "LongField", "FloatField", "DoubleField", "BooleanField"]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        """,
+        sc).persist()
+  
+      // this should be the enriched record:
+
+      val enrichedAll = enriched.collect()
+      //println("========= enrichedAll = "+enrichedAll.mkString("//"))
+      enrichedAll.size should be (1)
+      enrichedAll.head.size should be (5)
+      enrichedAll.head.get("IntField").get.substring(0,1) should be (" ")
+      enrichedAll.head.get("LongField").get.substring(0,1) should be (" ")
+      enrichedAll.head.get("FloatField").get.substring(0,1) should be (" ")
+      enrichedAll.head.get("DoubleField").get.substring(0,1) should be (" ")
+      enrichedAll.head.get("BooleanField").get.substring(0,1) should be (" ")
+
+      // now write to avro
+      val outputDir = {
+        val dir = Files.createTempDirectory("testoutput-")
+        new File(dir.toString).delete()
+        dir.toString
+      }
+
+      // write
+      (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
+
+      // now read what we wrote
+      val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
+      //println("======== rows = ")
+      rows.size should be (1) // one row only
+      val row = rows.head
+      row.size should be (5)
+
+      // The default values should have been provided because the inputs were all blank strings
+      Try( row.getAs[Int]("IntField") )          should be (Success(1))
+      Try( row.getAs[Long]("LongField") )        should be (Success(3L))
+      Try( row.getAs[Float]("FloatField") )      should be (Success(4.0))
+      Try( row.getAs[Double]("DoubleField") )    should be (Success(5.0))
+      Try( row.getAs[Boolean]("BooleanField") )  should be (Success(false))
+    }
+
+    it("should return an RDD of rejected records that were not written due to datatype conversion problems") {
+
+      // avro schema
+      val avroSchema = """{
+          "namespace": "ALS",
+          "type": "record",
+          "name": "impression",
+          "fields": [{
+            "name": "StringField",
+            "type": [ "null", "string" ],
+            "default": ""
+          }, {
+            "name": "IntField",
+            "type": [ "null", "int" ],
+            "default": 1
+          }, {
+            "name": "LongField",
+            "type": [ "null", "long" ],
+            "default": 3
+          }, {
+            "name": "FloatField",
+            "type": [ "null", "float" ],
+            "default": 4.0
+          }, {
+            "name": "DoubleField",
+            "type": [ "null", "double" ],
+            "default": 5.0
+          }, {
+            "name": "BooleanField",
+            "type": [ "null", "boolean" ],
+            "default": false
+          }
+        ],
+        "doc": ""
+      }"""
+      val avroFile = writeTempFile(avroSchema, "avroschema.avsc")
+
+      val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
+        // input records:
+        List("""{ "md":{}, "activityMap": { 
+            "IntField": "X1",
+            "LongField": "1",
+            "FloatField": "1",
+            "DoubleField": "1",
+            "BooleanField": "true",
+            "StringField": "String"
+          }}""",
+          """{ "md":{}, "activityMap": { 
+            "IntField": "1",
+            "LongField": "X1",
+            "FloatField": "1",
+            "DoubleField": "1",
+            "BooleanField": "true",
+            "StringField": "String"
+          }}""",
+          """{ "md":{}, "activityMap": { 
+            "IntField": "1",
+            "LongField": "1",
+            "FloatField": "X1",
+            "DoubleField": "1",
+            "BooleanField": "true",
+            "StringField": "String"
+          }}""",
+          """{ "md":{}, "activityMap": { 
+            "IntField": "1",
+            "LongField": "1",
+            "FloatField": "1",
+            "DoubleField": "X1",
+            "BooleanField": "true",
+            "StringField": "String"
+          }}""",
+          """{ "md":{}, "activityMap": { 
+            "IntField": "1",
+            "LongField": "1",
+            "FloatField": "1",
+            "DoubleField": "1",
+            "BooleanField": "Xtrue",
+            "StringField": "String"
+          }}""",
+          """{ "md":{}, "activityMap": { 
+            "IntField": "1",
+            "LongField": "1",
+            "FloatField": "1",
+            "DoubleField": "1",
+            "BooleanField": "true",
+            "StringField": "XString"
+          }}"""),
+        // config
+        """{
+            "activityType": "impressions",
+            "items": [
+              {
+                "actions":[{
+                    "actionType":"simple-copy",
+                    "config": {
+                      "inputSource": ["IntField", "LongField", "FloatField", "DoubleField", "BooleanField", "StringField"]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        """,
+        sc).persist()
+  
+      // this should be the enriched record:
+
+      val enrichedAll = enriched.collect()
+      //println("========= enrichedAll = "+enrichedAll.mkString("//"))
+      enrichedAll.size should be (6)
+      enrichedAll.foreach{ _.size should be (6) }
+
+      // now write to avro
+      val outputDir = {
+        val dir = Files.createTempDirectory("testoutput-")
+        new File(dir.toString).delete()
+        dir.toString
+      }
+
+      // write
+      val rejectedRDD = (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
+      val rejects = rejectedRDD.collect()
+
+      // all but one will be rejected.
+      rejects.size should be (enrichedAll.size - 1)
+
+      val fields = List("IntField", "LongField", "FloatField", "DoubleField", "BooleanField", "StringField")
+
+      rejects.foreach{ r => 
+        r.size should be (7)
+
+        // all fields should be present.
+        fields.foreach{ field =>
+          r.get(field).nonEmpty should be (true)
+        }
+
+        // for each field, if one field has an X, none of the others should:
+        r.count{ case(k,v) => v.substring(0,1) == "X" } should be (1)
+
+        // One extra field should be present, for the reason for the error:
+        r.get(avroTypeErrorMarker).nonEmpty should be (true)
+        r.get(avroTypeErrorMarker).get.trim.nonEmpty should be (true)
+      }
+    }
+  }
+
+  describe("convertToAllStringsSchema()") {
+    it("should properly convert to strings") {
+      val inputSchemaJson = """{
+        "namespace": "ALS",
+        "type": "record",
+        "name": "impression",
+        "fields": [{
+            "name": "StringField",
+            "type": [ "string" ],
+            "default": "0"
+          }, {
+            "name": "IntField",
+            "type": [ "null", "int" ],
+            "default": 1
+          }, {
+            "name": "LongField",
+            "type": [ "null", "long" ],
+            "default": 2
+          }, {
+            "name": "DoubleField",
+            "type": [ "double" ],
+            "default": 0.3
+          }, {
+            "name": "FloatField",
+            "type": [ "null", "float" ],
+            "default": 0.4
+          }, {
+            "name": "BooleanField",
+            "type": [ "null", "boolean" ],
+            "default": false
+          }, {
+            "name": "NullField",
+            "type": [ "null" ],
+            "default": null
+          }, {
+            "name": "LongNullDefault",
+            "type": [ "null", "long" ],
+            "default": null
+          }, {
+            "name": "StringNullDefault",
+            "type": [ "null", "string" ],
+            "default": null
+          }
+        ],
+        "doc": ""
+      }"""
+
+      val inputSchema = AvroOutputWriter.getAvroSchema(inputSchemaJson)
+
+      val schemaF = AvroOutputWriter.convertToAllStringSchema(inputSchema, forceNullable=false)
+      schemaF(0) should be (
+        AvroFieldConfig(StructField("StringField", StringType, false), JString("0")))
+      schemaF(1) should be (
+        AvroFieldConfig(StructField("IntField", StringType, true), JString("1")))
+      schemaF(2) should be (
+        AvroFieldConfig(StructField("LongField", StringType, true), JString("2")))
+      schemaF(3) should be (
+        AvroFieldConfig(StructField("DoubleField", StringType, false), JString("0.3")))
+      schemaF(4) should be (
+        AvroFieldConfig(StructField("FloatField", StringType, true), JString("0.4")))
+      schemaF(5) should be (
+        AvroFieldConfig(StructField("BooleanField", StringType, true), JString("false")))
+      schemaF(6) should be (
+        AvroFieldConfig(StructField("NullField", StringType, true), JNull))
+      schemaF(7) should be ( 
+        AvroFieldConfig(StructField("LongNullDefault", StringType, true), JNull))
+      schemaF(8) should be (
+        AvroFieldConfig(StructField("StringNullDefault", StringType, true), JNull))
+
+      val schemaT = AvroOutputWriter.convertToAllStringSchema(inputSchema, forceNullable=true)
+      schemaT(0) should be (
+        AvroFieldConfig(StructField("StringField", StringType, true), JString("0")))
+      schemaT(1) should be (
+        AvroFieldConfig(StructField("IntField", StringType, true), JString("1")))
+      schemaT(2) should be (
+        AvroFieldConfig(StructField("LongField", StringType, true), JString("2")))
+      schemaT(3) should be (
+        AvroFieldConfig(StructField("DoubleField", StringType, true), JString("0.3")))
+      schemaT(4) should be (
+        AvroFieldConfig(StructField("FloatField", StringType, true), JString("0.4")))
+      schemaT(5) should be (
+        AvroFieldConfig(StructField("BooleanField", StringType, true), JString("false")))
+      schemaT(6) should be (
+        AvroFieldConfig(StructField("NullField", StringType, true), JNull))
+      schemaF(7) should be ( 
+        AvroFieldConfig(StructField("LongNullDefault", StringType, true), JNull))
+      schemaF(8) should be (
+        AvroFieldConfig(StructField("StringNullDefault", StringType, true), JNull))
     }
   }
 

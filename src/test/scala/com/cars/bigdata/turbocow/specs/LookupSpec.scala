@@ -41,12 +41,13 @@ class LookupSpec extends UnitSpec {
 
   val resourcesDir = "./src/test/resources/"
 
-  describe("Lookup constructor")  // ------------------------------------------------
+  describe("Lookup constructor") // ------------------------------------------------
   {
     it("should parse the config correctly (without a fromFile)") {
 
       implicit val formats = org.json4s.DefaultFormats
-      val configStr = """
+      val configStr =
+        """
         {
           "activityType": "impressions",
           "items": [
@@ -69,28 +70,29 @@ class LookupSpec extends UnitSpec {
             }
           ]
         }
-      """
+        """
 
       val configAST = parse(configStr)
       val actionsList = ((configAST \ "items").children.head \ "actions")
-      actionsList.children.size should be (1)
+      actionsList.children.size should be(1)
 
       // create the action and test all fields after construction:
       val actionConfig = actionsList.children.head \ "config"
       actionConfig should not be (JNothing)
 
       val action = Lookup(actionConfig, None)
-      action.fromDBTable should be ("testTable")
-      action.fromFile should be (None)
-      action.where should be ("KEYFIELD")
-      action.equals should be ("AField")
-      action.select should be (List("EnhField1", "EnhField2"))
+      action.fromDBTable should be("testTable")
+      action.fromFile should be(None)
+      action.where should be("KEYFIELD")
+      action.equals should be("AField")
+      action.select should be(List("EnhField1", "EnhField2"))
     }
 
     it("should parse the config correctly with a fromFile") {
 
       implicit val formats = org.json4s.DefaultFormats
-      val configStr = """
+      val configStr =
+        """
         {
           "activityType": "impressions",
           "items": [
@@ -114,22 +116,22 @@ class LookupSpec extends UnitSpec {
             }
           ]
         }
-      """
+        """
 
       val configAST = parse(configStr)
       val actionsList = ((configAST \ "items").children.head \ "actions")
-      actionsList.children.size should be (1)
+      actionsList.children.size should be(1)
 
       // create the action and test all fields after construction:
       val actionConfig = actionsList.children.head \ "config"
       actionConfig should not be (JNothing)
 
       val action = Lookup(actionConfig, None)
-      action.fromDBTable should be ("testTable")
-      action.fromFile should be (Some("./src/test/resources/testdimension-multirow.json"))
-      action.where should be ("KEYFIELD")
-      action.equals should be ("AField")
-      action.select should be (List("EnhField1", "EnhField2"))
+      action.fromDBTable should be("testTable")
+      action.fromFile should be(Some("./src/test/resources/testdimension-multirow.json"))
+      action.where should be("KEYFIELD")
+      action.equals should be("AField")
+      action.select should be(List("EnhField1", "EnhField2"))
     }
   }
 
@@ -162,13 +164,49 @@ class LookupSpec extends UnitSpec {
              ]
            }""".stripMargin,
         sc,
-        Option(hiveCtx) ).collect()
-  
-      enriched.size should be (1) // always one because there's only one json input object
+        Option(hiveCtx)).collect()
+
+      enriched.size should be(1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head("EnhField1") should be ("1")
-      enriched.head("EnhField2") should be ("2")
-      enriched.head("EnhField3") should be ("3")
+      enriched.head("EnhField1") should be("1")
+      enriched.head("EnhField2") should be("2")
+      enriched.head("EnhField3") should be("3")
+    }
+
+    it("should successfully lookup non string values and convert to its String representation on the enrichedMap") {
+      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
+        new java.net.URI("./src/test/resources/input-integration-lookupNonString.json"),
+        """{
+             "activityType": "impressions",
+             "items": [
+               {
+                 "actions":[
+                   {
+                     "actionType":"lookup",
+                     "config": {
+                       "select": [
+                         "IntTarget","FloatTarget","BooleanTarget"
+                       ],
+                       "fromDBTable": "testTable",
+                       "fromFile": "./src/test/resources/testConsumerAcctId.json",
+                       "where": "AKey",
+                       "equals": "AField"
+                     }
+                   }
+                 ]
+               }
+             ]
+           }""".stripMargin,
+        sc,
+        Option(hiveCtx)).collect()
+
+      enriched.size should be(1) // always one because there's only one json input object
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+      enriched.head.size should be(3)
+      enriched.head("IntTarget") should be("12")
+      enriched.head("BooleanTarget") should be("true")
+      enriched.head("FloatTarget") should be("12.3")
+
     }
 
     it("should correctly reject a record when the lookup fails") {
@@ -216,17 +254,17 @@ class LookupSpec extends UnitSpec {
                }
              ]
            }""",
-        sc, 
-        Option(hiveCtx) ).collect()
-    
-      enriched.size should be (1) // always one because there's only one json input object
+        sc,
+        Option(hiveCtx)).collect()
+
+      enriched.size should be(1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-    
+
       // test the record
       val recordMap = enriched.head
       val reasonOpt = recordMap.get("reasonForReject")
-      reasonOpt.isEmpty should be (false)
-      reasonOpt.get should be ("Invalid KEYFIELD: 'AA'")
+      reasonOpt.isEmpty should be(false)
+      reasonOpt.get should be("Invalid KEYFIELD: 'AA'")
     }
 
     it("should correctly process lookup inside OnFail") {
@@ -275,14 +313,14 @@ class LookupSpec extends UnitSpec {
              ]
            }""",
         sc,
-        Option(hiveCtx) ).collect()
+        Option(hiveCtx)).collect()
 
-      enriched.size should be (1) // always one because there's only one json input object
+      enriched.size should be(1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
 
       // test the record
       val recordMap = enriched.head
-      recordMap("XYZ") should be ("success")
+      recordMap("XYZ") should be("success")
     }
 
     it("should correctly process lookup inside OnPass") {
@@ -331,14 +369,14 @@ class LookupSpec extends UnitSpec {
              ]
            }""",
         sc,
-        Option(hiveCtx) ).collect()
+        Option(hiveCtx)).collect()
 
-      enriched.size should be (1) // always one because there's only one json input object
+      enriched.size should be(1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
 
       // test the record
       val recordMap = enriched.head
-      recordMap("XYZ") should be ("failure")
+      recordMap("XYZ") should be("failure")
     }
 
   }

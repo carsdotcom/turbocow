@@ -325,7 +325,7 @@ class AvroOutputWriterSpec
     }
   }
 
-  describe("write") {
+  describe("write()") {
 
     it("should only output the fields in the schema regardless of what is in the input RDD") {
 

@@ -188,7 +188,7 @@ class LookupSpec extends UnitSpec {
                          "IntTarget","FloatTarget","BooleanTarget"
                        ],
                        "fromDBTable": "testTable",
-                       "fromFile": "./src/test/resources/testConsumerAcctId.json",
+                       "fromFile": "./src/test/resources/test-nonstring-lookup.json",
                        "where": "AKey",
                        "equals": "AField"
                      }

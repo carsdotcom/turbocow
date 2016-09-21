@@ -43,7 +43,8 @@ object AvroSchema
       doc = extractOptionString(ast \ "doc").getOrElse(""),
       fields = (ast \ "fields").children.map{ jvalue => 
         AvroSchemaField(
-          name = extractValidString(jvalue \ "name").getOrElse(throw new Exception("must supply a valid 'name' field for all fields in avro schema")),
+          name = ValidString(extractValidString(jvalue \ "name").getOrElse(throw new Exception("must supply a valid 'name' field for all fields in avro schema")).trim)
+            .getOrElse(throw new Exception("must specify a valid non-empty string for every field 'name'")),
           `type` = (jvalue \ "type") match {
             case j: JArray => j.children.map{ jv => jv.values.toString }
             case j: JString => List(extractValidString(j).getOrElse(throw new Exception("must supply a valid 'type' field for all fields in avro schema")))

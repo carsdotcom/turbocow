@@ -112,10 +112,58 @@ class AvroSchemaSpec extends UnitSpec {
           }
         ]
       }""") }.isSuccess should be (true)
-
     }
 
     it("should throw if the name field is empty or missing") {
+      Try{ AvroSchema("""{
+        "namespace": "namespace-of-this",
+        "type": "record",
+        "name": "name-of-this",
+        "fields": [{
+            "type": "string",
+            "default": ""
+          }
+        ]
+      }""") }.isSuccess should be (false)
+
+      Try{ AvroSchema("""{
+        "namespace": "namespace-of-this",
+        "type": "record",
+        "name": "name-of-this",
+        "fields": [{
+            "name": "",
+            "type": [ "null", "int" ],
+            "default": null
+          }
+        ]
+      }""") }.isSuccess should be (false)
+
+      Try{ AvroSchema("""{
+        "namespace": "namespace-of-this",
+        "type": "record",
+        "name": "name-of-this",
+        "fields": [{
+            "name": "    ",
+            "type": [ "null", "int" ],
+            "default": null
+          }
+        ]
+      }""") }.isSuccess should be (false)
+
+      // the name field is trimmed so this should pass:
+      val as = Try{ AvroSchema("""{
+        "namespace": "namespace-of-this",
+        "type": "record",
+        "name": "name-of-this",
+        "fields": [{
+            "name": "  x  ",
+            "type": [ "null", "int" ],
+            "default": null
+          }
+        ]
+      }""") }
+      as.isSuccess should be (true)
+      as.get.fields.head.name should be ("x")
     }
   }
 

@@ -52,6 +52,10 @@ class AvroSchemaSpec extends UnitSpec {
         "name": "IntField",
         "type": [ "null", "int" ],
         "default": null
+      }, {
+        "name": "FloatField",
+        "type": "float",
+        "default": 10.1
       }
     ]
   }"""
@@ -66,10 +70,11 @@ class AvroSchemaSpec extends UnitSpec {
       a.`type` should be ("record")
       a.name should be ("impression")
       a.doc should be ("global documentation")
-      a.fields should be (List(
-        AvroSchemaField("StringField", List("string"), JString("X"), "StringFieldDoc"),
-        AvroSchemaField("IntField", List("null", "int"), JNull, "")
-      ))
+
+      a.fields(0) should be (AvroSchemaField("StringField", List("string"), JString("X"), doc="StringFieldDoc"))
+      a.fields(1) should be (AvroSchemaField("IntField", List("null", "int"), JNull, doc=""))
+      a.fields(2) should be (AvroSchemaField("FloatField", List("float"), JDouble(10.1), doc=""))
+      a.fields.size should be (3)
     }
   }
 
@@ -77,24 +82,6 @@ class AvroSchemaSpec extends UnitSpec {
 
     it("should properly convert back to JSON") {
 
-      val testAvroSchemaString = """{
-        "namespace": "ALS",
-        "type": "record",
-        "name": "impression",
-        "doc": "global documentation",
-        "fields": [{
-            "name": "StringField",
-            "type": [ "string" ],
-            "doc": "StringFieldDoc",
-            "default": "X"
-          }, {
-            "name": "IntField",
-            "type": [ "null", "int" ],
-            "default": null
-          }
-        ]
-      }"""
-      
       val origAS: AvroSchema = AvroSchema(testAvroSchemaString)
 
       val rereadAS = AvroSchema(origAS.toJson)

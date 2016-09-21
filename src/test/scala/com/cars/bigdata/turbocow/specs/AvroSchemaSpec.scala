@@ -78,6 +78,40 @@ class AvroSchemaSpec extends UnitSpec {
       a.fields.size should be (3)
     }
 
+    it("should throw if the type field is empty or missing") {
+      Try{ AvroSchema("""{
+        "namespace": "namespace-of-this",
+        "type": "record",
+        "name": "name-of-this",
+        "fields": [{
+            "name": "StringField"
+          }
+        ]
+      }""") }.isSuccess should be (false)
+
+      Try{ AvroSchema("""{
+        "namespace": "namespace-of-this",
+        "type": "record",
+        "name": "name-of-this",
+        "fields": [{
+            "name": "StringField",
+            "type": ""
+          }
+        ]
+      }""") }.isSuccess should be (false)
+
+      Try{ AvroSchema("""{
+        "namespace": "namespace-of-this",
+        "type": "record",
+        "name": "name-of-this",
+        "fields": [{
+            "name": "StringField",
+            "type": " "
+          }
+        ]
+      }""") }.isSuccess should be (false)
+    }
+
     it("should throw if the default field is empty or missing") {
       Try{ AvroSchema("""{
         "namespace": "namespace-of-this",

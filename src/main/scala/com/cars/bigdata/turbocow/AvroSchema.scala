@@ -49,7 +49,10 @@ object AvroSchema
             case j: JString => List(extractValidString(j).getOrElse(throw new Exception("must supply a valid 'type' field for all fields in avro schema")))
             case a: Any => throw new Exception("the `type` field in the avro schema can only be a string or list of strings")
           },
-          default = (jvalue \ "default"),
+          default = (jvalue \ "default") match {
+            case JNothing => throw new Exception("must specify a 'default' value for every field in the avro schema")
+            case j: JValue => j
+          },
           doc = extractOptionString(jvalue \ "doc").getOrElse("")
         )
       }

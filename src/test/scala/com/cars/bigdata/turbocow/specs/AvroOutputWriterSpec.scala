@@ -282,7 +282,7 @@ class AvroOutputWriterSpec
         "name": "impression",
         "fields": [{
             "name": "StringField",
-            "type": [ "string" ],
+            "type": "string",
             "default": "0"
           }, {
             "name": "IntField",
@@ -417,11 +417,11 @@ class AvroOutputWriterSpec
           "name": "impression",
           "fields": [{
             "name": "StringField",
-            "type": [ "string" ],
+            "type": "string",
             "default": ""
           }, {
             "name": "IntField",
-            "type": [ "null", "int" ],
+            "type": [ "int" ],
             "default": 0
           }, {
             "name": "IntField2",
@@ -543,11 +543,11 @@ class AvroOutputWriterSpec
           "name": "impression",
           "fields": [{
             "name": "StringField",
-            "type": [ "string" ],
+            "type": "string",
             "default": "0"
           }, {
             "name": "IntField",
-            "type": [ "null", "int" ],
+            "type": [ "int" ],
             "default": 1
           }, {
             "name": "IntField2",
@@ -838,14 +838,20 @@ class AvroOutputWriterSpec
       Try( row.getAs[Boolean]("BooleanField") )  should be (Success(false))
     }
 
-    it("should return an RDD of rejected records that were not written due to datatype conversion problems") {
+    it("""should return an RDD of rejected records that were not written due to 
+          datatype conversion problems""") {
 
       // avro schema
       val avroSchema = """{
           "namespace": "ALS",
           "type": "record",
           "name": "impression",
-          "fields": [{
+          "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "default": ""
+          }, {
             "name": "StringField",
             "type": [ "null", "string" ],
             "default": ""
@@ -878,6 +884,7 @@ class AvroOutputWriterSpec
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
         // input records:
         List("""{ "md":{}, "activityMap": { 
+            "id": "r1",
             "IntField": "X1",
             "LongField": "1",
             "FloatField": "1",
@@ -886,6 +893,7 @@ class AvroOutputWriterSpec
             "StringField": "String"
           }}""",
           """{ "md":{}, "activityMap": { 
+            "id": "r2",
             "IntField": "1",
             "LongField": "X1",
             "FloatField": "1",
@@ -894,6 +902,7 @@ class AvroOutputWriterSpec
             "StringField": "String"
           }}""",
           """{ "md":{}, "activityMap": { 
+            "id": "r3",
             "IntField": "1",
             "LongField": "1",
             "FloatField": "X1",
@@ -902,6 +911,7 @@ class AvroOutputWriterSpec
             "StringField": "String"
           }}""",
           """{ "md":{}, "activityMap": { 
+            "id": "r4",
             "IntField": "1",
             "LongField": "1",
             "FloatField": "1",
@@ -910,6 +920,7 @@ class AvroOutputWriterSpec
             "StringField": "String"
           }}""",
           """{ "md":{}, "activityMap": { 
+            "id": "r5",
             "IntField": "1",
             "LongField": "1",
             "FloatField": "1",
@@ -918,6 +929,7 @@ class AvroOutputWriterSpec
             "StringField": "String"
           }}""",
           """{ "md":{}, "activityMap": { 
+            "id": "r6",
             "IntField": "1",
             "LongField": "1",
             "FloatField": "1",
@@ -933,7 +945,7 @@ class AvroOutputWriterSpec
                 "actions":[{
                     "actionType":"simple-copy",
                     "config": {
-                      "inputSource": ["IntField", "LongField", "FloatField", "DoubleField", "BooleanField", "StringField"]
+                      "inputSource": ["id", "IntField", "LongField", "FloatField", "DoubleField", "BooleanField", "StringField"]
                     }
                   }
                 ]
@@ -942,13 +954,14 @@ class AvroOutputWriterSpec
           }
         """,
         sc).persist()
-  
-      // this should be the enriched record:
 
+      val fields = List("id", "IntField", "LongField", "FloatField", "DoubleField", "BooleanField", "StringField")
+
+      // this should be the enriched record:
       val enrichedAll = enriched.collect()
       //println("========= enrichedAll = "+enrichedAll.mkString("//"))
       enrichedAll.size should be (6)
-      enrichedAll.foreach{ _.size should be (6) }
+      enrichedAll.foreach{ _.size should be (fields.size) }
 
       // now write to avro
       val outputDir = {
@@ -963,23 +976,48 @@ class AvroOutputWriterSpec
 
       // all but one will be rejected.
       rejects.size should be (enrichedAll.size - 1)
+      rejects.size should be (5)
 
-      val fields = List("IntField", "LongField", "FloatField", "DoubleField", "BooleanField", "StringField")
+      //println("HHHHHHHHHHHHHHHHHHHHHHHHH here's the rejects:")
+      //rejects.foreach{ r => println(r.toString) }
 
-      rejects.foreach{ r => 
-        r.size should be (7)
+      rejects.foreach{ r =>
+        r.size should be (fields.size + 1) // because of the error marker
+        val id = r.get("id").get
+        val realFields = fields.tail
 
-        // all fields should be present.
+        // all fields should be present
         fields.foreach{ field =>
           r.get(field).nonEmpty should be (true)
         }
-
-        // for each field, if one field has an X, none of the others should:
-        r.count{ case(k,v) => v.substring(0,1) == "X" } should be (1)
-
-        // One extra field should be present, for the reason for the error:
         r.get(avroTypeErrorMarker).nonEmpty should be (true)
         r.get(avroTypeErrorMarker).get.trim.nonEmpty should be (true)
+
+        // for each field, if one field has an X, none of the others should:
+        r.count{ case(k,v) => v.nonEmpty && v.substring(0,1) == "X" } should be (1)
+
+        id match {
+          case "r1" => {
+            r.get("IntField") should be (Some("X1"))
+          }
+          case "r2" => {
+            r.get("LongField") should be (Some("X1"))
+          }
+          case "r3" => {
+            r.get("FloatField") should be (Some("X1"))
+          }
+          case "r4" => {
+            r.get("DoubleField") should be (Some("X1"))
+          }
+          case "r5" => {
+            r.get("BooleanField") should be (Some("Xtrue"))
+          }
+          case "r6" => {
+            // this should not be rejected
+            fail()
+          }
+          case a: Any => fail()
+        }
       }
     }
   }

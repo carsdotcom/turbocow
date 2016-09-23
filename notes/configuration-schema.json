@@ -361,6 +361,7 @@
             // "= ..." (EQUALS)
             // This is the value to look up on.  
             // (The 'X' in "select ... where A = X").
+            // This is a field name that is read from the INPUT record.
             "equals": "front_door_affiliate_pty_id",
 
             // (OPTIONAL) If the lookup succeeds, all the actions in the onPass 

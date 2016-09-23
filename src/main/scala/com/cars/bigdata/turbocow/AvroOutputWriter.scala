@@ -79,8 +79,8 @@ class AvroOutputWriter(
                 fieldConfig.getDefaultValue
               }
               case e: Throwable => {
-                errors = errors :+ (s"Data type error while processing field '${fieldConfig.structField.name}':  " + e.getMessage)
-                v.get
+                errors = errors :+ e.getMessage
+                v.get.toString
               }
             }
           }
@@ -203,8 +203,14 @@ object AvroOutputWriter {
     val name = JsonUtil.extractValidString(fieldConfig\"name").getOrElse(throw new Exception("could not find valid 'name' element in avro field config"))
     val fields = (fieldConfig \ "type").toOption.getOrElse(throw new Exception(s"avro field configuration for '$name' is missing the 'type' array"))
     implicit val jsonFormats = org.json4s.DefaultFormats
-    val typeList = fields.children.map{ typeJval =>
-      getDataTypeFromString(typeJval.extract[String])
+    val typeList = fields match {
+      case j: JString => List(getDataTypeFromString(j.extract[String]))
+      case j: JArray => {
+        j.children.map{ typeJval =>
+          getDataTypeFromString(typeJval.extract[String])
+        }
+      }
+      case _ => throw new RuntimeException(s"invalid 'type' field for field named '$name'")
     }
 
     val nullable = typeList.contains(NullType)
@@ -279,7 +285,7 @@ object AvroOutputWriter {
       structField.dataType match {
         case IntegerType | LongType | FloatType | DoubleType | BooleanType => {
           if (trimmedStr.trim == "") { // (may not have trimmed it above)
-            throw new EmptyStringConversionException("cannot convert empty string to numeric or boolean value")
+            throw new EmptyStringConversionException("cannot convert empty string in field '${structField.name}' to numeric or boolean value")
           }
         }
         case _ => ;
@@ -296,15 +302,15 @@ object AvroOutputWriter {
           case BooleanType => trimmedStr.toBoolean
           case NullType => trimmedStr match {
             case null => null
-            case _ => throw new Exception("attempt to convert non-null value into 'NullType'.")
+            case _ => throw new Exception(s"attempt to convert non-null value in '${structField.name}' into 'NullType'.")
           }
-          case _ => throw new Exception("unsupported type: "+structField.toString)
+          case _ => throw new Exception(s"unsupported type: '${structField.dataType.toString}'")
         }
       }
       catch {
         // for numeric and boolean conversions, add more info to say why
         case e: java.lang.IllegalArgumentException => {
-          val message = s"could not convert value '${trimmedStr}' to a '${structField.dataType.toString}' type."
+          val message = s"could not convert value in '${structField.name}' to a '${structField.dataType.toString}'."
           throw new java.lang.IllegalArgumentException(message, e)
         }
         case e: java.lang.Throwable => throw e

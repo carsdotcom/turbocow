@@ -36,7 +36,7 @@ object AvroSchemaStringifier
           case v: JInt => JString(v.values.toString)
           case v: JDouble => JString(v.values.toString)
           case v: JBool => JString(v.values.toString)
-          //case _ => JString(inputField.default.toString)
+          case _ => throw new RuntimeException("unsupported type for 'default' value for field '${inputField.name}'")
         }
 
         inputField.copy(

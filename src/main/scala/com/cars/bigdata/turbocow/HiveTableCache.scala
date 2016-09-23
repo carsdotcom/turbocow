@@ -69,7 +69,7 @@ class HiveTableCache(
     // map to None.
     Option(
       select.map{ field => 
-        (field, Try(row.getAs[String](field).trim).toOption)
+        (field, Try(String.valueOf(row.getAs[String](field)).trim).toOption)
       }.toMap
     )
   }

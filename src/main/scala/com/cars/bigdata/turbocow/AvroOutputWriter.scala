@@ -9,6 +9,7 @@ import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
 import scala.util.Try;
 import utils._
+import org.apache.hadoop.fs.{FileSystem, Path}
 
 import AvroOutputWriter._
 
@@ -39,7 +40,7 @@ class AvroOutputWriter(
   }
 
   /** Output data to avro - with list of fields for the schema (useful for testing)
-    *
+    * 
     * @param rdd       RDD to write out
     * @param outputDir the dir to write to (hdfs:// typically)
     * @param schema    list of fields to write
@@ -128,6 +129,15 @@ class AvroOutputWriter(
     //dataFrame.printSchema
     //dataFrame.show
 
+    // Ensure the dir can be written to by deleting it.
+    // It is up to the operator to ensure it is safe to overwrite this dir.
+    val fs = FileSystem.get(sc.hadoopConfiguration)
+    val outputDirPath = new Path(outputDir)
+    if (fs.exists(outputDirPath)) {
+      fs.delete(outputDirPath, true)
+    }
+
+    // lastly, write it out
     dataFrame.write.format("com.databricks.spark.avro").save(outputDir)
 
     // return the errors

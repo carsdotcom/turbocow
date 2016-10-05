@@ -140,6 +140,11 @@ class AvroOutputWriter(
     // lastly, write it out
     dataFrame.write.format("com.databricks.spark.avro").save(outputDir)
 
+    // Unpersist anything we are done with.
+    dataFrame.unpersist(blocking=true)
+    rowRDD.unpersist(blocking=true)
+    anyRDD.unpersist(blocking=true)
+
     // return the errors
     errorRDD
   }

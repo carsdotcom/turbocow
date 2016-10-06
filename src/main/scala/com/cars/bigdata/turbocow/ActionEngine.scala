@@ -113,6 +113,25 @@ object ActionEngine
       initialScratchPad, 
       jdbcClientConfigs)
 
+    processJsonRDD(inputJsonRDD, bc)
+  }
+
+  /** Process a set of JSON strings rather than reading from a directory.
+    * This will likely never be called except from the two above process functions.
+    *
+    * @param inputJsonRDD an RDD of JSON Strings to process
+    * @param bc the EngineBroadcasts, which must have been previously broadcast
+    *           via the .create method.
+    * 
+    * @return RDD of enriched data records, where each record is a key-value map.
+    * 
+    * @todo add similar functions to the other process..() functions above
+    */
+  def processJsonRDD(
+    inputJsonRDD: RDD[String],
+    bc: EngineBroadcasts):
+    RDD[Map[String, String]] = {
+
     // parse the input json data
     val flattenedImpressionsRDD = inputJsonRDD.map( jsonString => {
       val ast = parse(jsonString)

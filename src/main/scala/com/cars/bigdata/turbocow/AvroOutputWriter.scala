@@ -7,11 +7,12 @@ import org.apache.spark.sql.types._
 import org.json4s._
 import org.json4s.JsonDSL._
 import org.json4s.jackson.JsonMethods._
-import scala.util.Try;
+
+import scala.util.Try
 import utils._
 import org.apache.hadoop.fs.{FileSystem, Path}
-
 import AvroOutputWriter._
+import org.apache.spark.storage.StorageLevel
 
 class AvroOutputWriter(
   sc: SparkContext,
@@ -124,6 +125,7 @@ class AvroOutputWriter(
     val structTypeSchema = StructType(schema.map{ _.structField }.toArray)
     val sqlContext = new SQLContext(sc)
     val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema).repartition(10)
+    dataFrame.persist(StorageLevel.MEMORY_AND_DISK_SER)
 
     //println("================================= dataFrame = ")
     //dataFrame.printSchema

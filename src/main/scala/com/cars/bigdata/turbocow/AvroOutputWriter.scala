@@ -124,7 +124,11 @@ class AvroOutputWriter(
     // create a dataframe of RDD[row] and Avro schema
     val structTypeSchema = StructType(schema.map{ _.structField }.toArray)
     val sqlContext = new SQLContext(sc)
-    val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema).repartition(10)
+
+    // this gives 18,000 or something like it
+    //val numPartitions = rowRDD.partitions.size
+    //println("Avro writer: rowRDD.partitions = "+numPartitions)
+    val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema).repartition(30)
     dataFrame.persist(StorageLevel.MEMORY_AND_DISK_SER)
 
     //println("================================= dataFrame = ")

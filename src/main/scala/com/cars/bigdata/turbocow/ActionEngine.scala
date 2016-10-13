@@ -133,7 +133,7 @@ object ActionEngine
     RDD[Map[String, String]] = {
 
     // parse the input json data
-    val flattenedImpressionsRDD = inputJsonRDD.map( jsonString => {
+    val flattenedRDD = inputJsonRDD.map( jsonString => {
       val ast = parse(jsonString)
       // 'flatten' the json so activityMap & metaData's members are together at the
       // same level:
@@ -156,7 +156,7 @@ object ActionEngine
     })
 
     // for every impression, perform all actions from config file.
-    val enrichedRDD = flattenedImpressionsRDD.mapPartitions{ iter =>
+    val enrichedRDD = flattenedRDD.mapPartitions{ iter =>
 
       val jdbcClients: Map[String, Statement] = createJdbcClients(bc.jdbcClientConfigsBC.value)
 
@@ -174,8 +174,7 @@ object ActionEngine
             val message = "Unhandled Exception:  " + e.getMessage() +
               e.getStackTrace().mkString("\n    ", "\n    ", "")
 
-            // TODO log somewhere
-            println("EEEEEEEEEEEEEEEEEEEEEEE Error:  "+message)
+            println("Error:  "+message)
 
             scratchPad.setResult("unhandled-exception", message)
 

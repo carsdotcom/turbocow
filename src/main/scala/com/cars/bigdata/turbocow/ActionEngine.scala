@@ -83,7 +83,7 @@ object ActionEngine
     * This will likely never be called except from the two above process functions.
     *
     * @param inputJsonRDD an RDD of JSON Strings to process
-    * @param config configuration file that describes how to process the input data
+    * @param config configuration string that describes how to process the input data
     * @param sc SparkContext
     * @param hiveContext the hive context, if any
     * @param actionFactory the factory you want to utilize for creating Action objects
@@ -104,27 +104,33 @@ object ActionEngine
     jdbcClientConfigs: Seq[JdbcClientConfig] = Nil):
     RDD[Map[String, String]] = {
 
-    // Create the list of Items from the config and broadcast
-    val parsedConfig = parse(config)
-    val items = actionFactory.createItems(parsedConfig)
-    val itemsBC: Broadcast[List[Item]] = sc.broadcast(items)
+    // Parse the config file and broadcast what we need to.
+    val bc = EngineBroadcasts.create(
+      config, 
+      sc, 
+      hiveContext,
+      actionFactory, 
+      initialScratchPad, 
+      jdbcClientConfigs)
 
-    // Create the exceptionHandling from the config:
-    val exceptionHandlingActions = new ActionList(
-      actionFactory.createActionList(
-        ( parsedConfig \ "global" \ "exceptionHandlingList" ).toOption
-      )
-    )
-    val exceptionHandlingActionsBC = sc.broadcast(exceptionHandlingActions)
+    processJsonRDD(inputJsonRDD, bc)
+  }
 
-    // Cache all the tables as specified in the items, then broadcast
-    val tableCaches: Map[String, TableCache] =
-      HiveTableCache.cacheTables(items, hiveContext)
-    val tableCachesBC = sc.broadcast(tableCaches)
-
-    // Broadcast some things
-    val initialScratchPadBC = sc.broadcast(initialScratchPad)
-    val jdbcClientConfigsBC = sc.broadcast(jdbcClientConfigs)
+  /** Process a set of JSON strings rather than reading from a directory.
+    * This will likely never be called except from the two above process functions.
+    *
+    * @param inputJsonRDD an RDD of JSON Strings to process
+    * @param bc the EngineBroadcasts, which must have been previously broadcast
+    *           via the .create method.
+    * 
+    * @return RDD of enriched data records, where each record is a key-value map.
+    * 
+    * @todo add similar functions to the other process..() functions above
+    */
+  def processJsonRDD(
+    inputJsonRDD: RDD[String],
+    bc: EngineBroadcasts):
+    RDD[Map[String, String]] = {
 
     // parse the input json data
     val flattenedImpressionsRDD = inputJsonRDD.map( jsonString => {
@@ -152,18 +158,18 @@ object ActionEngine
     // for every impression, perform all actions from config file.
     val enrichedRDD = flattenedImpressionsRDD.mapPartitions{ iter =>
 
-      val jdbcClients: Map[String, Statement] = createJdbcClients(jdbcClientConfigsBC.value)
+      val jdbcClients: Map[String, Statement] = createJdbcClients(bc.jdbcClientConfigsBC.value)
 
       iter.map{ ast =>
 
         try {
-          processRecord(ast, itemsBC.value, initialScratchPadBC.value, tableCachesBC.value, jdbcClients)
+          processRecord(ast, bc.itemsBC.value, bc.initialScratchPadBC.value, bc.tableCachesBC.value, jdbcClients)
         }
         catch {
           case e: Throwable => {
 
             // Save the stack trace in the scratchpad
-            val scratchPad = initialScratchPadBC.value
+            val scratchPad = bc.initialScratchPadBC.value
 
             val message = "Unhandled Exception:  " + e.getMessage() +
               e.getStackTrace().mkString("\n    ", "\n    ", "")
@@ -174,12 +180,12 @@ object ActionEngine
             scratchPad.setResult("unhandled-exception", message)
 
             // Run the exception action list
-            exceptionHandlingActionsBC.value.perform(
+            bc.exceptionHandlingActionsBC.value.perform(
               ast, 
               Map.empty[String, String], 
               ActionContext(
-                tableCachesBC.value, 
-                scratchPad=initialScratchPadBC.value
+                bc.tableCachesBC.value, 
+                scratchPad=bc.initialScratchPadBC.value
               )
             ).enrichedUpdates
           }

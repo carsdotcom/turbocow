@@ -59,54 +59,21 @@ class AvroOutputWriter(
     val writerConfig = avroWriterConfig // make local ref so whole obj doesn't get serialized (which includes the sc and therefore can't be serialized)
     val errorMarker = avroTypeErrorMarker
 
+    //val anyRDD: RDD[Map[String, Any]] = RDDUtil.convertToTypedEnrichedRDD()
+
     // Loop through enriched record fields, and extract the value of each field 
     // in the order of schema list (so the order matches the Avro schema). 
     // Convert to the correct type as well.
-    val anyRDD: RDD[Map[String, Any]] = rdd.map{ record => 
-
-      var errors = List.empty[String]
-
-      val newRecord: Map[String, Any] = schema.map{ fieldConfig =>
-
-        val key = fieldConfig.structField.name
-        val v = record.get(key)
-        val value = {
-          if (v.isDefined) {
-            try{
-              convertToType(v.get, fieldConfig.structField, writerConfig).get
-            }
-            catch {
-              case e: EmptyStringConversionException => {
-                //println(s"Detected empty string in '${fieldConfig.structField.name}' when trying to convert; using default value.")
-                fieldConfig.getDefaultValue
-              }
-              case e: Throwable => {
-                errors = errors :+ e.getMessage
-                v.get.toString
-              }
-            }
-          }
-          else {
-            // add the default value
-            fieldConfig.getDefaultValue
-          }
-        }
-
-        (key, value)
-      }.toMap
-
-      if (errors.nonEmpty) newRecord + (errorMarker-> errors.mkString("; "))
-      else newRecord
-    }
+    val anyRDD: RDD[Map[String, Any]] = createTypedEnrichedRDD(rdd, schema, errorMarker, writerConfig)
 
     // Now filter out the error records for later returning.
-    val errorRDD: RDD[Map[String, String]] = anyRDD.filter{ 
+    val errorRDD: RDD[Map[String, String]] = anyRDD.filter{
       _.get(errorMarker).nonEmpty
-    }.map{ record =>  
+    }.map{ record =>
       // convert to strings - can't write out if the type is incorrect
       record.map{ case(k,v) => v match {
         case null => (k, null)
-        case _ => (k, v.toString) 
+        case _ => (k, v.toString)
       }}
     }
 
@@ -154,6 +121,7 @@ class AvroOutputWriter(
     // return the errors
     errorRDD
   }
+
 }
 
 object AvroOutputWriter {
@@ -251,6 +219,54 @@ object AvroOutputWriter {
 
     //println(s"========== name = $name, dataType=$dataType, nullable=$nullable")
     StructField(name, dataType, nullable)
+  }
+
+  /** Transform an RDD of string data into correctly typed data according to the
+    * schema.
+    */
+  def createTypedEnrichedRDD(
+    rdd: RDD[Map[String, String]], 
+    schema: List[AvroFieldConfig],
+    errorMarker: String,
+    writerConfig: AvroOutputWriterConfig = AvroOutputWriterConfig()): 
+    RDD[Map[String, Any]] = {
+
+    rdd.map{ record => 
+
+      var errors = List.empty[String]
+
+      val newRecord: Map[String, Any] = schema.map{ fieldConfig =>
+
+        val key = fieldConfig.structField.name
+        val v = record.get(key)
+        val value = {
+          if (v.isDefined) {
+            try{
+              convertToType(v.get, fieldConfig.structField, writerConfig).get
+            }
+            catch {
+              case e: EmptyStringConversionException => {
+                //println(s"Detected empty string in '${fieldConfig.structField.name}' when trying to convert; using default value.")
+                fieldConfig.getDefaultValue
+              }
+              case e: Throwable => {
+                errors = errors :+ e.getMessage
+                v.get.toString
+              }
+            }
+          }
+          else {
+            // add the default value
+            fieldConfig.getDefaultValue
+          }
+        }
+
+        (key, value)
+      }.toMap
+
+      if (errors.nonEmpty) newRecord + (errorMarker-> errors.mkString("; "))
+      else newRecord
+    }
   }
 
   /** Convert a string to a datatype as specified.  

@@ -390,7 +390,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, outputDir.toString)
 
       // now read what we wrote - should only have the union, field C
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -513,7 +513,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -623,7 +623,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -724,7 +724,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -821,7 +821,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -971,7 +971,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      val rejectedRDD = (new AvroOutputWriter(sc)).write(enriched, avroFile, outputDir.toString)
+      val rejectedRDD = (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, outputDir.toString)
       val rejects = rejectedRDD.collect()
 
       // all but one will be rejected.

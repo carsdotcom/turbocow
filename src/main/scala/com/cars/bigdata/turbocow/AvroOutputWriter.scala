@@ -28,7 +28,7 @@ class AvroOutputWriter(
     * @return RDD of rejected records due to data types.  The RDD will
     *         be empty if no records are rejected.
     */
-  def write(
+  def writeEnrichedRDD(
     rdd: RDD[Map[String, String]],
     schemaPath: String,
     outputDir: String):
@@ -37,20 +37,20 @@ class AvroOutputWriter(
     // get the list of field names from avro schema
     val schema: List[AvroFieldConfig] = getAvroSchemaFromHdfs(schemaPath, sc)
 
-    write(rdd, schema, outputDir)
+    writeEnrichedRDD(rdd, schema, outputDir)
   }
 
   /** Output data to avro - with list of fields for the schema (useful for testing)
-    * 
+    *
     * @param rdd       RDD to write out
     * @param outputDir the dir to write to (hdfs:// typically)
     * @param schema    list of fields to write
     * @return RDD of rejected records due to data types.  The RDD will
-    *         be empty if all records write successfully.  Each record will have an 
+    *         be empty if all records write successfully.  Each record will have an
     *         additional field named AvroOutputWriter.avroOutputWriterTypeErrorMarker,
     *         with all of the type errors separated by semicolons.
     */
-  def write(
+  def writeEnrichedRDD(
     rdd: RDD[Map[String, String]],
     schema: List[AvroFieldConfig],
     outputDir: String): 
@@ -102,16 +102,7 @@ class AvroOutputWriter(
     //dataFrame.printSchema
     //dataFrame.show
 
-    // Ensure the dir can be written to by deleting it.
-    // It is up to the operator to ensure it is safe to overwrite this dir.
-    val fs = FileSystem.get(sc.hadoopConfiguration)
-    val outputDirPath = new Path(outputDir)
-    if (fs.exists(outputDirPath)) {
-      fs.delete(outputDirPath, true)
-    }
-
-    // lastly, write it out
-    dataFrame.write.format("com.databricks.spark.avro").save(outputDir)
+    write(dataFrame, new Path(outputDir))
 
     // Unpersist anything we are done with.
     dataFrame.unpersist(blocking=true)
@@ -387,7 +378,24 @@ object AvroOutputWriter {
 
       AvroFieldConfig(newStructField, newDefaultValue)
     }
-    
+  }
+
+  /** Write out a dataframe to Avro at the specified path.
+    * 
+    */
+  def write(df: DataFrame, outputDir: Path) = {
+
+    val sc = df.sqlContext.sparkContext
+
+    // Ensure the dir can be written to by deleting it.
+    // It is up to the client to ensure it is safe to overwrite this dir.
+    val fs = FileSystem.get(sc.hadoopConfiguration)
+    if (fs.exists(outputDir)) {
+      fs.delete(outputDir, true)
+    }
+
+    // lastly, write it out
+    df.write.format("com.databricks.spark.avro").save(outputDir.toString)
   }
 
 }

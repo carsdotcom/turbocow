@@ -202,11 +202,10 @@ class LookupSpec extends UnitSpec {
 
       enriched.size should be(1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be(3)
+      enriched.head.size should be(3 + 1) // input fields are always copied
       enriched.head("IntTarget") should be("12")
       enriched.head("BooleanTarget") should be("true")
       enriched.head("FloatTarget") should be("12.3")
-
     }
 
     it("should correctly reject a record when the lookup fails") {

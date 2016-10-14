@@ -223,6 +223,19 @@ object ActionEngine
       enrichedMap = enrichedMap ++ result.enrichedUpdates
     }
 
+    // For every field in the input, make sure it has a value in enriched.
+    // If not, copy it over.
+    val inputMap: Map[String, Any] = record.values match { case m: Map[String, Any] => m }
+    inputMap.foreach{ case (iKey, iVal) => 
+      if ( enrichedMap.get(iKey).isEmpty ) {
+        val stringVal = iVal match {
+          case null => null
+          case a: Any => a.toString
+        }
+        enrichedMap = enrichedMap + (iKey-> stringVal)
+      }
+    }
+
     // (For now, just return the enriched data)
     enrichedMap
   }

@@ -410,7 +410,7 @@ class UnaryCheckSpec extends UnitSpec {
         sc).collect()
 
       enriched.size should be (1) // always
-      enriched.head should be (Map("K"->"PASS"))
+      enriched.head("K") should be (("PASS"))
     }
   }
 

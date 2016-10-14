@@ -53,148 +53,60 @@ class ActionEngineSpec
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  describe("simple copy") // ------------------------------------------------
+  describe("processRecord()") // ------------------------------------------------
   {
-    it("should successfully process one field") {
-      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
-        new URI("./src/test/resources/input-integration.json"),
+    it("should copy in all fields from the input record if no actions specified") {
+      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
+        // input record:
+        List("""{ 
+          "md": { 
+            "AField": "A", 
+            "BField": "B" 
+          }, 
+          "activityMap": { 
+            "CField": 10, 
+            "DField": "", 
+            "EField": null 
+        }}"""),
+        // config:
         """{
-            "activityType": "impressions",
-            "items": [
-              {
-                "actions":[{
-                    "actionType":"simple-copy",
-                    "config": {
-                      "inputSource": [ "AField" ]
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        """,
+          "items": []
+        }""",
         sc).collect()
-  
-      enriched.size should be (1) // always one because there's only one json input object
-      enriched.head.size should be (1)
-      enriched.head.get("AField") should be (Some("A"))
-    }
 
-    it("should successfully process two fields") {
-    
-      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
-        new URI("./src/test/resources/input-integration.json"),
-        """{
-            "activityType": "impressions",
-            "items": [
-              {
-                "actions":[{
-                    "actionType":"simple-copy",
-                    "config": {
-                      "inputSource": [ "AField", "CField" ]
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        """,
-        sc).collect()
-  
       enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be (2)
+      enriched.head.size should be (5) // input records always get copied in
       enriched.head.get("AField") should be (Some("A"))
+      enriched.head.get("BField") should be (Some("B"))
       enriched.head.get("CField") should be (Some("10"))
+      enriched.head.get("DField") should be (Some(""))
+      enriched.head.get("EField") should be (Some(null)) // i know this is weird
     }
 
-    it("should successfully copy over a field even if it is blank in the input") {
-    
-      // Note: EField is empty ("") in the input record
-      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
-        new URI("./src/test/resources/input-integration.json"),
-        """{
-            "activityType": "impressions",
-            "items": [
-              {
-                "actions":[{
-                    "actionType":"simple-copy",
-                    "config": {
-                      "inputSource": [ "AField", "EField", "CField" ]
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        """,
+    it("should copy in all fields from the input record even if an empty config is specified") {
+      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
+        // input record:
+        List("""{
+          "md": {
+            "AField": "A",
+            "BField": "B"
+          },
+          "activityMap": {
+            "CField": 10,
+            "DField": "",
+            "EField": null
+        }}"""),
+        // config:
+        """{}""",
         sc).collect()
 
       enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be (3)
+      enriched.head.size should be (5) // input records always get copied in
       enriched.head.get("AField") should be (Some("A"))
+      enriched.head.get("BField") should be (Some("B"))
       enriched.head.get("CField") should be (Some("10"))
-      enriched.head.get("EField") should be (Some(""))
-    }
-
-    it("should fail parsing missing config") {
-      val e = intercept[Exception] {
-        ActionEngine.processDir(
-          new URI("./src/test/resources/input-integration.json"),
-          """{
-              "activityType": "impressions",
-              "items": [
-                {
-                  "actions":[{
-                      "actionType":"simple-copy" }]}]}""",
-          sc)
-      }
-    }
-    it("should fail parsing empty list") {
-      val e = intercept[Exception] {
-        ActionEngine.processDir(
-          new URI("./src/test/resources/input-integration.json"),
-          """{
-              "activityType": "impressions",
-              "items": [
-                {
-                  "actions":[{
-                      "actionType":"simple-copy",
-                      "config": {
-                        "inputSource": [ ] }}]}]}""",
-          sc)
-      }
-    }
-    it("should fail parsing list with empty element") {
-      val e = intercept[Exception] {
-        ActionEngine.processDir(
-          new URI("./src/test/resources/input-integration.json"),
-          """{
-              "activityType": "impressions",
-              "items": [
-                {
-                  "actions":[{
-                      "actionType":"simple-copy",
-                      "config": {
-                        "inputSource": [ "A", "" ] }}]}]}""",
-          sc)
-      }
-    }
-    it("should fail parsing list with null element") {
-      val e = intercept[Exception] {
-        ActionEngine.processDir(
-          new URI("./src/test/resources/input-integration.json"),
-          """{
-              "activityType": "impressions",
-              "items": [
-                {
-                  "actions":[{
-                      "actionType":"simple-copy",
-                      "config": {
-                        "inputSource": [ "A", null ] }}]}]}""",
-          sc)
-      }
+      enriched.head.get("DField") should be (Some(""))
+      enriched.head.get("EField") should be (Some(null)) // i know this is weird
     }
   }
 
@@ -225,7 +137,7 @@ class ActionEngineSpec
 
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be (1)
+      enriched.head.size should be (5 + 1)
       enriched.head.get("AFieldEnriched") should be (Some("A"))
     }
 
@@ -259,7 +171,7 @@ class ActionEngineSpec
 
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be (2)
+      enriched.head.size should be (2 + 5)
       enriched.head.get("AFieldEnriched") should be (Some("A"))
       enriched.head.get("BFieldEnriched") should be (Some("B"))
     }
@@ -295,7 +207,7 @@ class ActionEngineSpec
 
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be (2)
+      enriched.head.size should be (2 + 5)
       enriched.head.get("AFieldEnriched") should be (Some("A"))
       enriched.head.get("EFieldEnriched") should be (Some(""))
     }
@@ -467,7 +379,7 @@ class ActionEngineSpec
     
       enriched.size should be (1) // always one because there's only one json input object
       //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be (2)
+      enriched.head.size should be (2 + 5)
       enriched.head("customA") should be ("AAA")
       enriched.head("customB") should be ("BBB")
     }

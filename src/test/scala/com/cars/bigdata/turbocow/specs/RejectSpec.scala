@@ -160,7 +160,10 @@ class RejectSpec
            }""".stripMargin,
         sc, Some(hiveCtx)).collect()
     
-      enriched.size should be (0) // an empty enriched record gets filtered out
+      enriched.size should be (1)
+      enriched.head.get("EnhField1") should be (None)
+      enriched.head.get("EnhField2") should be (None)
+      enriched.head.get("EnhField3") should be (None)
     }
 
     it("should throw an exception when parsing the reject action with no config") {

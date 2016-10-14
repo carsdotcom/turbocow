@@ -377,7 +377,7 @@ class AvroOutputWriterSpec
       val enrichedAll = enriched.collect()
       //println("========= enrichedAll = "+enrichedAll.mkString("//"))
       enrichedAll.size should be (1) // always one because there's only one json input object
-      enrichedAll.head.size should be (2)
+      enrichedAll.head.size should be (5) // all fields are copied by default if not otherwise added
       enrichedAll.head.get("BField") should be (Some("B"))
       enrichedAll.head.get("CField") should be (Some("C"))
 
@@ -612,7 +612,7 @@ class AvroOutputWriterSpec
       val enrichedAll = enriched.collect()
       //println("========= enrichedAll = "+enrichedAll.mkString("//"))
       enrichedAll.size should be (1)
-      enrichedAll.head.size should be (1)
+      enrichedAll.head.size should be (2) // input fields are added if not processed
       enrichedAll.head.get("X") should be (Some("XVal"))
 
       // now write to avro

@@ -245,61 +245,6 @@ class SearchAndReplaceSpec extends UnitSpec {
   }
 
   describe("SearchAndReplace Action"){
-    it("should successfully process searchFor-~-replaceWith-|") {
-
-      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
-        new java.net.URI("./src/test/resources/input.json"),
-        """{
-          |   "activityType":"impressions",
-          |   "items":[
-          |      {
-          |         "actions":[
-          |            {
-          |               "actionType":"search-and-replace",
-          |               "config":{
-          |                 "inputSource" : ["adobe_id2"],
-          |                 "searchFor" : "~",
-          |                 "replaceWith" : "|"
-          |               }
-          |            }
-          |         ]
-          |      }
-          |   ]
-          |}""".stripMargin,
-        sc,
-        None,
-        new ActionFactory(new CustomActionCreator)).collect()
-
-
-      enriched.head("adobe_id2") should be ("|||any|||")
-    }
-
-    it("should successfully process searchFor any and replaceWith anything") {
-
-      val enriched: Array[Map[String, String]] = ActionEngine.processDir(
-        new java.net.URI("./src/test/resources/input.json"),
-        """{
-          |   "activityType":"impressions",
-          |   "items":[
-          |      {
-          |         "actions":[
-          |            {
-          |               "actionType":"search-and-replace",
-          |               "config":{
-          |                 "inputSource" : ["adobe_id2"],
-          |                 "searchFor" : "any",
-          |                 "replaceWith" : "anything"
-          |               }
-          |            }
-          |         ]
-          |      }
-          |   ]
-          |}""".stripMargin,
-        sc).collect()
-
-
-      enriched.head("adobe_id2") should be ("~~~anything~~~")
-    }
 
     def doSearchAndReplace(
       input : String,
@@ -317,7 +262,7 @@ class SearchAndReplaceSpec extends UnitSpec {
           |            {
           |               "actionType":"search-and-replace",
           |               "config":{
-          |                 "inputSource" : ["adobe"],
+          |                 "inputSource" : ["field"],
           |                 "searchFor" : "${searchFor}",
           |                 "replaceWith" : "${replaceWith}"
           |               }
@@ -329,13 +274,46 @@ class SearchAndReplaceSpec extends UnitSpec {
         sc).collect()
     }
 
-    //passing null when the field is missing or null in input json..can be configured to Empty if needed
-    it(" should give null when adobe has null and found nothing to replace with"){
-     doSearchAndReplace("""{ "adobe" : null }""" , "a" , "b").size should be (0)
+    it("should do nothing if input field is null"){
+        val enrichedRecords = doSearchAndReplace(
+          """{ "md": { "field": null } }""",
+          "a",
+          "A"
+        )
+      enrichedRecords.size should be (1)
+      enrichedRecords.head("field") should be (null)
     }
 
-    it(" should give null when adobe is missing and found nothing to replace with"){
-      doSearchAndReplace("""{ }""" , "a" , "b").size should be (0)
+    it(" should do nothing if input field is missing"){
+      val enrichedRecords = doSearchAndReplace(
+        """{ "md": { "fieldX": "Banana" } }""",
+        "a",
+        "A"
+      )
+      enrichedRecords.size should be (1)
+      enrichedRecords.head.get("fieldX") should be (Some("Banana"))
     }
+
+    it("should replace characters successfully") {
+      val enrichedRecords = doSearchAndReplace(
+        """{ "md": { "field": "Banana" } }""",
+        "a",
+        "~~~"
+      )
+      enrichedRecords.size should be (1)
+      enrichedRecords.head.get("field") should be (Some("B~~~n~~~n~~~"))
+    }
+
+    it("should do nothing if characters are not found") {
+      val enrichedRecords = doSearchAndReplace(
+        """{ "md": { "field": "Banana" } }""",
+        "X", // no X in Banana
+        "~~~"
+      )
+      enrichedRecords.size should be (1)
+      enrichedRecords.head.get("field") should be (Some("Banana"))
+    }
+
+
   }
 }

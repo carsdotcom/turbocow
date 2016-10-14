@@ -108,6 +108,41 @@ class ActionEngineSpec
       enriched.head.get("DField") should be (Some(""))
       enriched.head.get("EField") should be (Some(null)) // i know this is weird
     }
+
+    it("""should auto-copy fields from input to enriched only if they don't already
+          exist in enriched""") {
+    
+      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
+        // inputJson
+        Seq(s"""{"A": "AVAL", "B": "BVAL", "C": "CVAL"}"""),
+        // config
+        s"""{
+          "activityType": "impressions",
+    
+          "items": [
+            {
+              "name": "test",
+              "actions":[
+                {
+                  "actionType":"add-enriched-fields",
+                  "config": [{
+                      "key": "C",
+                      "value": "ENRICHED_VALUE"
+                  }]
+                }
+              ]
+            }
+          ]
+        }""",
+        sc
+      ).collect()
+    
+      enriched.size should be (1)
+      enriched.head.size should be (3)
+      enriched.head("A") should be ("AVAL") // from input
+      enriched.head("B") should be ("BVAL") // from input
+      enriched.head("C") should be ("ENRICHED_VALUE") // from enriched
+    }
   }
 
   describe("copy action") {

@@ -41,6 +41,13 @@ class AvroOutputWriterSpec
 
   import AvroOutputWriter._
 
+  def fieldIsNull(row: Row, fieldName: String): Boolean = {
+    val index = row.fieldIndex(fieldName)
+    ( index >= row.size || row.isNullAt(index) )
+  }
+
+  sc.setLogLevel("WARN") 
+
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
   // Tests start
@@ -325,7 +332,7 @@ class AvroOutputWriterSpec
     }
   }
 
-  describe("write()") {
+  describe("writeEnrichedRDD()") {
 
     it("should only output the fields in the schema regardless of what is in the input RDD") {
 
@@ -390,7 +397,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
 
       // now read what we wrote - should only have the union, field C
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -513,7 +520,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -623,7 +630,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -724,7 +731,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -821,7 +828,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -971,7 +978,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      val rejectedRDD = (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, outputDir.toString)
+      val rejectedRDD = (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
       val rejects = rejectedRDD.collect()
 
       // all but one will be rejected.
@@ -1112,6 +1119,81 @@ class AvroOutputWriterSpec
         AvroFieldConfig(StructField("StringNullDefault", StringType, true), JNull))
     }
   }
+
+  //describe("convertEnrichedRDDToDataFrame()") {
+  //
+  //  it("should copy over all fields when enrichedRDD matches schema exactly") {
+  //    val enrichedRDD = sc.parallelize(List( 
+  //      Map("A"->"A1VAL", "B"->"1"),
+  //      Map("A"->"A2VAL", "B"->"2")
+  //    ))
+  //    val schema = List(
+  //      AvroFieldConfig(StructField("A", StringType, nullable=true), JNull),
+  //      AvroFieldConfig(StructField("B", IntegerType, nullable=true), JNull)
+  //    )
+  //
+  //    val (goodDF, badDF) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
+  //    val rows = goodDF.collect()
+  //
+  //    goodDF.count should be (2)
+  //    val afs: Array[StructField] = goodDF.schema.fields
+  //    afs.size should be (2)
+  //    afs(0).name should be ("A")
+  //    afs(0).dataType should be (StringType)
+  //    afs(0).nullable should be (true)
+  //    afs(1).name should be ("B")
+  //    afs(1).dataType should be (IntegerType)
+  //    afs(1).nullable should be (true)
+  //
+  //    rows.size should be (2)
+  //    rows.foreach{ row => row.getAs[String]("A") match {
+  //      case "A1VAL" => row.getAs[Int]("B") should be (1)
+  //      case "A2VAL" => row.getAs[Int]("B") should be (2)
+  //      case _ => fail()
+  //    }}
+  //
+  //    badDF.count should be (0)
+  //  }
+  //
+  //  it("should deal with inconvertable types properly") {
+  //    fail()
+  //  }
+  //
+  //  it("should set any non-nullable fields to actually be nullable") {
+  //    fail()
+  //  }
+  //
+  //  it("should set any missing enrichedRDD fields to null") {
+  //    fail()
+  //  }
+  //
+  //  it("should NOT add any extra enrichedRDD fields to the output dataframe") {
+  //    fail()
+  //  }
+  //
+  //  it("should output empty DataFrame if input RDD is empty") {
+  //    fail()
+  //  }
+  //
+  //  it("should throw if schema is null") {
+  //    fail()
+  //  }
+  //
+  //  it("should throw if schema is an empty List") {
+  //    fail()
+  //  }
+  //
+  //}
+  //
+  //describe("setDefaultValues()") {
+  //  it("should set default values for all null values according to schema") {
+  //    fail()
+  //  }
+  //
+  //  it("should set default values for missing fields according to schema") {
+  //    fail()
+  //  }
+  //}
 
 }
 

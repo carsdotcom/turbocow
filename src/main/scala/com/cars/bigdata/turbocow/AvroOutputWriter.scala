@@ -31,13 +31,14 @@ class AvroOutputWriter(
   def writeEnrichedRDD(
     rdd: RDD[Map[String, String]],
     schemaPath: String,
+    sqlContext: SQLContext,
     outputDir: String):
     RDD[Map[String, String]] = {
 
     // get the list of field names from avro schema
     val schema: List[AvroFieldConfig] = getAvroSchemaFromHdfs(schemaPath, sc)
 
-    writeEnrichedRDD(rdd, schema, outputDir)
+    writeEnrichedRDD(rdd, schema, sqlContext, outputDir)
   }
 
   /** Output data to avro - with list of fields for the schema (useful for testing)
@@ -53,49 +54,13 @@ class AvroOutputWriter(
   def writeEnrichedRDD(
     rdd: RDD[Map[String, String]],
     schema: List[AvroFieldConfig],
+    sqlContext: SQLContext,
     outputDir: String): 
     RDD[Map[String, String]] = {
 
-    val writerConfig = avroWriterConfig // make local ref so whole obj doesn't get serialized (which includes the sc and therefore can't be serialized)
-    val errorMarker = avroTypeErrorMarker
+    val (dataFrame: DataFrame, errorRDD: RDD[Map[String, String]]) = 
+      convertEnrichedRDDToDataFrame(rdd, schema, sqlContext, avroWriterConfig)
 
-    //val anyRDD: RDD[Map[String, Any]] = RDDUtil.convertToTypedEnrichedRDD()
-
-    // Loop through enriched record fields, and extract the value of each field 
-    // in the order of schema list (so the order matches the Avro schema). 
-    // Convert to the correct type as well.
-    val anyRDD: RDD[Map[String, Any]] = createTypedEnrichedRDD(rdd, schema, errorMarker, writerConfig)
-
-    // Now filter out the error records for later returning.
-    val errorRDD: RDD[Map[String, String]] = anyRDD.filter{
-      _.get(errorMarker).nonEmpty
-    }.map{ record =>
-      // convert to strings - can't write out if the type is incorrect
-      record.map{ case(k,v) => v match {
-        case null => (k, null)
-        case _ => (k, v.toString)
-      }}
-    }
-
-    // Filter them out in the main rdd.
-    val rowRDD: RDD[Row] = anyRDD.filter {
-      _.get(errorMarker).isEmpty
-    }.map{ record =>
-      val vals: List[Any] = schema.map{ fieldConfig =>
-        val field = fieldConfig.structField.name
-        record.getOrElse(field, throw new Exception(s"couldn't find field name $field in anyRDD"))
-      }
-      Row.fromSeq(vals)
-    }
-
-    // create a dataframe of RDD[row] and Avro schema
-    val structTypeSchema = StructType(schema.map{ _.structField }.toArray)
-    val sqlContext = new SQLContext(sc)
-
-    // this gives 18,000 or something like it
-    //val numPartitions = rowRDD.partitions.size
-    //println("Avro writer: rowRDD.partitions = "+numPartitions)
-    val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema).repartition(30)
     dataFrame.persist(StorageLevel.MEMORY_AND_DISK_SER)
 
     //println("================================= dataFrame = ")
@@ -106,13 +71,10 @@ class AvroOutputWriter(
 
     // Unpersist anything we are done with.
     dataFrame.unpersist(blocking=true)
-    rowRDD.unpersist(blocking=true)
-    anyRDD.unpersist(blocking=true)
 
     // return the errors
     errorRDD
   }
-
 }
 
 object AvroOutputWriter {
@@ -396,6 +358,66 @@ object AvroOutputWriter {
 
     // lastly, write it out
     df.write.format("com.databricks.spark.avro").save(outputDir.toString)
+  }
+
+  /** Convert the enriched RDD map to a dataframe.  
+    * Records that couldn't be converted due to type conversion issues are returned
+    * as an RDD of the same type.
+    *
+    * @return (DataFrame, RDD) where the dataframe is the good records, and 
+    *         the RDD is the bad records that need to be handled separately due
+    *         to type conversion issues.
+    */
+  def convertEnrichedRDDToDataFrame(
+    enrichedRDD: RDD[Map[String, String]],
+    schema: List[AvroFieldConfig],
+    sqlContext: SQLContext,
+    writerConfig: AvroOutputWriterConfig = AvroOutputWriterConfig()): 
+    (DataFrame, RDD[Map[String, String]]) = {
+
+    val errorMarker = avroTypeErrorMarker
+
+    // Loop through enriched record fields, and extract the value of each field 
+    // in the order of schema list (so the order matches the Avro schema). 
+    // Convert to the correct type as well.
+    val anyRDD: RDD[Map[String, Any]] = createTypedEnrichedRDD(enrichedRDD, schema, errorMarker, writerConfig)
+
+    // Now filter out the error records for later returning.
+    val errorRDD: RDD[Map[String, String]] = anyRDD.filter{
+      _.get(errorMarker).nonEmpty
+    }.map{ record =>
+      // convert to strings - can't write out if the type is incorrect
+      record.map{ case(k,v) => v match {
+        case null => (k, null)
+        case _ => (k, v.toString)
+      }}
+    }
+
+    // Filter them out in the main rdd.
+    val rowRDD: RDD[Row] = anyRDD.filter {
+      _.get(errorMarker).isEmpty
+    }.map{ record =>
+      val vals: List[Any] = schema.map{ fieldConfig =>
+        val field = fieldConfig.structField.name
+        record.getOrElse(field, throw new Exception(s"couldn't find field name $field in anyRDD"))
+      }
+      Row.fromSeq(vals)
+    }
+
+    // create a dataframe of RDD[row] and Avro schema
+    val structTypeSchema = StructType(schema.map{ _.structField }.toArray)
+
+    // unpersist our temp RDDs
+    rowRDD.unpersist(blocking=true)
+    anyRDD.unpersist(blocking=true)
+
+    // this gives 18,000 or something like it
+    //val numPartitions = rowRDD.partitions.size
+    //println("Avro writer: rowRDD.partitions = "+numPartitions)
+    val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema).repartition(30)
+    
+    // return the tuple
+    (dataFrame, errorRDD)
   }
 
 }

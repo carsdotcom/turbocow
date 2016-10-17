@@ -1120,80 +1120,114 @@ class AvroOutputWriterSpec
     }
   }
 
-  //describe("convertEnrichedRDDToDataFrame()") {
-  //
-  //  it("should copy over all fields when enrichedRDD matches schema exactly") {
-  //    val enrichedRDD = sc.parallelize(List( 
-  //      Map("A"->"A1VAL", "B"->"1"),
-  //      Map("A"->"A2VAL", "B"->"2")
-  //    ))
-  //    val schema = List(
-  //      AvroFieldConfig(StructField("A", StringType, nullable=true), JNull),
-  //      AvroFieldConfig(StructField("B", IntegerType, nullable=true), JNull)
-  //    )
-  //
-  //    val (goodDF, badDF) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
-  //    val rows = goodDF.collect()
-  //
-  //    goodDF.count should be (2)
-  //    val afs: Array[StructField] = goodDF.schema.fields
-  //    afs.size should be (2)
-  //    afs(0).name should be ("A")
-  //    afs(0).dataType should be (StringType)
-  //    afs(0).nullable should be (true)
-  //    afs(1).name should be ("B")
-  //    afs(1).dataType should be (IntegerType)
-  //    afs(1).nullable should be (true)
-  //
-  //    rows.size should be (2)
-  //    rows.foreach{ row => row.getAs[String]("A") match {
-  //      case "A1VAL" => row.getAs[Int]("B") should be (1)
-  //      case "A2VAL" => row.getAs[Int]("B") should be (2)
-  //      case _ => fail()
-  //    }}
-  //
-  //    badDF.count should be (0)
-  //  }
-  //
-  //  it("should deal with inconvertable types properly") {
-  //    fail()
-  //  }
-  //
-  //  it("should set any non-nullable fields to actually be nullable") {
-  //    fail()
-  //  }
-  //
-  //  it("should set any missing enrichedRDD fields to null") {
-  //    fail()
-  //  }
-  //
-  //  it("should NOT add any extra enrichedRDD fields to the output dataframe") {
-  //    fail()
-  //  }
-  //
-  //  it("should output empty DataFrame if input RDD is empty") {
-  //    fail()
-  //  }
-  //
-  //  it("should throw if schema is null") {
-  //    fail()
-  //  }
-  //
-  //  it("should throw if schema is an empty List") {
-  //    fail()
-  //  }
-  //
-  //}
-  //
-  //describe("setDefaultValues()") {
-  //  it("should set default values for all null values according to schema") {
-  //    fail()
-  //  }
-  //
-  //  it("should set default values for missing fields according to schema") {
-  //    fail()
-  //  }
-  //}
+  describe("convertEnrichedRDDToDataFrame()") {
+  
+    it("should copy over all fields when enrichedRDD matches schema exactly") {
+      val enrichedRDD = sc.parallelize(List( 
+        Map("A"->"A1VAL", "B"->"1"),
+        Map("A"->"A2VAL", "B"->"2")
+      ))
+      val schema = List(
+        AvroFieldConfig(StructField("A", StringType, nullable=true), JNull),
+        AvroFieldConfig(StructField("B", IntegerType, nullable=true), JNull)
+      )
+  
+      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
+      val rows = goodDF.collect()
+  
+      goodDF.count should be (2)
+      val afs: Array[StructField] = goodDF.schema.fields
+      afs.size should be (2)
+      afs(0).name should be ("A")
+      afs(0).dataType should be (StringType)
+      afs(0).nullable should be (true)
+      afs(1).name should be ("B")
+      afs(1).dataType should be (IntegerType)
+      afs(1).nullable should be (true)
+  
+      rows.size should be (2)
+      rows.foreach{ row => row.getAs[String]("A") match {
+        case "A1VAL" => row.getAs[Int]("B") should be (1)
+        case "A2VAL" => row.getAs[Int]("B") should be (2)
+        case _ => fail()
+      }}
+  
+      badRDD.count should be (0)
+    }
+  
+    it("should return rows with values that couldn't be converted ") {
+      //this is handled by test "should return an RDD of rejected records that were not written due to datatype conversion problems"
+      //consider refactoring tests, or not
+    }
+  
+    it("should set any missing enrichedRDD fields to null (and not the default value)") {
+      val enrichedRDD = sc.parallelize(List( 
+        Map("A"->"A1VAL", "B"->"1"),
+        Map("A"->"A2VAL")
+      ))
+      val schema = List(
+        AvroFieldConfig(StructField("A", StringType, nullable=true), JNull),
+        AvroFieldConfig(StructField("B", IntegerType, nullable=true), JInt(5))
+      )
+  
+      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
+      val rows = goodDF.collect()
+  
+      goodDF.count should be (2)
+      val afs: Array[StructField] = goodDF.schema.fields
+      afs.size should be (2)
+      afs(0).name should be ("A")
+      afs(0).dataType should be (StringType)
+      afs(0).nullable should be (true)
+      afs(1).name should be ("B")
+      afs(1).dataType should be (IntegerType)
+      afs(1).nullable should be (true)
+  
+      rows.size should be (2)
+      rows.foreach{ row => row.getAs[String]("A") match {
+        case "A1VAL" => row.getAs[Int]("B") should be (1)
+        case "A2VAL" => fieldIsNull(row, "B") should be (true)
+        case _ => fail()
+      }}
+  
+      badRDD.count should be (0)
+    }
+  
+    it("should set any non-nullable fields to nullable in the returned DF") {
+      fail()
+    }
+
+    it("should NOT add any extra enrichedRDD fields to the output dataframe") {
+      fail()
+    }
+  
+    it("should set any non-nullable fields to actually be nullable") {
+      fail()
+    }
+  
+    it("should output empty DataFrame if input RDD is empty") {
+      fail()
+    }
+  
+    it("should throw if schema is null") {
+      fail()
+    }
+  
+    it("should throw if schema is an empty List") {
+      fail()
+    }
+  
+  }
+  
+  describe("setDefaultValues()") {
+    it("should set default values for all null values according to schema") {
+      fail()
+    }
+  
+    it("should set default values for missing fields according to schema") {
+      fail()
+    }
+  }
 
 }
 

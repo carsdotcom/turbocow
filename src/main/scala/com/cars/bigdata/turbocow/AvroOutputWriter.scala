@@ -181,7 +181,8 @@ object AvroOutputWriter {
     rdd: RDD[Map[String, String]], 
     schema: List[AvroFieldConfig],
     errorMarker: String,
-    writerConfig: AvroOutputWriterConfig = AvroOutputWriterConfig()): 
+    writerConfig: AvroOutputWriterConfig = AvroOutputWriterConfig(),
+    setDefaultValuesForMissing: Boolean = false):  // default is to write nulls
     RDD[Map[String, Any]] = {
 
     rdd.map{ record => 
@@ -189,6 +190,10 @@ object AvroOutputWriter {
       var errors = List.empty[String]
 
       val newRecord: Map[String, Any] = schema.map{ fieldConfig =>
+
+        val missingValue: Any = 
+          if (setDefaultValuesForMissing) fieldConfig.getDefaultValue
+          else null
 
         val key = fieldConfig.structField.name
         val v = record.get(key)
@@ -200,7 +205,7 @@ object AvroOutputWriter {
             catch {
               case e: EmptyStringConversionException => {
                 //println(s"Detected empty string in '${fieldConfig.structField.name}' when trying to convert; using default value.")
-                fieldConfig.getDefaultValue
+                missingValue
               }
               case e: Throwable => {
                 errors = errors :+ e.getMessage
@@ -209,8 +214,7 @@ object AvroOutputWriter {
             }
           }
           else {
-            // add the default value
-            fieldConfig.getDefaultValue
+            missingValue
           }
         }
 

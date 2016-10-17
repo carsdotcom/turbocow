@@ -176,13 +176,13 @@ object AvroOutputWriter {
 
   /** Transform an RDD of string data into correctly typed data according to the
     * schema.
+    * Missing values are NOT defaulted but instead NULL is written.
     */
   def createTypedEnrichedRDD(
     rdd: RDD[Map[String, String]], 
     schema: List[AvroFieldConfig],
     errorMarker: String,
-    writerConfig: AvroOutputWriterConfig = AvroOutputWriterConfig(),
-    setDefaultValuesForMissing: Boolean = false):  // default is to write nulls
+    writerConfig: AvroOutputWriterConfig = AvroOutputWriterConfig()):
     RDD[Map[String, Any]] = {
 
     rdd.map{ record => 
@@ -191,9 +191,7 @@ object AvroOutputWriter {
 
       val newRecord: Map[String, Any] = schema.map{ fieldConfig =>
 
-        val missingValue: Any = 
-          if (setDefaultValuesForMissing) fieldConfig.getDefaultValue
-          else null
+        val missingValue: Any = null
 
         val key = fieldConfig.structField.name
         val v = record.get(key)

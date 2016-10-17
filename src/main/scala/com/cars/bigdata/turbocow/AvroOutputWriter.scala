@@ -379,10 +379,13 @@ object AvroOutputWriter {
 
     val errorMarker = avroTypeErrorMarker
 
+    // create schema that ensures every field is nullable.
+    val safeSchema = schema.map{ afc => afc.copy(structField = afc.structField.copy(nullable=true)) }
+
     // Loop through enriched record fields, and extract the value of each field 
     // in the order of schema list (so the order matches the Avro schema). 
     // Convert to the correct type as well.
-    val anyRDD: RDD[Map[String, Any]] = createTypedEnrichedRDD(enrichedRDD, schema, errorMarker, writerConfig)
+    val anyRDD: RDD[Map[String, Any]] = createTypedEnrichedRDD(enrichedRDD, safeSchema, errorMarker, writerConfig)
 
     // Now filter out the error records for later returning.
     val errorRDD: RDD[Map[String, String]] = anyRDD.filter{
@@ -399,7 +402,7 @@ object AvroOutputWriter {
     val rowRDD: RDD[Row] = anyRDD.filter {
       _.get(errorMarker).isEmpty
     }.map{ record =>
-      val vals: List[Any] = schema.map{ fieldConfig =>
+      val vals: List[Any] = safeSchema.map{ fieldConfig =>
         val field = fieldConfig.structField.name
         record.getOrElse(field, throw new Exception(s"couldn't find field name $field in anyRDD"))
       }
@@ -407,7 +410,7 @@ object AvroOutputWriter {
     }
 
     // create a dataframe of RDD[row] and Avro schema
-    val structTypeSchema = StructType(schema.map{ _.structField }.toArray)
+    val structTypeSchema = StructType(safeSchema.map{ _.structField }.toArray)
 
     // unpersist our temp RDDs
     rowRDD.unpersist(blocking=true)

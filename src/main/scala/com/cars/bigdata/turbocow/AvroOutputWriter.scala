@@ -380,6 +380,8 @@ object AvroOutputWriter {
     val errorMarker = avroTypeErrorMarker
 
     // create schema that ensures every field is nullable.
+    if (schema == null ) throw new RuntimeException("schema must not be null in convertEnrichedRDDToDataFrame()")
+    if (schema.isEmpty) throw new RuntimeException("schema must not be empty in convertEnrichedRDDToDataFrame()")
     val safeSchema = schema.map{ afc => afc.copy(structField = afc.structField.copy(nullable=true)) }
 
     // Loop through enriched record fields, and extract the value of each field 

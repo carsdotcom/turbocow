@@ -1250,22 +1250,30 @@ class AvroOutputWriterSpec
       }
     }
   
-    it("should set any non-nullable fields to actually be nullable") {
-      fail()
-    }
-  
     it("should output empty DataFrame if input RDD is empty") {
-      fail()
-    }
+      val enrichedRDD = sc.parallelize(List.empty[Map[String, String]])
+      val schema = List(
+        AvroFieldConfig(StructField("A", StringType, nullable=true), JNull),
+        AvroFieldConfig(StructField("B", IntegerType, nullable=true), JNull)
+      )
   
-    it("should throw if schema is null") {
-      fail()
+      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
+      goodDF.count should be (0)
     }
   
     it("should throw if schema is an empty List") {
-      fail()
+      val enrichedRDD = sc.parallelize(List.empty[Map[String, String]])
+      val schema = List.empty[AvroFieldConfig]
+
+      intercept[Exception] { convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx) }
     }
-  
+
+    it("should throw if schema is null") {
+      val enrichedRDD = sc.parallelize(List.empty[Map[String, String]])
+      val schema: List[AvroFieldConfig] = null
+
+      intercept[Exception] { convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx) }
+    }
   }
   
   describe("setDefaultValues()") {

@@ -1276,15 +1276,5 @@ class AvroOutputWriterSpec
     }
   }
   
-  describe("setDefaultValues()") {
-    it("should set default values for all null values according to schema") {
-      fail()
-    }
-  
-    it("should set default values for missing fields according to schema") {
-      fail()
-    }
-  }
-
 }
 

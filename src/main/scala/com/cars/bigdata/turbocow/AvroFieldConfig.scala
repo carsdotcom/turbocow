@@ -4,12 +4,12 @@ import AvroOutputWriter._
 import org.apache.spark.sql.types._
 import org.json4s.JsonAST._
 
-case class AvroFieldConfig(
+case class AvroFieldConfig( // todo rename, this is not really avro-specific
   structField: StructField,
   defaultValue: JValue
 ) {
 
-  // perform some checks on the data
+  // perform some checks on the data.  Throws if data is wrong format
   checkDefaultValue
 
   /** Get the default value according to what type it is.

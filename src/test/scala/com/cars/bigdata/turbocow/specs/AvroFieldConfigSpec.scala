@@ -224,7 +224,60 @@ class AvroFieldConfigSpec
     }
   }
 
-    
+  describe("getDefaultValueAs()") {
+
+    it("should return the right default value and type") {
+
+      // string ---------------------------------------------------
+
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "null", "string" ],
+        "default": null
+      }""")).getDefaultValueAs[String] match { case None => ; case _ => fail() }
+
+      AvroFieldConfig(parse("""{ 
+        "name": "n",
+        "type": [ "string" ],
+        "default": "defString"
+      }""")).getDefaultValueAs[String] should be (Some("defString"))
+
+      // integral ---------------------------------------------------
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "int" ],
+        "default": 10
+      }""")).getDefaultValueAs[Int] should be (Some(10))
+
+      // floating ---------------------------------------------------
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "float" ],
+        "default": 0.1
+      }""")).getDefaultValueAs[Float] should be (Some(0.1f))
+
+      // boolean ---------------------------------------------------
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "boolean" ],
+        "default": true
+      }""")).getDefaultValueAs[Boolean] match { case Some(true) => ; case _ => fail() }
+
+      // null ---------------------------------------------------
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "null" ],
+        "default": null
+      }""")).getDefaultValueAs[Null] match { case None => ; case _ => fail() }
+
+      // this should throw - default config is required to getDefaultValue
+      Try { AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "int" ]
+      }""")).getDefaultValueAs[String] }.isSuccess should be (false)
+    }
+  }
+
 }
 
 

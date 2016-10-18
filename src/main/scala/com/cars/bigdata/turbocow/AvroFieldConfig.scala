@@ -38,6 +38,31 @@ case class AvroFieldConfig( // todo rename, this is not really avro-specific
     }
   }
 
+  /** Get the default value according to what type it is, when you know what type.
+    *  
+    * @return 'primitive' type (Int, Float, etc.) in an Any;
+    *         throws on JNothing (no default provided) or
+    *         the JSON type was not a string, numeric, boolean,
+    *         or null.
+    */
+  def getDefaultValueAs[T]()(implicit m: Manifest[T]): Option[T] = {
+    implicit val jsonFormats = org.json4s.DefaultFormats
+    defaultValue match {
+      case j: JString => Option(j.extract[T])
+      case j: JInt => Option(structField.dataType match {
+        case IntegerType => j.extract[T]
+        case LongType => j.extract[T]
+      })
+      case j: JDouble => Option(structField.dataType match {
+        case FloatType => j.extract[T]
+        case DoubleType => j.extract[T]
+      })
+      case j: JBool => Option(j.extract[T])
+      case JNull => None
+      case JNothing => throw new Exception("no default value was specified")
+      case _ => throw new Exception(s"unsupported JSON type specified as 'default' value for '${structField.name}' field.")
+    }
+  }
 
   /** Check for existence of the default value as well as its type.
     * 

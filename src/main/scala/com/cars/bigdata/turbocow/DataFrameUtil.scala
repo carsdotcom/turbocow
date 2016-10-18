@@ -52,7 +52,7 @@ object DataFrameUtil
           else false
         }
         val tempField = "___TURBOCOW_TEMP_DATAFRAMEUTIL_SETDEFAULTVALUES___"
-        val newDF = df.withColumn(tempField, convertToInt(col(name)))
+        val newDF = df.withColumn(tempField, defaultBools(col(name)))
           .drop(name)
           .withColumnRenamed(tempField, name)
 

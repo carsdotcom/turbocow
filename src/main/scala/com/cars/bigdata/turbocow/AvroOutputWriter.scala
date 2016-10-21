@@ -112,7 +112,14 @@ object AvroOutputWriter {
     // collect fields list from avro schema
     val fields = (parsedSchema \ "fields").children
 
-    fields.map { eachChild => AvroFieldConfig(eachChild) }
+    fields.map { eachChild => 
+      val afc = AvroFieldConfig(eachChild) 
+
+      // Float fields are disallowed due to https://issues.apache.org/jira/browse/SPARK-14081
+      if (afc.structField.dataType == FloatType) throw new RuntimeException(""""float" types are not allowed in the avro schema due to a Spark bug.  Please change all "float" types to "double".""")
+
+      afc
+    }
   }
 
   /** get the DataType type from a string description

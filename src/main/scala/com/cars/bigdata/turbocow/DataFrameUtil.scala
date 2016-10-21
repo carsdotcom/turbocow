@@ -40,12 +40,12 @@ object DataFrameUtil
       * @todo remove for Spark 2.0
       */
     def retypeDoubleToFloat(floatField: String): DataFrame = {
-      //val copyAsFloat = udf { (v: Float) => f }
+      val copyAsFloat = udf { (v: Float) => v }
       val tempCol = "____TURBOCOW_DATAFRAMEUTIL_DATAFRAMEADDITIONS_RETYPEDOUBLETOFLOAT_TEMP___"
 
       //val split = df.split(df(floatField))
 
-      //df.withColumn(tempCol, copyAsFloat(col(floatField).cast(Float)))
+      //df.withColumn(tempCol, copyAsFloat(col(floatField).cast(FloatType)))
       df.withColumn(tempCol, df(floatField).cast(FloatType))
         .drop(floatField)
         .withColumnRenamed(tempCol, floatField)

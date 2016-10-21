@@ -502,8 +502,7 @@ class DataFrameUtilSpec
         case "10" => 
           row.getAs[Int]("intfield") should be      (11)
           row.getAs[Double]("floatfield") should be (12.1)
-          //row.getAs[Float]("floatfield2") should be (13.1f)
-          row.getAs[Double]("floatfield2") should be (13.1f) // !!!!!!!!!!!!!!!!!!!!! TODO WTF??
+          row.getAs[Float]("floatfield2") should be (13.1f)
         case "20" =>
           row.getAs[Int]("intfield") should be      (21)
           row.fieldIsNull("floatfield") should be  (true)
@@ -528,15 +527,15 @@ class DataFrameUtilSpec
         case "10" => 
           row.getAs[Int]("intfield") should be      (11)
           row.getAs[Float]("floatfield") should be (12.1f)
-          row.getAs[Double]("floatfield2") should be (13.1f)
-        case "20" => 
+          row.getAs[Float]("floatfield2") should be (13.1)
+        case "20" =>
           row.getAs[Int]("intfield") should be      (21)
           row.fieldIsNull("floatfield") should be  (true)
           row.fieldIsNull("floatfield2") should be  (true)
         case "30" => 
           row.getAs[Int]("intfield") should be      (31)
           row.fieldIsNull("floatfield") should be   (true)
-          row.getAs[Float]("floatfield2") should be (33.1f)
+          row.getAs[Float]("floatfield2") should be (33.1)
       }}
     }
   }

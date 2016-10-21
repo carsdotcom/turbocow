@@ -1,9 +1,8 @@
 package com.cars.bigdata.turbocow
 
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame, Row, SQLContext}
-import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.{Column, DataFrame}
 import org.json4s.JsonAST.JNull
 
 import scala.annotation.tailrec
@@ -12,6 +11,46 @@ import scala.annotation.tailrec
   */
 object DataFrameUtil
 {
+  implicit class DataFrameAdditions(val df: DataFrame) {
+
+    /** Split a dataframe.  Does 2 filters, one with the condition and
+      * one with the condition negated with not().
+      *
+      * @return (filtered DataFrame, negatively-filtered DataFrame)
+      */
+    case class SplitDataFrame(positive: DataFrame, negative: DataFrame)
+    def split(condition: Column): SplitDataFrame = {
+      SplitDataFrame( df.filter( condition ), df.filter( not(condition) ) )
+    }
+
+    /** Get the data type for a field name in a schema.
+      */
+    def getDataTypeForField(field: String): Option[DataType] = {
+      val schema = df.schema
+      val structFieldOpt = schema.fields.find{ _.name == field }
+      if (structFieldOpt.nonEmpty) 
+        Option(structFieldOpt.get.dataType)
+      else
+        None
+    }
+
+    /** Change double type to float.  Workaround for problem with df.na.fill()
+      * that changes float types to doubles, inexplicably.
+      * see https://issues.apache.org/jira/browse/SPARK-14081
+      * @todo remove for Spark 2.0
+      */
+    def retypeDoubleToFloat(floatField: String): DataFrame = {
+      //val copyAsFloat = udf { (v: Float) => f }
+      val tempCol = "____TURBOCOW_DATAFRAMEUTIL_DATAFRAMEADDITIONS_RETYPEDOUBLETOFLOAT_TEMP___"
+
+      //val split = df.split(df(floatField))
+
+      //df.withColumn(tempCol, copyAsFloat(col(floatField).cast(Float)))
+      df.withColumn(tempCol, df(floatField).cast(FloatType))
+        .drop(floatField)
+        .withColumnRenamed(tempCol, floatField)
+    }
+  }
 
   /** Add a column giving a default value
     */
@@ -77,6 +116,7 @@ object DataFrameUtil
       ( fc.structField.name, fc.getDefaultValue )
     }.toMap
     val defaultDF = enrichedPlusDF.na.fill(defaultsMap)
+    // na.fill changes Float data types to Double: see https://issues.apache.org/jira/browse/SPARK-14081 (fix in Spark 2.0)
 
     // Now default the bools.  A bit more tricky due to spark 1.5 bug that 
     // disallows use of DF.na on boolean types:  https://issues.apache.org/jira/browse/SPARK-11180

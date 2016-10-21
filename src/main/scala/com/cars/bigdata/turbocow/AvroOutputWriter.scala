@@ -58,9 +58,10 @@ class AvroOutputWriter(
     outputDir: String): 
     RDD[Map[String, String]] = {
 
-    val (dataFrame: DataFrame, errorRDD: RDD[Map[String, String]]) = 
+    val (goodDataFrame: DataFrame, errorRDD: RDD[Map[String, String]]) = 
       convertEnrichedRDDToDataFrame(rdd, schema, sqlContext, avroWriterConfig)
 
+    val dataFrame = DataFrameUtil.setDefaultValues(goodDataFrame, schema)
     dataFrame.persist(StorageLevel.MEMORY_AND_DISK_SER)
 
     //println("================================= dataFrame = ")
@@ -142,36 +143,8 @@ object AvroOutputWriter {
     */
   def getStructFieldFromAvroElement(fieldConfig: JValue): StructField = {
     
-    val name = JsonUtil.extractValidString(fieldConfig\"name").getOrElse(throw new Exception("could not find valid 'name' element in avro field config"))
-    val fields = (fieldConfig \ "type").toOption.getOrElse(throw new Exception(s"avro field configuration for '$name' is missing the 'type' array"))
-    implicit val jsonFormats = org.json4s.DefaultFormats
-    val typeList = fields match {
-      case j: JString => List(getDataTypeFromString(j.extract[String]))
-      case j: JArray => {
-        j.children.map{ typeJval =>
-          getDataTypeFromString(typeJval.extract[String])
-        }
-      }
-      case _ => throw new RuntimeException(s"invalid 'type' field for field named '$name'")
-    }
-
-    val nullable = typeList.contains(NullType)
-
-    // Filter out the non-null types.
-    // Can only have one non-null data type listed.  We wouldn't know how to handle 
-    // a type that can be string OR int.
-    val filtered = typeList.filter( _ != NullType )
-    val dataType = filtered.size match {
-      // No non-nulls.  Only allowed if NullType is the only type (nullable is set)
-      case 0 => if (nullable) NullType; else throw new Exception("couldn't determine type for avro field name="+name)
-      // One non-null, perfect.
-      case 1 => filtered.head
-      // cannot have more than one (non-null) data type listed.
-      case i: Int => throw new Exception(s"not able to parse type list for avro field: '$name'.  Cannot have more than one non-null data type listed.")
-    }
-
-    //println(s"========== name = $name, dataType=$dataType, nullable=$nullable")
-    StructField(name, dataType, nullable)
+    val asf = AvroSchemaField(fieldConfig)
+    asf.toStructField
   }
 
   /** Transform an RDD of string data into correctly typed data according to the

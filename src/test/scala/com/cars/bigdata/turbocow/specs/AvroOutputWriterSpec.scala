@@ -1149,6 +1149,10 @@ class AvroOutputWriterSpec
     }
   }
 
+  describe("createTypedEnrichedRDD") {
+    // test coverage is done with convertEnrichedRDDToDataFrame(), below
+  }
+
   describe("convertEnrichedRDDToDataFrame()") {
   
     it("should copy over all fields when enrichedRDD matches schema exactly") {
@@ -1156,10 +1160,10 @@ class AvroOutputWriterSpec
         Map("A"->"A1", "B"->"1"),
         Map("A"->"A2", "B"->"2")
       ))
-      val schema = List(
-        AvroFieldConfig(StructField("A", StringType, nullable=true), JNull),
-        AvroFieldConfig(StructField("B", IntegerType, nullable=true), JNull)
-      )
+      val schema = StructType(Array(
+        StructField("A", StringType, nullable=true),
+        StructField("B", IntegerType, nullable=true)
+      ))
   
       val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
       val rows = goodDF.collect()
@@ -1194,10 +1198,10 @@ class AvroOutputWriterSpec
         Map("A"->"A1", "B"->"1"),
         Map("A"->"A2")
       ))
-      val schema = List(
-        AvroFieldConfig(StructField("A", StringType, nullable=true), JNull),
-        AvroFieldConfig(StructField("B", IntegerType, nullable=true), JInt(5))
-      )
+      val schema = StructType(Array(
+        StructField("A", StringType, nullable=true),
+        StructField("B", IntegerType, nullable=true)
+      ))
   
       val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
       val rows = goodDF.collect()
@@ -1227,10 +1231,10 @@ class AvroOutputWriterSpec
         Map("A"->"A1", "B"->"1"),
         Map("A"->"A2", "B"->"2")
       ))
-      val schema = List(
-        AvroFieldConfig(StructField("A", StringType, nullable=false), JString("ADEFAULT")),
-        AvroFieldConfig(StructField("B", IntegerType, nullable=false), JInt(5))
-      )
+      val schema = StructType(Array(
+        StructField("A", StringType, nullable=false),
+        StructField("B", IntegerType, nullable=false)
+      ))
   
       val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
       val rows = goodDF.collect()
@@ -1251,10 +1255,10 @@ class AvroOutputWriterSpec
         Map("A"->"A1", "B"->"1", "C"->"C1"),
         Map("A"->"A2", "B"->"2", "D"->"D2")
       ))
-      val schema = List(
-        AvroFieldConfig(StructField("A", StringType, nullable=true), JNull),
-        AvroFieldConfig(StructField("B", IntegerType, nullable=true), JNull)
-      )
+      val schema = StructType(Array(
+        StructField("A", StringType, nullable=true),
+        StructField("B", IntegerType, nullable=true)
+      ))
   
       val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
       val rows = goodDF.collect()
@@ -1282,10 +1286,10 @@ class AvroOutputWriterSpec
   
     it("should output empty DataFrame if input RDD is empty") {
       val enrichedRDD = sc.parallelize(List.empty[Map[String, String]])
-      val schema = List(
-        AvroFieldConfig(StructField("A", StringType, nullable=true), JNull),
-        AvroFieldConfig(StructField("B", IntegerType, nullable=true), JNull)
-      )
+      val schema = StructType(Array(
+        StructField("A", StringType, nullable=true),
+        StructField("B", IntegerType, nullable=true)
+      ))
   
       val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
       goodDF.count should be (0)
@@ -1293,14 +1297,14 @@ class AvroOutputWriterSpec
   
     it("should throw if schema is an empty List") {
       val enrichedRDD = sc.parallelize(List.empty[Map[String, String]])
-      val schema = List.empty[AvroFieldConfig]
+      val schema = StructType( Array.empty[StructField] )
 
       intercept[Exception] { convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx) }
     }
 
     it("should throw if schema is null") {
       val enrichedRDD = sc.parallelize(List.empty[Map[String, String]])
-      val schema: List[AvroFieldConfig] = null
+      val schema: StructType = null
 
       intercept[Exception] { convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx) }
     }

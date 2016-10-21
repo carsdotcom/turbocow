@@ -4,6 +4,7 @@ import com.cars.bigdata.turbocow.test.SparkTestContext._
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.types._
 import org.json4s._
+import DataFrameUtil._
 import RowUtil._
 
 class DataFrameUtilSpec
@@ -29,7 +30,6 @@ class DataFrameUtilSpec
     super.afterAll()
   }
 
-  import DataFrameUtil._
   sc.setLogLevel("WARN")
 
   //////////////////////////////////////////////////////////////////////////////
@@ -51,8 +51,7 @@ class DataFrameUtilSpec
       stSchema)
 
     it("should add a string column with string default") {
-      val df = addColumnWithDefaultValue(
-        startDF, 
+      val df = startDF.addColumnWithDefaultValue(
         AvroFieldConfig(StructField("newfield", StringType), JString("STRDEF"))) 
 
       // check schema
@@ -70,8 +69,7 @@ class DataFrameUtilSpec
     }
 
     it("should add a string column with null default") {
-      val df = addColumnWithDefaultValue(
-        startDF, 
+      val df = startDF.addColumnWithDefaultValue(
         AvroFieldConfig(StructField("newfield", StringType), JNull)) 
 
       // check schema
@@ -91,8 +89,7 @@ class DataFrameUtilSpec
     }
 
     it("should add a int column with int default") {
-      val df = addColumnWithDefaultValue(
-        startDF,
+      val df = startDF.addColumnWithDefaultValue(
         AvroFieldConfig(StructField("newfield", IntegerType), JInt(101)))
 
       // check schema
@@ -110,8 +107,7 @@ class DataFrameUtilSpec
 
     }
     it("should add a int column with null default") {
-      val df = addColumnWithDefaultValue(
-        startDF, 
+      val df = startDF.addColumnWithDefaultValue(
         AvroFieldConfig(StructField("newfield", IntegerType), JNull)) 
 
       // check schema
@@ -135,8 +131,7 @@ class DataFrameUtilSpec
     // skipping float...
 
     it("should add a double column with double default") {
-      val df = addColumnWithDefaultValue(
-        startDF,
+      val df = startDF.addColumnWithDefaultValue(
         AvroFieldConfig(StructField("newfield", DoubleType), JDouble(10.1)))
 
       // check schema
@@ -154,8 +149,7 @@ class DataFrameUtilSpec
 
     }
     it("should add a double column with null default") {
-      val df = addColumnWithDefaultValue(
-        startDF,
+      val df = startDF.addColumnWithDefaultValue(
         AvroFieldConfig(StructField("newfield", DoubleType), JNull))
 
       // check schema
@@ -175,8 +169,7 @@ class DataFrameUtilSpec
     }
 
     it("should add a boolean column with boolean default") {
-      val df = addColumnWithDefaultValue(
-        startDF,
+      val df = startDF.addColumnWithDefaultValue(
         AvroFieldConfig(StructField("newfield", BooleanType), JBool(true)))
 
       // check schema
@@ -194,8 +187,7 @@ class DataFrameUtilSpec
 
     }
     it("should add a bool column with null default") {
-      val df = addColumnWithDefaultValue(
-        startDF, 
+      val df = startDF.addColumnWithDefaultValue(
         AvroFieldConfig(StructField("newfield", BooleanType), JNull)) 
 
       // check schema
@@ -252,7 +244,7 @@ class DataFrameUtilSpec
           Row.fromSeq(List("30", 37,  31L,   37.8, null,    null)))),
         stSchema)
 
-      val defaultsDF = setDefaultValues(df, schemaWithDefaults)
+      val defaultsDF = df.setDefaultValues(schemaWithDefaults)
       val rows = defaultsDF.collect
 
       rows.size should be (4)
@@ -317,7 +309,7 @@ class DataFrameUtilSpec
           Row.fromSeq(List("30", 37,  37.8,   null)))),
         stSchema)
 
-      val defaultsDF = setDefaultValues(df, fullSchemaWithDefaults)
+      val defaultsDF = df.setDefaultValues(fullSchemaWithDefaults)
       val rows = defaultsDF.collect
 
       rows.size should be (4)
@@ -420,7 +412,7 @@ class DataFrameUtilSpec
       }
       check(startDF)
 
-      val modDF = DataFrameUtil.setDefaultValues(startDF, schema.toListAvroFieldConfig)
+      val modDF = startDF.setDefaultValues(schema.toListAvroFieldConfig)
 
       check(modDF)
     }

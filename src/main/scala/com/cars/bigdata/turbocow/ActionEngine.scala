@@ -222,6 +222,7 @@ object ActionEngine
 
     // For every field in the input, make sure it has a value in enriched.
     // If not, copy it over.
+    // TODO if this can be avoided, it would save a lot of RAM.
     val inputMap: Map[String, Any] = record.values match { case m: Map[String, Any] => m }
     inputMap.foreach{ case (iKey, iVal) => 
       if ( enrichedMap.get(iKey).isEmpty ) {

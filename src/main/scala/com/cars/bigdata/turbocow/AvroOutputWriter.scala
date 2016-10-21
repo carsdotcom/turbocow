@@ -174,34 +174,35 @@ object AvroOutputWriter {
 
       var errors = List.empty[String]
 
-      val newRecord: Map[String, Any] = schema.fields.map{ structField =>
-
-        val missingValue: Any = null
+      val newRecord: Map[String, Any] = schema.fields.flatMap{ structField =>
 
         val key = structField.name
         val v = record.get(key)
-        val value = {
+        val value: Option[Any] = {
           if (v.isDefined) {
             try{
-              convertToType(v.get, structField, writerConfig).get
+              Option(convertToType(v.get, structField, writerConfig).get)
             }
             catch {
               case e: EmptyStringConversionException => {
                 //println(s"Detected empty string in '${structField.name}' when trying to convert; using default value.")
-                missingValue
+                None
               }
               case e: Throwable => {
                 errors = errors :+ e.getMessage
-                v.get.toString
+                Option(v.get.toString)
               }
             }
           }
-          else {
-            missingValue
-          }
+          else None
         }
 
-        (key, value)
+        // Only add new keys if the value is non-null.  Null values are added
+        // later when converted into the dataframe.
+        if (value.nonEmpty)
+          Option((key, value.get))
+        else 
+          None
       }.toMap
 
       if (errors.nonEmpty) newRecord + (errorMarker-> errors.mkString("; "))
@@ -391,20 +392,20 @@ object AvroOutputWriter {
     }.map{ record =>
       val vals: Seq[Any] = safeSchema.fields.map{ structField =>
         val field = structField.name
-        record.getOrElse(field, throw new Exception(s"couldn't find field name $field in anyRDD"))
+        record.getOrElse(field, null)
       }
       Row.fromSeq(vals)
     }
-
-    // unpersist our temp RDDs
-    rowRDD.unpersist(blocking=true)
-    anyRDD.unpersist(blocking=true)
 
     // this gives 18,000 or something like it
     //val numPartitions = rowRDD.partitions.size
     //println("Avro writer: rowRDD.partitions = "+numPartitions)
     val dataFrame = sqlContext.createDataFrame(rowRDD, safeSchema).repartition(30)
-    
+
+    // unpersist our temp RDDs
+    rowRDD.unpersist(blocking=true)
+    anyRDD.unpersist(blocking=true)
+   
     // return the tuple
     (dataFrame, errorRDD)
   }

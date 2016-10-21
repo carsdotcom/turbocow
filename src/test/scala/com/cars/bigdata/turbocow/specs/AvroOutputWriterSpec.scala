@@ -541,8 +541,8 @@ class AvroOutputWriterSpec
       Try( row.getAs[Boolean]("BooleanField2") ) should be (Success(false))
     }
 
-    it("should write out null values for missing fields") {
-    
+    it("should write out default values as specified in the schema") {
+
       // avro schema
       val avroSchema = """{
           "namespace": "ALS",
@@ -550,11 +550,11 @@ class AvroOutputWriterSpec
           "name": "impression",
           "fields": [{
             "name": "StringField",
-            "type": [ "string", "null" ],
+            "type": "string",
             "default": "0"
           }, {
             "name": "IntField",
-            "type": [ "int", "null" ],
+            "type": [ "int" ],
             "default": 1
           }, {
             "name": "IntField2",
@@ -589,7 +589,7 @@ class AvroOutputWriterSpec
         "doc": ""
       }"""
       val avroFile = writeTempFile(avroSchema, "avroschema.avsc")
-    
+
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
         // input record:
         List("""{ "md":{}, "activityMap": { 
@@ -613,9 +613,9 @@ class AvroOutputWriterSpec
           }
         """,
         sc).persist()
-    
+  
       // this should be the enriched record:
-    
+
       val enrichedAll = enriched.collect()
       //println("========= enrichedAll = "+enrichedAll.mkString("//"))
       enrichedAll.size should be (1)
@@ -638,19 +638,20 @@ class AvroOutputWriterSpec
       rows.size should be (1) // one row only
       val row = rows.head
       row.size should be (9)
-    
-      row.isNullAt( row.fieldIndex("StringField") ) should be (true)
-      row.isNullAt( row.fieldIndex("IntField") ) should be (true)
+
+      // these are all actual non-string types (except the first)
+      Try( row.getAs[String]("StringField") )    should be (Success("0"))
+      Try( row.getAs[Int]("IntField") )          should be (Success(1))
       row.isNullAt( row.fieldIndex("IntField2") ) should be (true)
-      row.isNullAt( row.fieldIndex("LongField") ) should be (true)
-      row.isNullAt( row.fieldIndex("FloatField") ) should be (true)
-      row.isNullAt( row.fieldIndex("DoubleField") ) should be (true)
+      Try( row.getAs[Long]("LongField") )        should be (Success(3L))
+      Try( row.getAs[Float]("FloatField") )      should be (Success(4.0))
+      Try( row.getAs[Double]("DoubleField") )    should be (Success(5.0))
       row.isNullAt( row.fieldIndex("DoubleField2") ) should be (true)
-      row.isNullAt( row.fieldIndex("BooleanField") ) should be (true)
+      Try( row.getAs[Boolean]("BooleanField") )  should be (Success(false))
       row.isNullAt( row.fieldIndex("BooleanField2") ) should be (true)
     }
 
-    it("should write out null values for numerics and booleans on blank input") {
+    it("should write out default values for numerics and booleans on blank input") {
 
       // avro schema
       val avroSchema = """{
@@ -740,14 +741,14 @@ class AvroOutputWriterSpec
       row.size should be (5)
 
       // The default values should have been provided because the inputs were all blank strings
-      row.isNullAt( row.fieldIndex("IntField") ) should be (true)
-      row.isNullAt( row.fieldIndex("LongField") ) should be (true)
-      row.isNullAt( row.fieldIndex("FloatField") ) should be (true)
-      row.isNullAt( row.fieldIndex("DoubleField") ) should be (true)
-      row.isNullAt( row.fieldIndex("BooleanField") ) should be (true)
+      Try( row.getAs[Int]("IntField") )          should be (Success(1))
+      Try( row.getAs[Long]("LongField") )        should be (Success(3L))
+      Try( row.getAs[Float]("FloatField") )      should be (Success(4.0))
+      Try( row.getAs[Double]("DoubleField") )    should be (Success(5.0))
+      Try( row.getAs[Boolean]("BooleanField") )  should be (Success(false))
     }
 
-    it("should write out null values for numerics and booleans with only blanks in the input") {
+    it("should write out default values for numerics and booleans with only blanks in the input") {
 
       // avro schema
       val avroSchema = """{
@@ -837,11 +838,11 @@ class AvroOutputWriterSpec
       row.size should be (5)
 
       // The default values should have been provided because the inputs were all blank strings
-      row.isNullAt( row.fieldIndex("IntField") ) should be (true)
-      row.isNullAt( row.fieldIndex("LongField") ) should be (true)
-      row.isNullAt( row.fieldIndex("FloatField") ) should be (true)
-      row.isNullAt( row.fieldIndex("DoubleField") ) should be (true)
-      row.isNullAt( row.fieldIndex("BooleanField") ) should be (true)
+      Try( row.getAs[Int]("IntField") )          should be (Success(1))
+      Try( row.getAs[Long]("LongField") )        should be (Success(3L))
+      Try( row.getAs[Float]("FloatField") )      should be (Success(4.0))
+      Try( row.getAs[Double]("DoubleField") )    should be (Success(5.0))
+      Try( row.getAs[Boolean]("BooleanField") )  should be (Success(false))
     }
 
     it("""should return an RDD of rejected records that were not written due to 

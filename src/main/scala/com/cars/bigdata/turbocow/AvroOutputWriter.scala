@@ -194,15 +194,19 @@ object AvroOutputWriter {
               }
             }
           }
-          else None
+          else { 
+            None
+          }
         }
 
         // Only add new keys if the value is non-null.  Null values are added
         // later when converted into the dataframe.
-        if (value.nonEmpty)
+        if (value.nonEmpty) {
           Option((key, value.get))
-        else 
+        }
+        else {
           None
+        }
       }.toMap
 
       if (errors.nonEmpty) newRecord + (errorMarker-> errors.mkString("; "))
@@ -236,7 +240,9 @@ object AvroOutputWriter {
     }
 
     // If value is actually null, just return null
-    if (string == null) null
+    if (string == null) { 
+      null
+    }
     else {
       // value is not null
 
@@ -247,14 +253,14 @@ object AvroOutputWriter {
         case IntegerType | LongType | FloatType | DoubleType => {
           val t = string.optionalTrim(conf.alwaysTrimNumerics)
           if (t.nonEmpty && List( 'd', 'D', 'f', 'F', 'l', 'L').contains(t.last)) {
-            throw new NumberFormatException(s"can't convert '$string' to ${structField.dataType.toString} type. (No alphanumeric characters are allowed in numeric fields.)")
+            throw new NumberFormatException(s"can't convert '$string' in field '${structField.name}' to ${structField.dataType.toString} type. (No alphanumeric characters are allowed in numeric fields.)")
           }
           else t
         }
         // Optionally trim bools and strings too, per the config.
         case BooleanType => string.optionalTrim(conf.alwaysTrimBooleans)
         case StringType => string.optionalTrim(conf.alwaysTrimStrings)
-        case _ => string;
+        case _ => string
       }
 
       // For numeric and boolean types, if the config specifies, then throw a 
@@ -270,7 +276,7 @@ object AvroOutputWriter {
       }
 
       // Do the core conversion.
-      try {
+      val result = try {
         structField.dataType match {
           case StringType => string
           case IntegerType => trimmedStr.toInt
@@ -288,11 +294,13 @@ object AvroOutputWriter {
       catch {
         // for numeric and boolean conversions, add more info to say why
         case e: java.lang.IllegalArgumentException => {
-          val message = s"could not convert value in '${structField.name}' to a '${structField.dataType.toString}'."
+          val message = s"""could not convert value '$string' in field '${structField.name}' to a '${structField.dataType.toString}'."""
           throw new java.lang.IllegalArgumentException(message, e)
         }
         case e: java.lang.Throwable => throw e
       }
+
+      result
     }
   }
 

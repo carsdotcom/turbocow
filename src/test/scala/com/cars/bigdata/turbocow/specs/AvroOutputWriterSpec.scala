@@ -304,10 +304,6 @@ class AvroOutputWriterSpec
             "type": [ "double" ],
             "default": 0.3
           }, {
-            "name": "FloatField",
-            "type": [ "null", "float" ],
-            "default": 0.4
-          }, {
             "name": "BooleanField",
             "type": [ "null", "boolean" ],
             "default": false
@@ -321,14 +317,40 @@ class AvroOutputWriterSpec
       }"""
 
       val schema = AvroOutputWriter.getAvroSchema(avroSchema)
-      schema.size should be (7)
+      schema.size should be (6)
       schema.head should be (AvroFieldConfig(StructField("StringField", StringType, false), JString("0")))
       schema(1) should be (AvroFieldConfig(StructField("IntField", IntegerType, true), JInt(1)))
       schema(2) should be (AvroFieldConfig(StructField("LongField", LongType, true), JInt(2)))
       schema(3) should be (AvroFieldConfig(StructField("DoubleField", DoubleType, false), JDouble(0.3)))
-      schema(4) should be (AvroFieldConfig(StructField("FloatField", FloatType, true), JDouble(0.4)))
-      schema(5) should be (AvroFieldConfig(StructField("BooleanField", BooleanType, true), JBool(false)))
-      schema(6) should be (AvroFieldConfig(StructField("NullField", NullType, true), JNull))
+      schema(4) should be (AvroFieldConfig(StructField("BooleanField", BooleanType, true), JBool(false)))
+      schema(5) should be (AvroFieldConfig(StructField("NullField", NullType, true), JNull))
+    }
+
+    it("""should throw if attempting to use a Float field - Floats are not 
+          allowed due to https://issues.apache.org/jira/browse/SPARK-14081""") {
+
+      val avroSchema = """{
+        "namespace": "ALS",
+        "type": "record",
+        "name": "impression",
+        "fields": [{
+            "name": "StringField",
+            "type": "string",
+            "default": "0"
+          }, {
+            "name": "FloatField",
+            "type": [ "null", "float" ],
+            "default": 0.1
+          }, {
+            "name": "DoubleField",
+            "type": [ "double" ],
+            "default": 0.2
+          }
+        ],
+        "doc": ""
+      }"""
+
+      intercept[Exception]{ AvroOutputWriter.getAvroSchema(avroSchema) }
     }
   }
 

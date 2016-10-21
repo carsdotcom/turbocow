@@ -225,22 +225,31 @@ class DataFrameUtilSpec
         AvroFieldConfig( StructField("intfield", IntegerType, nullable=true),
           JInt(1)),
         AvroFieldConfig( StructField("longfield", LongType, nullable=true), 
-          JInt(2)),
-        AvroFieldConfig( StructField("floatfield", FloatType, nullable=true), 
-          JDouble(3.0)),
+          JNull),
+        //AvroFieldConfig( StructField("floatfield", FloatType, nullable=true), 
+        //  JDouble(3.0)),
         AvroFieldConfig( StructField("doublefield", DoubleType, nullable=true), 
           JDouble(4.0)),
-        AvroFieldConfig( StructField("booleanfield", BooleanType, nullable=true), 
-          JBool(false))
+        AvroFieldConfig( StructField("booleanfield", BooleanType, nullable=true),
+          JBool(false)),
+        AvroFieldConfig( StructField("booleanfield2", BooleanType, nullable=true),
+          JNull)
       )
       val stSchema = StructType( schemaWithDefaults.map{ _.structField }.toArray )
 
+      //val df = sqlCtx.createDataFrame( sc.parallelize(
+      //  List(//             id  int   long  float  double boolean
+      //    Row.fromSeq(List( "0", 7,   1L,   2.1f,    7.8,   true)),
+      //    Row.fromSeq(List("10", 17,  null, 12.1f,  null,  null)),
+      //    Row.fromSeq(List("20", null,21L,   null,  27.8,   false)),
+      //    Row.fromSeq(List("30", 37,  31L,   null,  37.8,   null)))),
+      //  stSchema)
       val df = sqlCtx.createDataFrame( sc.parallelize(
-        List(//             id  int   long   float  double boolean
-          Row.fromSeq(List( "0", 7,   1L,   2.1f,    7.8,   true)),
-          Row.fromSeq(List("10", 17,  null, 12.1f,  null,  null)),
-          Row.fromSeq(List("20", null,21L,   null,  27.8,   true)),
-          Row.fromSeq(List("30", 37,  31L,   null,  37.8,   null)))),
+        List(//             id  int   long  double boolean, boolean2
+          Row.fromSeq(List( "0", 7,   1L,     7.8, true,    true)),
+          Row.fromSeq(List("10", 17,  null,  null, null,    null)),
+          Row.fromSeq(List("20", null,21L,   27.8, false,   false)),
+          Row.fromSeq(List("30", 37,  31L,   37.8, null,    null)))),
         stSchema)
 
       val defaultsDF = setDefaultValues(df, schemaWithDefaults)
@@ -251,27 +260,31 @@ class DataFrameUtilSpec
         case "0" => 
           row.getAs[Int]("intfield") should be (7)
           row.getAs[Long]("longfield") should be (1L)
-          row.getAs[Float]("floatfield") should be (2.1f)
+          //row.getAs[Float]("floatfield") should be (2.1f)
           row.getAs[Double]("doublefield") should be (7.8)
           row.getAs[Boolean]("booleanfield") should be (true)
+          row.getAs[Boolean]("booleanfield2") should be (true)
         case "10" => 
           row.getAs[Int]("intfield") should be (17)
-          row.getAs[Long]("longfield") should be (2L)
-          row.getAs[Float]("floatfield") should be (12.1f)
+          row.fieldIsNull("longfield") should be (true)
+          //row.getAs[Float]("floatfield") should be (12.1f)
           row.getAs[Double]("doublefield") should be (4.0)
           row.getAs[Boolean]("booleanfield") should be (false)
+          row.fieldIsNull("booleanfield2") should be (true)
         case "20" => 
           row.getAs[Int]("intfield") should be (1)
           row.getAs[Long]("longfield") should be (21L)
-          row.getAs[Float]("floatfield") should be (3.0f)
+          //row.getAs[Float]("floatfield") should be (3.0f)
           row.getAs[Double]("doublefield") should be (27.8)
-          row.getAs[Boolean]("booleanfield") should be (true)
+          row.getAs[Boolean]("booleanfield") should be (false)
+          row.getAs[Boolean]("booleanfield2") should be (false)
         case "30" => 
           row.getAs[Int]("intfield") should be (37)
           row.getAs[Long]("longfield") should be (31L)
-          row.getAs[Float]("floatfield") should be (3.0f)
+          //row.getAs[Float]("floatfield") should be (3.0f)
           row.getAs[Double]("doublefield") should be (37.8)
           row.getAs[Boolean]("booleanfield") should be (false)
+          row.fieldIsNull("booleanfield2") should be (true)
         case _ => fail()
       }}
     }
@@ -291,9 +304,9 @@ class DataFrameUtilSpec
 
       val fullSchemaWithDefaults = schemaWithDefaults ++ List(
         AvroFieldConfig( StructField("longfield", LongType, nullable=true), 
-          JInt(2)),
-        AvroFieldConfig( StructField("floatfield", FloatType, nullable=true), 
-          JDouble(3.14))
+          JInt(2))
+        //AvroFieldConfig( StructField("floatfield", FloatType, nullable=true), 
+        //  JDouble(3.14))
       )
 
       val df = sqlCtx.createDataFrame( sc.parallelize(
@@ -312,25 +325,25 @@ class DataFrameUtilSpec
         case "0" => 
           row.getAs[Int]("intfield") should be (7)
           row.getAs[Long]("longfield") should be (2L)
-          row.getAs[Float]("floatfield") should be (3.14f)
+          //row.getAs[Float]("floatfield") should be (3.14f)
           row.getAs[Double]("doublefield") should be (7.8)
           row.getAs[Boolean]("booleanfield") should be (true)
         case "10" => 
           row.getAs[Int]("intfield") should be (17)
           row.getAs[Long]("longfield") should be (2L)
-          row.getAs[Float]("floatfield") should be (3.14f)
+          //row.getAs[Float]("floatfield") should be (3.14f)
           row.getAs[Double]("doublefield") should be (4.0)
           row.getAs[Boolean]("booleanfield") should be (false)
         case "20" => 
           row.getAs[Int]("intfield") should be (1)
           row.getAs[Long]("longfield") should be (2L)
-          row.getAs[Float]("floatfield") should be (3.14f)
+          //row.getAs[Float]("floatfield") should be (3.14f)
           row.getAs[Double]("doublefield") should be (27.8)
           row.getAs[Boolean]("booleanfield") should be (true)
         case "30" => 
           row.getAs[Int]("intfield") should be (37)
           row.getAs[Long]("longfield") should be (2L)
-          row.getAs[Float]("floatfield") should be (3.14f)
+          //row.getAs[Float]("floatfield") should be (3.14f)
           row.getAs[Double]("doublefield") should be (37.8)
           row.getAs[Boolean]("booleanfield") should be (false)
         case _ => fail()
@@ -361,10 +374,6 @@ class DataFrameUtilSpec
             "type": [ "null", "long" ],
             "default": 0
           }, {
-            "name": "FloatField",
-            "type": [ "null", "float" ],
-            "default": 0.0
-          }, {
             "name": "DoubleField",
             "type": [ "null", "double" ],
             "default": 0.0
@@ -384,6 +393,11 @@ class DataFrameUtilSpec
         ],
         "doc": ""
       }"""
+      //      "name": "FloatField",
+      //      "type": [ "null", "float" ],
+      //      "default": 0.0
+      //    }, {
+
       val schema = AvroSchema(jsonAvroSchema)
 
       val sfSchema = schema.toStructType
@@ -393,150 +407,22 @@ class DataFrameUtilSpec
         sfSchema)
 
       // check start schema
-      startDF.schema.fields(0).dataType should be (StringType)
-      startDF.schema.fields(1).dataType should be (IntegerType)
-      startDF.schema.fields(2).dataType should be (IntegerType)
-      startDF.schema.fields(3).dataType should be (LongType)
-      startDF.schema.fields(4).dataType should be (FloatType)
-      startDF.schema.fields(5).dataType should be (DoubleType)
-      startDF.schema.fields(6).dataType should be (DoubleType)
-      startDF.schema.fields(7).dataType should be (BooleanType)
-      startDF.schema.fields(8).dataType should be (BooleanType)
+      def check(df: DataFrame) = {
+        df.schema.fields(0).dataType should be (StringType)
+        df.schema.fields(1).dataType should be (IntegerType)
+        df.schema.fields(2).dataType should be (IntegerType)
+        df.schema.fields(3).dataType should be (LongType)
+        //df.schema.fields(4).dataType should be (FloatType)
+        df.schema.fields(4).dataType should be (DoubleType)
+        df.schema.fields(5).dataType should be (DoubleType)
+        df.schema.fields(6).dataType should be (BooleanType)
+        df.schema.fields(7).dataType should be (BooleanType)
+      }
+      check(startDF)
 
       val modDF = DataFrameUtil.setDefaultValues(startDF, schema.toListAvroFieldConfig)
 
-      modDF.schema.fields(0).dataType should be (StringType)
-      modDF.schema.fields(1).dataType should be (IntegerType)
-      modDF.schema.fields(2).dataType should be (IntegerType)
-      modDF.schema.fields(3).dataType should be (LongType)
-      modDF.schema.fields(4).dataType should be (FloatType)
-      modDF.schema.fields(5).dataType should be (DoubleType)
-      modDF.schema.fields(6).dataType should be (DoubleType)
-      modDF.schema.fields(7).dataType should be (BooleanType)
-      modDF.schema.fields(8).dataType should be (BooleanType)
-    }
-  }
-
-  describe("retypeDoubleToFloat()") {
-
-    it("should change doubles to floats") {
-      val stSchema = StructType( Array(
-        StructField("id",  StringType, nullable=false), 
-        StructField("intfield", IntegerType, nullable=true),
-        StructField("floatfield", DoubleType, nullable=true), 
-        StructField("floatfield2", DoubleType, nullable=true)
-      ))
-
-      val origDF = sqlCtx.createDataFrame( sc.parallelize(
-        List(//             id  int   float  float2  
-          Row.fromSeq(List( "0", 1,   2.1f,  null   )),
-          Row.fromSeq(List("10", 11,  12.1f, 13.1f  )),
-          Row.fromSeq(List("20", 21,  22.1f,  null   )),
-          Row.fromSeq(List("30", 31,  32.1f,  33.1f  )))),
-        stSchema)
-
-      println("origDF.schema = ")
-      origDF.printSchema()
-      origDF.getDataTypeForField("id") should be (Some(StringType))
-      origDF.getDataTypeForField("intfield") should be (Some(IntegerType))
-      origDF.getDataTypeForField("floatfield") should be (Some(DoubleType))
-      origDF.getDataTypeForField("floatfield2") should be (Some(DoubleType))
-
-      val df = origDF.retypeDoubleToFloat("floatfield")
-
-      df.getDataTypeForField("id") should be (Some(StringType))
-      df.getDataTypeForField("intfield") should be (Some(IntegerType))
-      df.getDataTypeForField("floatfield") should be (Some(FloatType)) // only change
-      df.getDataTypeForField("floatfield2") should be (Some(DoubleType))
-    }
-
-    it("should set nulls without erroring out") {
-      val stSchema = StructType( Array(
-        StructField("id",  StringType, nullable=false), 
-        StructField("intfield", IntegerType, nullable=true),
-        StructField("floatfield", DoubleType, nullable=true), 
-        StructField("floatfield2", DoubleType, nullable=true)
-      ))
-
-      val origDF = sqlCtx.createDataFrame( sc.parallelize(
-        List(//             id  int   float  float2  
-          Row.fromSeq(List( "0", 1,   2.1,  null   )),
-          Row.fromSeq(List("10", 11,  12.1, 13.1  )),
-          Row.fromSeq(List("20", 21,  null,  null   )),
-          Row.fromSeq(List("30", 31,  null,  33.1  )))),
-        stSchema)
-
-      origDF.collect.foreach{ row => row.getAs[String]("id") match {
-        case "0" => 
-          row.getAs[Int]("intfield") should be      (1)
-          row.getAs[Double]("floatfield") should be (2.1)
-          row.fieldIsNull("floatfield2") should be  (true)
-        case "10" => 
-          row.getAs[Int]("intfield") should be      (11)
-          row.getAs[Double]("floatfield") should be (12.1)
-          row.getAs[Double]("floatfield2") should be (13.1)
-        case "20" => 
-          row.getAs[Int]("intfield") should be      (21)
-          row.fieldIsNull("floatfield") should be  (true)
-          row.fieldIsNull("floatfield2") should be  (true)
-        case "30" => 
-          row.getAs[Int]("intfield") should be      (31)
-          row.fieldIsNull("floatfield") should be   (true)
-          row.getAs[Double]("floatfield2") should be (33.1)
-      }}
-
-      val df = origDF.retypeDoubleToFloat("floatfield2")
-
-      println("df schema & data:")
-      df.printSchema()
-      df.show()
-
-      df.schema(3).name should be ("floatfield2")
-      df.schema(3).dataType should be (FloatType)
-
-      df.collect.foreach{ row => row.getAs[String]("id") match {
-        case "0" => 
-          row.getAs[Int]("intfield") should be      (1)
-          row.getAs[Double]("floatfield") should be (2.1)
-          row.fieldIsNull("floatfield2") should be  (true)
-        case "10" => 
-          row.getAs[Int]("intfield") should be      (11)
-          row.getAs[Double]("floatfield") should be (12.1)
-          row.getAs[Float]("floatfield2") should be (13.1f)
-        case "20" =>
-          row.getAs[Int]("intfield") should be      (21)
-          row.fieldIsNull("floatfield") should be  (true)
-          row.fieldIsNull("floatfield2") should be  (true)
-        case "30" => 
-          row.getAs[Int]("intfield") should be      (31)
-          row.fieldIsNull("floatfield") should be   (true)
-          row.getAs[Float]("floatfield2") should be (33.1f)
-      }}
-
-      val df2 = origDF.retypeDoubleToFloat("floatfield")
-
-      println("df2 schema & data:")
-      df2.printSchema()
-      df2.show()
-
-      df2.collect.foreach{ row => row.getAs[String]("id") match {
-        case "0" => 
-          row.getAs[Int]("intfield") should be      (1)
-          row.getAs[Float]("floatfield") should be (2.1f)
-          row.fieldIsNull("floatfield2") should be  (true)
-        case "10" => 
-          row.getAs[Int]("intfield") should be      (11)
-          row.getAs[Float]("floatfield") should be (12.1f)
-          row.getAs[Float]("floatfield2") should be (13.1)
-        case "20" =>
-          row.getAs[Int]("intfield") should be      (21)
-          row.fieldIsNull("floatfield") should be  (true)
-          row.fieldIsNull("floatfield2") should be  (true)
-        case "30" => 
-          row.getAs[Int]("intfield") should be      (31)
-          row.fieldIsNull("floatfield") should be   (true)
-          row.getAs[Float]("floatfield2") should be (33.1)
-      }}
+      check(modDF)
     }
   }
 

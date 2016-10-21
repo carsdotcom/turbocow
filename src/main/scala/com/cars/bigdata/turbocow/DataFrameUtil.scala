@@ -34,22 +34,22 @@ object DataFrameUtil
         None
     }
 
-    /** Change double type to float.  Workaround for problem with df.na.fill()
-      * that changes float types to doubles, inexplicably.
-      * see https://issues.apache.org/jira/browse/SPARK-14081
-      * @todo remove for Spark 2.0
-      */
-    def retypeDoubleToFloat(floatField: String): DataFrame = {
-      val copyAsFloat = udf { (v: Float) => v }
-      val tempCol = "____TURBOCOW_DATAFRAMEUTIL_DATAFRAMEADDITIONS_RETYPEDOUBLETOFLOAT_TEMP___"
-
-      //val split = df.split(df(floatField))
-
-      //df.withColumn(tempCol, copyAsFloat(col(floatField).cast(FloatType)))
-      df.withColumn(tempCol, df(floatField).cast(FloatType))
-        .drop(floatField)
-        .withColumnRenamed(tempCol, floatField)
-    }
+    // NOTE THIS DOES NOT WORK AND CANNOT BE MADE TO WORK.
+    // DELETE THIS WARNING AFTER SPARK 2.0 COMES OUT AND YOU CAN USE DF.NA.fill()
+    // SAFELY...
+    ///** Change double type to float.  Workaround for problem with df.na.fill()
+    //  * that changes float types to doubles, inexplicably.
+    //  * see https://issues.apache.org/jira/browse/SPARK-14081
+    //  */
+    //def retypeDoubleToFloat(floatField: String): DataFrame = {
+    //  val copyAsFloat = udf { (v: Float) => v }
+    //  val tempCol = "____TURBOCOW_DATAFRAMEUTIL_DATAFRAMEADDITIONS_RETYPEDOUBLETOFLOAT_TEMP___"
+    //
+    //  //df.withColumn(tempCol, copyAsFloat(col(floatField).cast(FloatType)))
+    //  df.withColumn(tempCol, df(floatField).cast(FloatType))
+    //    .drop(floatField)
+    //    .withColumnRenamed(tempCol, floatField)
+    //}
   }
 
   /** Add a column giving a default value
@@ -108,8 +108,16 @@ object DataFrameUtil
     val enrichedPlusDF = recursiveAddField(enrichedDF, fieldsNotInInputDF)
 
     // Filter out the boolean fields into a separate schema to handle specially.
-    val boolSchema = schema.filter{ fc => fc.structField.dataType == BooleanType }
-    val safeSchema = schema.filter{ fc => fc.structField.dataType != BooleanType }
+    def filterBoolean( afc: AvroFieldConfig ): Boolean = {
+      afc.structField.dataType == BooleanType
+    }
+    // Also filter out null default values because a) it's impossible to set
+    // something null and b) there's no reason to because it already is null.
+    def filterNull( afc: AvroFieldConfig ): Boolean = {
+      afc.defaultValue != JNull
+    }
+    val boolSchema = schema.filter{ filterBoolean }.filter{ filterNull }
+    val safeSchema = schema.filterNot{ filterBoolean }.filter{ filterNull }
 
     // Set the defaults for the non-boolean fields.  Easy:
     val defaultsMap = safeSchema.map{ fc => 

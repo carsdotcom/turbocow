@@ -13,6 +13,7 @@ import utils._
 import org.apache.hadoop.fs.{FileSystem, Path}
 import AvroOutputWriter._
 import org.apache.spark.storage.StorageLevel
+import DataFrameUtil._
 
 class AvroOutputWriter(
   sc: SparkContext,
@@ -61,7 +62,7 @@ class AvroOutputWriter(
     val (goodDataFrame: DataFrame, errorRDD: RDD[Map[String, String]]) = 
       convertEnrichedRDDToDataFrame(rdd, schema, sqlContext, avroWriterConfig)
 
-    val dataFrame = DataFrameUtil.setDefaultValues(goodDataFrame, schema)
+    val dataFrame = goodDataFrame.setDefaultValues(schema)
     dataFrame.persist(StorageLevel.MEMORY_AND_DISK_SER)
 
     //println("================================= dataFrame = ")

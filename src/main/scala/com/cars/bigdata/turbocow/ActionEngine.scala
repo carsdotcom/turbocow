@@ -12,6 +12,7 @@ import scala.collection.immutable.HashMap
 
 object ActionEngine
 {
+  val addedInputFieldsMarker = "___TURBOCOW_ACTIONENGINE_ADDEDINPUTFIELDSMARKER__"
 
   /** Process a set of input files by running the actions specified in the config file.
     * This is the process function that will mostly be called.
@@ -224,6 +225,7 @@ object ActionEngine
     // If not, copy it over.
     // TODO if this can be avoided, it would save a lot of RAM.
     val inputMap: Map[String, Any] = record.values match { case m: Map[String, Any] => m }
+    var addedFields = List.empty[String]
     inputMap.foreach{ case (iKey, iVal) => 
       if ( enrichedMap.get(iKey).isEmpty ) {
         val stringVal = iVal match {
@@ -231,7 +233,14 @@ object ActionEngine
           case a: Any => a.toString
         }
         enrichedMap = enrichedMap + (iKey-> stringVal)
+        addedFields = addedFields :+ iKey
       }
+    }
+
+    // For all the added fields, add yet another field that lists all the added
+    // input fields
+    if (addedFields.nonEmpty) {
+      enrichedMap = enrichedMap + (ActionEngine.addedInputFieldsMarker -> addedFields.mkString(","))
     }
 
     // (For now, just return the enriched data)

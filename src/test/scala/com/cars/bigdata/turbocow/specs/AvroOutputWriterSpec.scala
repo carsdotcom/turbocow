@@ -1233,7 +1233,8 @@ class AvroOutputWriterSpec
       ))
       val schema = StructType(Array(
         StructField("A", StringType, nullable=false),
-        StructField("B", IntegerType, nullable=false)
+        StructField("B", IntegerType, nullable=false),
+        StructField("C", DoubleType, nullable=false)
       ))
   
       val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
@@ -1241,13 +1242,23 @@ class AvroOutputWriterSpec
   
       goodDF.count should be (2)
       val afs: Array[StructField] = goodDF.schema.fields
-      afs.size should be (2)
+      afs.size should be (3)
       afs(0).name should be ("A")
       afs(0).dataType should be (StringType)
       afs(0).nullable should be (true)
       afs(1).name should be ("B")
       afs(1).dataType should be (IntegerType)
       afs(1).nullable should be (true)
+      afs(2).name should be ("C")
+      afs(2).dataType should be (DoubleType)
+      afs(2).nullable should be (true)
+
+      // double check that it sets new fields to null
+      rows.foreach{ row => row.getAs[String]("A") match {
+        case "A1" => fieldIsNull(row, "C") should be (true)
+        case "A2" => fieldIsNull(row, "C") should be (true)
+        case _ => ;
+      }}
     }
 
     it("should NOT add any extra enrichedRDD fields to the output dataframe") {

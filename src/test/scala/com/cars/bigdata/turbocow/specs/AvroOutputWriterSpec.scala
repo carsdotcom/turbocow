@@ -15,6 +15,7 @@ import org.apache.spark.sql.types._
 
 import scala.io.Source
 import scala.util.{Success, Try}
+import RowUtil._
 
 class AvroOutputWriterSpec
   extends UnitSpec 
@@ -1318,6 +1319,48 @@ class AvroOutputWriterSpec
       val schema: StructType = null
 
       intercept[Exception] { convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx) }
+    }
+
+    it("should not reject any records out of hand") {
+
+      val enrichedRDD = sc.parallelize(List( 
+        Map("A"->"A1", "B"->"1", "accepted"->"Yes"),
+        Map("A"->"A2", "B"->"2", "accepted"->"Yes")
+      ))
+      val schema = StructType(Array(
+        StructField("A", StringType, nullable=true),
+        StructField("B", IntegerType, nullable=true),
+        StructField("accepted", StringType, nullable=true),
+        StructField("reasonForReject", StringType, nullable=true)
+      ))
+  
+      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
+      val rows = goodDF.collect()
+  
+      goodDF.count should be (2)
+      val afs: Array[StructField] = goodDF.schema.fields
+      afs.size should be (4)
+      afs(0).name should be ("A")
+      afs(0).dataType should be (StringType)
+      afs(0).nullable should be (true)
+      afs(1).name should be ("B")
+      afs(1).dataType should be (IntegerType)
+      afs(1).nullable should be (true)
+  
+      rows.size should be (2)
+      rows.foreach{ row => row.getAs[String]("A") match {
+        case "A1" => 
+          row.getAs[Int]("B") should be (1)
+          row.getAs[String]("accepted") should be ("Yes")
+          row.fieldIsNull("reasonForReject") should be (true)
+        case "A2" => 
+          row.getAs[Int]("B") should be (2)
+          row.getAs[String]("accepted") should be ("Yes")
+          row.fieldIsNull("reasonForReject") should be (true)
+        case _ => fail()
+      }}
+  
+      badRDD.count should be (0)
     }
   }
   

@@ -133,7 +133,7 @@ class ActionEngineSpec
         sc).collect()
 
       enriched.size should be (1) // always one because there's only one json input object
-      enriched.head.size should be (5) // input records always get copied in
+      enriched.head.size should be >= (5)
       enriched.head.get("AField") should be (Some("A"))
       enriched.head.get("BField") should be (Some("B"))
       enriched.head.get("CField") should be (Some("10"))
@@ -159,7 +159,7 @@ class ActionEngineSpec
         sc).collect()
 
       enriched.size should be (1) // always one because there's only one json input object
-      enriched.head.size should be (5) // input records always get copied in
+      enriched.head.size should be >= (5)
       enriched.head.get("AField") should be (Some("A"))
       enriched.head.get("BField") should be (Some("B"))
       enriched.head.get("CField") should be (Some("10"))
@@ -194,12 +194,14 @@ class ActionEngineSpec
         }""",
         sc
       ).collect()
-    
+
       enriched.size should be (1)
-      enriched.head.size should be (3)
+      //println("enriched.head = "+enriched.head)
+      enriched.head.size should be (4)
       enriched.head("A") should be ("AVAL") // from input
       enriched.head("B") should be ("BVAL") // from input
       enriched.head("C") should be ("ENRICHED_VALUE") // from enriched
+      enriched.head.get(ActionEngine.addedInputFieldsMarker) should not be (None)
     }
   }
 
@@ -229,8 +231,8 @@ class ActionEngineSpec
         sc).collect()
 
       enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be (5 + 1)
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched.head = "+enriched.head)
+      enriched.head.size should be >= (6)
       enriched.head.get("AFieldEnriched") should be (Some("A"))
     }
 
@@ -263,8 +265,8 @@ class ActionEngineSpec
         sc).collect()
 
       enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be (2 + 5)
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched.head = "+enriched.head)
+      enriched.head.size should be >= (7)
       enriched.head.get("AFieldEnriched") should be (Some("A"))
       enriched.head.get("BFieldEnriched") should be (Some("B"))
     }
@@ -299,8 +301,8 @@ class ActionEngineSpec
         sc).collect()
 
       enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be (2 + 5)
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched.head = "+enriched.head)
+      enriched.head.size should be >= (7)
       enriched.head.get("AFieldEnriched") should be (Some("A"))
       enriched.head.get("EFieldEnriched") should be (Some(""))
     }
@@ -471,8 +473,8 @@ class ActionEngineSpec
         new ActionFactory(new CustomActionCreator) ).collect()
     
       enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be (2 + 5)
+      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched.head = "+enriched.head)
+      enriched.head.size should be >= (7)
       enriched.head("customA") should be ("AAA")
       enriched.head("customB") should be ("BBB")
     }

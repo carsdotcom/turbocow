@@ -68,7 +68,7 @@ class AddScratchToEnrichedSpec
       enriched.size should be (1) // always one because there's only one json input object
       enriched.head("jobRunTime") should be ("test123")
       enriched.head("applicationID") should be ("applicationID_1234567890")
-      enriched.head.size should be (2 + 5) // 5 input records are copied too
+      enriched.head.size should be >= (7)
     }
 
     it("should not add fields to enriched if they don't exist in the scratch pad") {

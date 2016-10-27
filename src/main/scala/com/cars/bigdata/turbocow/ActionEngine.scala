@@ -225,7 +225,7 @@ object ActionEngine
     // If not, copy it over.
     // TODO if this can be avoided, it would save a lot of RAM.
     val inputMap: Map[String, Any] = record.values match { case m: Map[String, Any] => m }
-    var addedFields = List.empty[String]
+    var addedFields = Set.empty[String]
     inputMap.foreach{ case (iKey, iVal) => 
       if ( enrichedMap.get(iKey).isEmpty ) {
         val stringVal = iVal match {
@@ -233,14 +233,14 @@ object ActionEngine
           case a: Any => a.toString
         }
         enrichedMap = enrichedMap + (iKey-> stringVal)
-        addedFields = addedFields :+ iKey
+        addedFields = addedFields + iKey
       }
     }
 
     // For all the added fields, add yet another field that lists all the added
     // input fields
     if (addedFields.nonEmpty) {
-      enrichedMap = enrichedMap + (ActionEngine.addedInputFieldsMarker -> addedFields.mkString(","))
+      enrichedMap = enrichedMap + (ActionEngine.addedInputFieldsMarker -> addedFields.toList.sorted.mkString(","))
     }
 
     // (For now, just return the enriched data)

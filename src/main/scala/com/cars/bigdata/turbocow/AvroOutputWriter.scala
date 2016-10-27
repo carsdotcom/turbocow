@@ -194,7 +194,7 @@ object AvroOutputWriter {
               }
             }
           }
-          else { 
+          else {
             None
           }
         }
@@ -209,7 +209,9 @@ object AvroOutputWriter {
         }
       }.toMap
 
-      if (errors.nonEmpty) newRecord + (errorMarker-> errors.mkString("; "))
+      if (errors.nonEmpty) { 
+        newRecord + (errorMarker-> errors.mkString("; "))
+      }
       else newRecord
     }
   }

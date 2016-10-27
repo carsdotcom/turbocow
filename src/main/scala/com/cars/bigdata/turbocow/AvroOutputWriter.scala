@@ -170,6 +170,9 @@ object AvroOutputWriter {
     writerConfig: AvroOutputWriterConfig = AvroOutputWriterConfig()):
     RDD[Map[String, Any]] = {
 
+    // Now change all the types to the actual needed types.
+    // Any fields that are in 'allAddedFieldsBC' need to be String because
+    // they may have come from the input.
     rdd.map{ record => 
 
       var errors = List.empty[String]
@@ -374,16 +377,41 @@ object AvroOutputWriter {
     (DataFrame, RDD[Map[String, String]]) = {
 
     val errorMarker = avroTypeErrorMarker
+    val sc = enrichedRDD.sparkContext
 
-    // create schema that ensures every field is nullable.
+    // Create a schema that ensures every field is nullable,
+    // and accounts for the fields added from the input record (makes them string).
     if (schema == null || schema.fields == null) throw new RuntimeException("schema must not be null in convertEnrichedRDDToDataFrame()")
     if (schema.fields.isEmpty) throw new RuntimeException("schema must not be empty in convertEnrichedRDDToDataFrame()")
-    val safeSchema = StructType( schema.fields.map{ _.copy(nullable=true) } )
+    val safeSchema = { 
+
+      // Merge all of the added input fields from each record, get a master 
+      // set of added fields.  
+      // Then broadcast it to each executor.
+      val allAddedFields = enrichedRDD.map{ e =>
+        val list = e.get( ActionEngine.addedInputFieldsMarker )
+        if (list.nonEmpty) 
+          list.get.split(",").toSet
+        else 
+          Set.empty[String] 
+      }.fold(Set.empty[String]){ _ ++ _ }
+
+      StructType( schema.fields.map{ sf => 
+        // If field is in the added fields set, modify the structfield to be 
+        // string type and nullable:
+        if (allAddedFields.contains(sf.name))
+          sf.copy(dataType=StringType, nullable=true)
+        else 
+          sf.copy(nullable=true)
+      })
+    }
 
     // Loop through enriched record fields, and extract the value of each field 
     // in the order of schema list (so the order matches the Avro schema). 
     // Convert to the correct type as well.
     val anyRDD: RDD[Map[String, Any]] = createTypedEnrichedRDD(enrichedRDD, safeSchema, errorMarker, writerConfig)
+    //println("HERE IS anyRDD:")
+    //anyRDD.foreach{println}
 
     // Now filter out the error records for later returning.
     val errorRDD: RDD[Map[String, String]] = anyRDD.filter{

@@ -431,10 +431,7 @@ class AvroOutputWriterSpec
       Try( row.getAs[String]("AField") ).isSuccess should be (false)
       Try( row.getAs[String]("BField") ).isSuccess should be (false)
       Try( row.getAs[String]("CField") ) should be (Success("C"))
-      // this will actually exist but it defaults the value.  we are not testing 
-      // defaults in this test so I'm not testing the value.  
-      // See below for default values tests.
-      Try( row.getAs[Int]("DField") ).isSuccess should be (true)
+      Try( row.getAs[Int]("DField") ).isSuccess should be (false)
       Try( row.getAs[String]("EField") ).isSuccess should be (false)
     }
 

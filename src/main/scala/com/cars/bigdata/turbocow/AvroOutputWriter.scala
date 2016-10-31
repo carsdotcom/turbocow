@@ -387,7 +387,6 @@ object AvroOutputWriter {
 
       // Merge all of the added input fields from each record, get a master 
       // set of added fields.  
-      // Then broadcast it to each executor.
       val allAddedFields = enrichedRDD.map{ e =>
         val list = e.get( ActionEngine.addedInputFieldsMarker )
         if (list.nonEmpty) 

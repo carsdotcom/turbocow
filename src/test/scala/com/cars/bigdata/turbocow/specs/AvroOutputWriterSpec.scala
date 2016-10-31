@@ -431,7 +431,7 @@ class AvroOutputWriterSpec
       Try( row.getAs[String]("AField") ).isSuccess should be (false)
       Try( row.getAs[String]("BField") ).isSuccess should be (false)
       Try( row.getAs[String]("CField") ) should be (Success("C"))
-      Try( row.getAs[Int]("DField") ).isSuccess should be (false)
+      Try( row.getAs[String]("DField") ) should be (Success("11")) // copied in as string because enriched did not include this field
       Try( row.getAs[String]("EField") ).isSuccess should be (false)
     }
 

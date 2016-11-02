@@ -2,7 +2,7 @@ package com.cars.bigdata.turbocow
 
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{Column, DataFrame}
+import org.apache.spark.sql.{Column, DataFrame, SQLContext}
 import org.json4s.JsonAST.JNull
 
 import scala.annotation.tailrec
@@ -13,8 +13,16 @@ import SQLContextUtil._
 object DataFrameUtil
 {
 
+  val changeSchemaErrorField = "__TURBOCOW_DATAFRAMEUTIL_CHANGESCHEMA_PROCESSFIELDS_ERRORS__"
+
+  case class DataFrameOpResult(
+    goodDF: DataFrame, 
+    errorDF: DataFrame)
+
   // New methods for DataFrame you get when importing DataFrameUtil._ :
   implicit class DataFrameAdditions(val df: DataFrame) {
+
+    lazy val sqlCtx: SQLContext = df.sqlContext
 
     /** Split a dataframe.  Does 2 filters, one with the condition and
       * one with the condition negated with not().
@@ -175,11 +183,6 @@ object DataFrameUtil
       recursiveDefault(defaultDF, boolSchema)
     }
 
-    val changeSchemaErrorField = "__TURBOCOW_DATAFRAMEUTIL_CHANGESCHEMA_PROCESSFIELDS_ERRORS__"
-    case class DataFrameOpResult(
-      goodDF: DataFrame, 
-      errorDF: DataFrame)
-
     /** Change the schema of a dataframe to conform to a new schema.  The dataframe
       * will be modified as follows:
       * 
@@ -197,6 +200,7 @@ object DataFrameUtil
       newSchema: List[AvroFieldConfig]): 
       DataFrameOpResult = {
 
+      val stNewSchema = StructType( newSchema.map{ _.structField }.toArray )
       val oldSchema = df.schema
 
       case class OldNewFields(
@@ -308,6 +312,12 @@ object DataFrameUtil
                 DataFrameOpResult(posMod, errorDFProcessed.unionAll(negMod))
               }
               else dfr
+            }
+            else if (oldNew.oldField.isEmpty && oldNew.newAFC.nonEmpty) {
+              // add the new field as null
+              DataFrameOpResult(
+                df.withColumn(oldNew.newAFC.get.structField.name, lit(null)),
+                sqlCtx.createEmptyDataFrame(stNewSchema))
             }
             else {
               throw new Exception("TODO")

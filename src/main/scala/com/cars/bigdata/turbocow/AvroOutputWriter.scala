@@ -123,6 +123,10 @@ object AvroOutputWriter {
       // Float fields are disallowed due to https://issues.apache.org/jira/browse/SPARK-14081
       if (afc.structField.dataType == FloatType) throw new RuntimeException(""""float" types are not allowed in the avro schema due to a Spark bug.  Please change all "float" types to "double".""")
 
+      // NullType fields are disallowed because casts can't be done to them
+      // without exceptions and basically because they're useless:
+      if (afc.structField.dataType == NullType) throw new RuntimeException(""""null-only (NullType)" types are not allowed in the avro schema due to Spark issue with casting.  Please change all null-only types to nullable strings or ints like: ["null", "string"] """)
+
       afc
     }
   }
@@ -343,7 +347,8 @@ object AvroOutputWriter {
     }
   }
 
-  /** Write out a dataframe to Avro at the specified path.
+  /** Write out a dataframe to Avro at the specified path, using the 
+    * existing schema of the input dataframe.
     * 
     */
   def write(df: DataFrame, outputDir: Path) = {
@@ -359,6 +364,24 @@ object AvroOutputWriter {
 
     // lastly, write it out
     df.write.format("com.databricks.spark.avro").save(outputDir.toString)
+  }
+
+  /** Write out a dataframe to Avro at the specified path, using the 
+    * schema provided.  The dataframe will be modified to fit the schema 
+    * according to DataFrame.changeSchema().
+    *
+    * @return the 'errorDF' as returned from changeSchema(), which is any records
+    *         whose data could not be converted to requested type.
+    */
+  def write(
+    df: DataFrame, 
+    conformToSchema: List[AvroFieldConfig], 
+    outputDir: Path): 
+    DataFrame = {
+
+    val conversionResult = df.changeSchema(conformToSchema)
+    write(conversionResult.goodDF, outputDir)
+    conversionResult.errorDF
   }
 
   /** Convert the enriched RDD map to a dataframe.  

@@ -353,6 +353,41 @@ class AvroOutputWriterSpec
 
       intercept[Exception]{ AvroOutputWriter.getAvroSchema(avroSchema) }
     }
+
+    it("""should throw if attempting to use a null-only field""") {
+
+      val avroSchema = """{
+        "namespace": "ALS",
+        "type": "record",
+        "name": "impression",
+        "fields": [{
+            "name": "NullField",
+            "type": "null",
+            "default": null
+          }
+        ],
+        "doc": ""
+      }"""
+      intercept[Exception]{ AvroOutputWriter.getAvroSchema(avroSchema) }
+    }
+
+    it("""should throw if attempting to use a null-only field 2""") {
+
+      val avroSchema = """{
+        "namespace": "ALS",
+        "type": "record",
+        "name": "impression",
+        "fields": [{
+            "name": "NullField",
+            "type": ["null"],
+            "default": null
+          }
+        ],
+        "doc": ""
+      }"""
+      intercept[Exception]{ AvroOutputWriter.getAvroSchema(avroSchema) }
+    }
+
   }
 
   describe("writeEnrichedRDD()") {

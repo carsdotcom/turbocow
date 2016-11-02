@@ -9,6 +9,17 @@ case class AvroOutputWriterConfig(
   // data this may be needed.
   alwaysTrimNumerics: Boolean = true,
   alwaysTrimBooleans: Boolean = true
+
+  // This is the number of partitions that output dataframe will be 
+  // repartitioned/coalesced to before writing out.
+  // Note that lower values may run into a Spark Int.MAX_VALUE error.
+  // Tune this to your liking.
+  numOutputPartitions: Int = AvroOutputWriterConfig.defaultNumOutputPartitions
 )
 
+object AvroOutputWriterConfig {
+
+  // The default numOutputPartitions value.
+  val defaultNumOutputPartitions = 4000
+}
 

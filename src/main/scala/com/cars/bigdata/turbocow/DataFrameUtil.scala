@@ -6,11 +6,13 @@ import org.apache.spark.sql.{Column, DataFrame}
 import org.json4s.JsonAST.JNull
 
 import scala.annotation.tailrec
+import SQLContextUtil._
 
 /** DataFrame helper functions.
   */
 object DataFrameUtil
 {
+
   // New methods for DataFrame you get when importing DataFrameUtil._ :
   implicit class DataFrameAdditions(val df: DataFrame) {
 
@@ -51,6 +53,25 @@ object DataFrameUtil
     //    .drop(floatField)
     //    .withColumnRenamed(tempCol, floatField)
     //}
+
+    /** Convert a dataframe so its schema is all strings.
+      * All fields should be convertible to a string or this will error.
+      */
+    def convertToAllStrings(): DataFrame = {
+    
+      val fields = df.schema.fields
+
+      @tailrec
+      def process(dfIn: DataFrame, schemaFields: Seq[StructField]): DataFrame = {
+        if (schemaFields.isEmpty) dfIn
+        else {
+          val sf = schemaFields.head
+          val modDF = dfIn.withColumn(sf.name, dfIn(sf.name).cast(StringType))
+          process(modDF, schemaFields.tail)
+        }
+      }
+      process(df, fields.toSeq)
+    }
 
     /** Add a column giving a default value
       */
@@ -154,5 +175,157 @@ object DataFrameUtil
       recursiveDefault(defaultDF, boolSchema)
     }
 
+    val changeSchemaErrorField = "__TURBOCOW_DATAFRAMEUTIL_CHANGESCHEMA_PROCESSFIELDS_ERRORS__"
+    case class DataFrameOpResult(
+      goodDF: DataFrame, 
+      errorDF: DataFrame)
+
+    /** Change the schema of a dataframe to conform to a new schema.  The dataframe
+      * will be modified as follows:
+      * 
+      *   * Missing columns will be set to null
+      *   * Additional columns not in the specified schema will be filtered out
+      *   * Columns that exist in both schemas but with different types will 
+      *     be converted, and if not possible to convert, will be filtered out
+      *     and returned as a separate dataframe.
+      *
+      * @return DataFrameOpResult where goodDF contains all rows where 
+      *         every field converted successfully; and errorDF contains all rows
+      *         where at least 1 field did not convert successfully.
+      */
+    def changeSchema(
+      newSchema: List[AvroFieldConfig]): 
+      DataFrameOpResult = {
+
+      val oldSchema = df.schema
+
+      case class OldNewFields(
+        oldField: Option[StructField], 
+        newAFC: Option[AvroFieldConfig])
+
+      // TODO If order matters, then this may not be a good struct to create:
+      val listOldNew: Seq[OldNewFields] = {
+        val allOld = oldSchema.fields.map{ oldSF => 
+          val newOpt = newSchema.find( _.structField.name == oldSF.name )
+          OldNewFields( Option(oldSF), newOpt )
+        }.toSeq
+        val allNew = newSchema.flatMap{ newAFC => 
+          // only process this field if not already in allOld:
+          if (allOld.find{ e => (e.oldField.nonEmpty && (e.oldField.get.name == newAFC.structField.name)) }.nonEmpty ) {
+            None
+          }
+          else {
+            val oldOpt = oldSchema.fields.find( _.name == newAFC.structField.name)
+            Option(OldNewFields( oldOpt, Option(newAFC) ))
+          }
+        }.toSeq
+        (allOld ++ allNew)
+      }
+
+      val tempField = "__TURBOCOW_DATAFRAMEUTIL_CHANGESCHEMA_PROCESSFIELDS_TEMPFIELD__"
+      val errorField = changeSchemaErrorField
+
+      // udf function to add an error message to the error field
+      val addToErrorFieldUdf = udf { (existingErrorField: String, addition: String) =>
+        if (existingErrorField == null || existingErrorField.isEmpty) addition
+        else existingErrorField + "; " + addition
+      }
+
+      @tailrec
+      def processFields( 
+        fields: Seq[OldNewFields], 
+        dfr: DataFrameOpResult ): 
+        DataFrameOpResult = {
+
+        if (fields.isEmpty) dfr
+        else {
+          val oldNew = fields.head
+
+          val newDFR = {
+            if (oldNew.oldField.nonEmpty && oldNew.newAFC.nonEmpty) {
+              // old & new schema contains the same field name
+              val old = oldNew.oldField.get
+              val nu = oldNew.newAFC.get
+              val name = old.name
+              if ( old.dataType != nu.structField.dataType ) {
+                val dfTemp = {
+                  if (nu.structField.dataType == NullType) throw new Exception("can't cast anything to a NullType (schemas with NullType types not supported in this Spark version).")
+                  else {
+                    dfr.goodDF.withColumn(
+                      tempField, 
+                      col(name).cast(nu.structField.dataType))
+                  }
+                }
+                val split = dfTemp.split( col(tempField).isNotNull )
+                val errString = s"could not convert field '${name}' to '${nu.structField.dataType}'"
+
+                val posMod = split.positive
+                  .drop(name)
+                  .withColumnRenamed(tempField, name)
+
+                println("RRRRRRRRRRRRRRRR posMod schema = ")
+                posMod.schema.fields.foreach{println}
+
+                // convert errors (negative) to all-strings
+                val negAllStrings = split.negative.drop(tempField).convertToAllStrings()
+                val negMod = negAllStrings
+                  .withColumn(
+                    errorField,
+                    addToErrorFieldUdf(col(errorField), lit(errString)))
+
+                println("RRRRRRRRRRRRRRR negMod schema = ")
+                negMod.schema.fields.foreach{println}
+
+                // now process the error side of the input.
+                // (needs slightly different processing, don't combine with above code)
+                val errorDFProcessed = {
+                  val dfErrorTemp = dfr.errorDF.withColumn(
+                    tempField,
+                    col(name).cast(nu.structField.dataType))
+                  val split = dfErrorTemp.split( col(tempField).isNotNull )
+
+                  // drop the tempfield
+                  val posMod = split.positive.drop(tempField)
+
+                  println("SSSSSSSSSSSSS posMod schema = ")
+                  posMod.schema.fields.foreach{println}
+
+                  val negMod = {
+                    val dropped = split.negative.drop(tempField)
+                    val errorUpdated = dropped.withColumn(
+                      errorField,
+                      addToErrorFieldUdf(col(errorField), lit(errString)))
+                    errorUpdated
+                  }
+
+                  println("SSSSSSSSSSSSS negMod schema = ")
+                  negMod.schema.fields.foreach{println}
+
+                  // now merge back together
+                  posMod.unionAll(negMod)
+                }
+
+                DataFrameOpResult(posMod, errorDFProcessed.unionAll(negMod))
+              }
+              else dfr
+            }
+            else {
+              throw new Exception("TODO")
+            }
+          }
+
+          processFields(fields.tail, newDFR)
+        }
+      }
+
+      val nullString: String = null
+      val dfWithErrorField = df.withColumn(errorField, lit(nullString))
+      val allStringSchema = StructType( dfWithErrorField.schema.fields.map{ _.copy(dataType=StringType) }.toArray )
+      processFields(
+        listOldNew, 
+        DataFrameOpResult(
+          dfWithErrorField, 
+          df.sqlContext.createEmptyDataFrame(allStringSchema) ) )
+    }
   }
 }

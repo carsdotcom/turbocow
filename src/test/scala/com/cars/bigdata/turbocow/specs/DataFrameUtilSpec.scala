@@ -436,18 +436,18 @@ class DataFrameUtilSpec
             "name": "DoubleField", "type": [ "null", "double" ], "default": null
           }, {
             "name": "BooleanField", "type": [ "null", "boolean" ], "default": null
-          }, {
-            "name": "NullField", "type": "null", "default": null
           }
         ],
         "doc": ""
       }"""
+        //  }, {
+        //    "name": "NullField", "type": "null", "default": null
       val schema = AvroSchema(jsonAvroSchema)
       val sfSchema = schema.toStructType
 
       val startDF = sqlCtx.createDataFrame( sc.parallelize(
-        List(//             str int lng, dbl, bool, null
-          Row.fromSeq(List("ID0", 1, 2L, 4.1, true, null)))),
+        List(//             str int lng, dbl, bool
+          Row.fromSeq(List("ID0", 1, 2L, 4.1, true)))),
         sfSchema)
 
       // check start schema
@@ -457,13 +457,15 @@ class DataFrameUtilSpec
         df.schema.fields(2).dataType should be (LongType)
         df.schema.fields(3).dataType should be (DoubleType)
         df.schema.fields(4).dataType should be (BooleanType)
-        df.schema.fields(5).dataType should be (NullType)
       }
       checkSchema(startDF)
+      startDF.schema.fields.size should be (5)
 
       val result = startDF.changeSchema(schema.toListAvroFieldConfig)
 
       checkSchema(result.goodDF)
+      result.goodDF.schema.fields.size should be (6)
+      result.goodDF.schema.fields(5).name should be (DataFrameUtil.changeSchemaErrorField)
 
       val rows = result.goodDF.collect
       rows.size should be (1)
@@ -473,14 +475,74 @@ class DataFrameUtilSpec
           row.getAs[Long]("LongField") should be (2L)
           row.getAs[Double]("DoubleField") should be (4.1)
           row.getAs[Boolean]("BooleanField") should be (true)
-          row.fieldIsNull("NullField") should be (true)
+          row.fieldIsNull(changeSchemaErrorField) should be (true)
       }}
 
       result.errorDF.count should be (0)
     }
 
     it("should set columns in schema that are missing in DF to null") {
-      fail()
+      // avro schema
+      val jsonAvroSchema = """{
+          "namespace": "NS",
+          "type": "record",
+          "name": "impression",
+          "fields": [{
+            "name": "StringField", "type": [ "null", "string" ], "default": null
+          }, {
+            "name": "IntField", "type": [ "null", "int" ], "default": null
+          }, {
+            "name": "LongField", "type": [ "null", "long" ], "default": null
+          }, {
+            "name": "DoubleField", "type": [ "null", "double" ], "default": null
+          }, {
+            "name": "BooleanField", "type": [ "null", "boolean" ], "default": null
+          }
+        ],
+        "doc": ""
+      }"""
+      // fullSchema has every field
+      val fullSchema = AvroSchema(jsonAvroSchema)
+      val fullSfSchema = fullSchema.toStructType
+
+      // the test schema 'schema' is missing DoubleField
+      val schema = fullSchema.copy(fields = fullSchema.fields.filterNot(_.name=="DoubleField"))
+      val sfSchema = schema.toStructType
+
+      val startDF = sqlCtx.createDataFrame( sc.parallelize(
+        List(//             str int lng, bool    // NO DOUBLE
+          Row.fromSeq(List("ID0", 1, 2L, true)))),
+        sfSchema)
+
+      // check start schema
+      def checkSchema(df: DataFrame) = {
+        df.schema.fields(0).dataType should be (StringType)
+        df.schema.fields(1).dataType should be (IntegerType)
+        df.schema.fields(2).dataType should be (LongType)
+        //df.schema.fields(3).dataType should be (DoubleType)
+        df.schema.fields(3).dataType should be (BooleanType)
+      }
+      checkSchema(startDF)
+      startDF.schema.fields.size should be (4)
+
+      // changing to fullSchema adds DoubleField
+      val result = startDF.changeSchema(fullSchema.toListAvroFieldConfig)
+
+      checkSchema(result.goodDF)
+      result.goodDF.schema.fields.size should be (5)
+      result.goodDF.schema.fields(4).name should be ("DoubleField")
+
+      val rows = result.goodDF.collect
+      rows.size should be (1)
+      rows.foreach{ row => row.getAs[String]("StringField") match {
+        case "ID0" => 
+          row.getAs[Int]("IntField") should be (1)
+          row.getAs[Long]("LongField") should be (2L)
+          row.fieldIsNull("DoubleField") should be (true)
+          row.getAs[Boolean]("BooleanField") should be (true)
+      }}
+
+      result.errorDF.count should be (0)
     }
 
     it("should remove columns in DF that are missing from schema") {

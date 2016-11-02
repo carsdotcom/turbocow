@@ -319,8 +319,14 @@ object DataFrameUtil
                 df.withColumn(oldNew.newAFC.get.structField.name, lit(null)),
                 sqlCtx.createEmptyDataFrame(stNewSchema))
             }
+            else if (oldNew.oldField.nonEmpty && oldNew.newAFC.isEmpty) {
+              // Just drop the field
+              DataFrameOpResult(
+                df.drop(oldNew.oldField.get.name),
+                sqlCtx.createEmptyDataFrame(stNewSchema))
+            }
             else {
-              throw new Exception("TODO")
+              throw new Exception("It should be impossible for oldNew.oldField AND oldNew.newAFC to both be empty.")
             }
           }
 

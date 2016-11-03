@@ -798,7 +798,6 @@ class DataFrameUtilSpec
       runTestCases(createInitialDataFrame[Int], testVals, fieldName, oldType)
     }
 
-    /*
     it("should change Long column types to other types correctly") {
       val fieldName = "LongField"
       val oldType = LongType
@@ -814,24 +813,32 @@ class DataFrameUtilSpec
         TC(Some(11L), BooleanType, Some(true)), // nonzero=true, zero=false
         TC(Some(-22L), BooleanType, Some(true)),
         TC(Some(0L), BooleanType, Some(false)),
-        TC(None, StringType, Some(null)),
-        TC(None, IntegerType, Some(null)),
-        TC(None, LongType, Some(null)),
-        TC(None, DoubleType, Some(null)),
-        TC(None, BooleanType, Some(null))
+        TC[Long](None, StringType, Some(null)),
+        TC[Long](None, IntegerType, Some(null)),
+        TC[Long](None, LongType, Some(null)),
+        TC[Long](None, DoubleType, Some(null)),
+        TC[Long](None, BooleanType, Some(null))
       )
 
       def createInitialDataFrame[T](tc: TC[T]): DataFrame = {
         val startStSchema = StructType(schema.map{ _.structField })
-        sqlCtx.createDataFrame( sc.parallelize(
-          List(//             str   int long,    dbl, bool
-            Row.fromSeq(List("STR", 11, testVal, 30.1, true)))),
-          startStSchema)
+        if (tc.testVal.nonEmpty)
+          sqlCtx.createDataFrame( sc.parallelize(
+            List(//             str   int long,           dbl, bool
+              Row.fromSeq(List("STR", 11, tc.testVal.get, 30.1, true)))),
+            startStSchema)
+        else  { // use null value
+          val df = sqlCtx.createDataFrame( sc.parallelize(
+            List(//             str   int long,    dbl, bool
+              Row.fromSeq(List("STR", 11, null,    30.1, true)))),
+            startStSchema).withColumn(fieldName, col(fieldName).cast(tc.newType))
+          df.schema.find( _.name==fieldName ).get.dataType should be (tc.newType)
+          df
+        }
       }
 
-      runTestCases(createInitialDataFrame, testVals, fieldName, oldType)
+      runTestCases[Long](createInitialDataFrame, testVals, fieldName, oldType)
     }
-    */
 
     it("should change Double column types to other types correctly") {
       fail()
@@ -841,9 +848,9 @@ class DataFrameUtilSpec
       fail()
     }
 
-    it("should change Null column types to other types correctly") {
-      fail()
-    }
+    //it("should change Null column types to other types correctly") {
+    //  fail()
+    //}
   }
 
   describe("convertToAllStrings()") {

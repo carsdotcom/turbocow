@@ -527,7 +527,7 @@ class DataFrameUtilSpec
 
       def checkSchema(schema: StructType) = {
         println("schema = "+schema.fields.mkString("\n"))
-        // note: not checking order
+        // note: not checking order; it is different between goodDF & errorDF
         schema.fields.find( _.dataType == StringType ).get.name should be ("StringField")
         schema.fields.find( _.dataType == IntegerType ).get.name should be ("IntField")
         schema.fields.find( _.dataType == LongType ).get.name should be ("LongField")
@@ -630,16 +630,76 @@ class DataFrameUtilSpec
 
   describe("changeSchema() where schemas are same except for one type") {
 
-    val allTypes = List(StringType, IntegerType, LongType, DoubleType, BooleanType, NullType)
-    // avro schema
+    // avro schema for all these tests
     val schema = List(
       AvroFieldConfig( StructField("StringField", StringType, nullable=true), JNull),
       AvroFieldConfig( StructField("IntField", IntegerType, nullable=true), JNull),
       AvroFieldConfig( StructField("LongField", LongType, nullable=true), JNull),
       AvroFieldConfig( StructField("DoubleField", DoubleType, nullable=true), JNull),
-      AvroFieldConfig( StructField("BooleanField", BooleanType, nullable=true), JNull),
-      AvroFieldConfig( StructField("NullField", NullType, nullable=true), JNull)
+      AvroFieldConfig( StructField("BooleanField", BooleanType, nullable=true), JNull)
     )
+
+    /** generic run tests function
+      */
+    case class TC[T](newType: DataType, testVal: T, expectedVal: Option[Any])
+    def runTestCases[T](
+      createInitialDataFrameFn: Any => DataFrame,
+      testVals: List[TC[T]],
+      fieldName: String,
+      oldType: DataType
+    ) = {
+
+      val fieldIndex = schema.indexWhere( _.structField.name == fieldName )
+      testVals.foreach{ t =>
+        println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Testing testVal: "+t)
+        val startDF = createInitialDataFrameFn(t.testVal)
+        val newType = t.newType
+
+        val newSchema = schema.map{ e => 
+          if (e.structField.name == fieldName) {
+            val name = e.structField.name
+            println(s"Changing type of '${fieldName}' from '${oldType}' to '$newType'...")
+            e.copy( structField = e.structField.copy(dataType = newType))
+          }
+          else e
+        }
+
+        val result = startDF.changeSchema(newSchema)
+        val goodRows = result.goodDF.collect
+        val errorRows = result.errorDF.collect
+
+        if (t.expectedVal.nonEmpty) {
+          // success
+          val sf = result.goodDF.schema.fields.filter( _.name == fieldName )
+          sf.size should be (1)
+          sf.head.dataType should be (t.newType)
+
+          errorRows.size should be (0)
+          goodRows.size should be (1)
+
+          val expected: Any = t.expectedVal.get
+          val row = goodRows.head
+          expected match {
+            case null => row.fieldIsNull(fieldName) should be (true)
+            case a: Any => row.get(row.fieldIndex(fieldName)) should be (a)
+          }
+        }
+        else { // expected val is empty (error)
+
+          result.errorDF should not be (None)
+          val sf = result.errorDF.schema.fields.filter( _.name == fieldName )
+          sf.size should be (1)
+          sf.head.dataType should be (StringType)
+
+          println("GGGGG good rows = ")
+          result.goodDF.show()
+          goodRows.size should be (0)
+
+          errorRows.size should be (1)
+          errorRows.head.getAs[String](fieldName) should be (t.testVal)
+        }
+      }
+    }
 
     it("should change String column types to other types correctly") {
           
@@ -659,11 +719,12 @@ class DataFrameUtilSpec
       )
 
       testVals.foreach{ t =>
+        println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT TEST START: ")
         println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Testing testVal: "+t)
         val startStSchema = StructType(schema.map{ _.structField })
         val startDF = sqlCtx.createDataFrame( sc.parallelize(
-          List(//             str      int lng,  dbl, bool, null
-            Row.fromSeq(List(t.testVal, 10, 20L, 30.1, true, null)))),
+          List(//             str      int lng,  dbl, bool
+            Row.fromSeq(List(t.testVal, 10, 20L, 30.1, true)))),
           startStSchema)
         val newType = t.newType
 
@@ -714,7 +775,83 @@ class DataFrameUtilSpec
     }
 
     it("should change Int column types to other types correctly") {
-      fail()
+      val fieldName = "IntField"
+      val oldType = IntegerType
+      // test class
+      val testVals = List(
+        TC(IntegerType, 11, Some(11)),
+        TC(IntegerType, -22, Some(-22)),
+        TC(LongType, 11, Some(11L)), 
+        TC(LongType, -22, Some(-22L)),
+        TC(DoubleType, 11, Some(11.0)), 
+        TC(DoubleType, -22, Some(-22.1)),
+        TC(BooleanType, 11, Some(true)), // nonzero=true, zero=false
+        TC(BooleanType, -22, Some(true)),
+        TC(BooleanType, 0, Some(false))
+      )
+
+      def createInitialDataFrame[T](testVal: T): DataFrame = {
+        val startStSchema = StructType(schema.map{ _.structField })
+        sqlCtx.createDataFrame( sc.parallelize(
+          List(//             str   int        lng,  dbl, bool
+            Row.fromSeq(List("STR", testVal, 20L, 30.1, true)))),
+          startStSchema)
+      }
+
+      runTestCases(createInitialDataFrame, testVals, fieldName, oldType)
+
+      /*
+      val fieldIndex = schema.indexWhere( _.structField.name == fieldName )
+      testVals.foreach{ t =>
+        println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Testing testVal: "+t)
+        val startDF = createInitialDataFrame(t.testVal)
+        val newType = t.newType
+
+        val newSchema = schema.map{ e => 
+          if (e.structField.name == fieldName) {
+            val name = e.structField.name
+            println(s"Changing type of '${fieldName}' from '${oldType}' to '$newType'...")
+            e.copy( structField = e.structField.copy(dataType = newType))
+          }
+          else e
+        }
+
+        val result = startDF.changeSchema(newSchema)
+        val goodRows = result.goodDF.collect
+        val errorRows = result.errorDF.collect
+
+        if (t.expectedVal.nonEmpty) {
+          // success
+          val sf = result.goodDF.schema.fields.filter( _.name == fieldName )
+          sf.size should be (1)
+          sf.head.dataType should be (t.newType)
+
+          errorRows.size should be (0)
+          goodRows.size should be (1)
+
+          val expected: Any = t.expectedVal.get
+          val row = goodRows.head
+          expected match {
+            case null => row.fieldIsNull(fieldName) should be (true)
+            case a: Any => row.get(row.fieldIndex(fieldName)) should be (a)
+          }
+        }
+        else { // expected val is empty (error)
+
+          result.errorDF should not be (None)
+          val sf = result.errorDF.schema.fields.filter( _.name == fieldName )
+          sf.size should be (1)
+          sf.head.dataType should be (StringType)
+
+          println("GGGGG good rows = ")
+          result.goodDF.show()
+          goodRows.size should be (0)
+
+          errorRows.size should be (1)
+          errorRows.head.getAs[String](fieldName) should be (t.testVal)
+        }
+      }
+      */
     }
 
     it("should change Long column types to other types correctly") {

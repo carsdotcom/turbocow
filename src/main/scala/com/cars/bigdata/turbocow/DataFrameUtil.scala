@@ -314,15 +314,18 @@ object DataFrameUtil
               else dfr
             }
             else if (oldNew.oldField.isEmpty && oldNew.newAFC.nonEmpty) {
-              // add the new field as null
+              // Add the new field as null.
+              // Note for adding fields that are NOT String, we need to be fancier.
+              val sf = oldNew.newAFC.get.structField
               DataFrameOpResult(
-                df.withColumn(oldNew.newAFC.get.structField.name, lit(null)),
+                df.withColumn(sf.name, lit(null).cast(sf.dataType)),
                 sqlCtx.createEmptyDataFrame(stNewSchema))
             }
             else if (oldNew.oldField.nonEmpty && oldNew.newAFC.isEmpty) {
               // Just drop the field
+              val sf = oldNew.oldField.get
               DataFrameOpResult(
-                df.drop(oldNew.oldField.get.name),
+                df.drop(sf.name),
                 sqlCtx.createEmptyDataFrame(stNewSchema))
             }
             else {

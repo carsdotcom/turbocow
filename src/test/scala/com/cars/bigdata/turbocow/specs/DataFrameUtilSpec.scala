@@ -756,7 +756,6 @@ class DataFrameUtilSpec
       runTestCases[String](createInitialDataFrame, testVals, fieldName, oldType)
     }
 
-    /*
     it("should change Int column types to other types correctly") {
       val fieldName = "IntField"
       val oldType = IntegerType
@@ -772,24 +771,34 @@ class DataFrameUtilSpec
         TC(Some(11), BooleanType, Some(true)), // nonzero=true, zero=false
         TC(Some(-22), BooleanType, Some(true)),
         TC(Some(0), BooleanType, Some(false)),
-        TC(None, StringType, None),
-        TC(None, IntegerType, None),
-        TC(None, LongType, None),
-        TC(None, DoubleType, None),
-        TC(None, BooleanType, None)
+        TC[Int](None, StringType, Some(null)),
+        TC[Int](None, IntegerType, Some(null)),
+        TC[Int](None, LongType, Some(null)),
+        TC[Int](None, DoubleType, Some(null)),
+        TC[Int](None, BooleanType, Some(null))
       )
 
       def createInitialDataFrame[T](tc: TC[T]): DataFrame = {
         val startStSchema = StructType(schema.map{ _.structField })
-        sqlCtx.createDataFrame( sc.parallelize(
-          List(//             str   int        lng,  dbl, bool
-            Row.fromSeq(List("STR", testVal, 20L, 30.1, true)))),
-          startStSchema)
+        if (tc.testVal.nonEmpty)
+          sqlCtx.createDataFrame( sc.parallelize(
+            List(//             str   int             lng,  dbl, bool
+              Row.fromSeq(List("STR", tc.testVal.get, 20L, 30.1, true)))),
+            startStSchema)
+        else  { // use null value
+          val df = sqlCtx.createDataFrame( sc.parallelize(
+            List(//             str   int   lng,  dbl, bool
+              Row.fromSeq(List("STR", null, 20L, 30.1, true)))),
+            startStSchema).withColumn(fieldName, col(fieldName).cast(tc.newType))
+          df.schema.find( _.name==fieldName ).get.dataType should be (tc.newType)
+          df
+        }
       }
 
-      runTestCases(createInitialDataFrame, testVals, fieldName, oldType)
+      runTestCases(createInitialDataFrame[Int], testVals, fieldName, oldType)
     }
 
+    /*
     it("should change Long column types to other types correctly") {
       val fieldName = "LongField"
       val oldType = LongType
@@ -805,11 +814,11 @@ class DataFrameUtilSpec
         TC(Some(11L), BooleanType, Some(true)), // nonzero=true, zero=false
         TC(Some(-22L), BooleanType, Some(true)),
         TC(Some(0L), BooleanType, Some(false)),
-        TC(None, StringType, None),
-        TC(None, IntegerType, None),
-        TC(None, LongType, None),
-        TC(None, DoubleType, None),
-        TC(None, BooleanType, None)
+        TC(None, StringType, Some(null)),
+        TC(None, IntegerType, Some(null)),
+        TC(None, LongType, Some(null)),
+        TC(None, DoubleType, Some(null)),
+        TC(None, BooleanType, Some(null))
       )
 
       def createInitialDataFrame[T](tc: TC[T]): DataFrame = {

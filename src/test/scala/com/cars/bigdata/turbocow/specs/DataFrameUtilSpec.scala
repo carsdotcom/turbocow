@@ -527,12 +527,12 @@ class DataFrameUtilSpec
 
       def checkSchema(schema: StructType) = {
         println("schema = "+schema.fields.mkString("\n"))
-        schema.fields(0).dataType should be (StringType)
-        schema.fields(1).dataType should be (IntegerType)
-        schema.fields(2).dataType should be (LongType)
-        schema.fields(3).dataType should be (BooleanType)
-        schema.fields(4).name should be ("DoubleField")
-        schema.fields(4).dataType should be (DoubleType)
+        // note: not checking order
+        schema.fields.find( _.dataType == StringType ).get.name should be ("StringField")
+        schema.fields.find( _.dataType == IntegerType ).get.name should be ("IntField")
+        schema.fields.find( _.dataType == LongType ).get.name should be ("LongField")
+        schema.fields.find( _.dataType == BooleanType ).get.name should be ("BooleanField")
+        schema.fields.find( _.dataType == DoubleType ).get.name should be ("DoubleField")
         schema.fields.size should be (5)
       }
       println("checking goodDF schema....")
@@ -624,7 +624,7 @@ class DataFrameUtilSpec
     }
 
     it("should reorder fields to match new schema") {
-      fail() // todo
+      fail("TODOTODO test writing with one order, then write another day with a different order, then try reading with hive & spark")
     }
   }
 

@@ -3,6 +3,7 @@ package com.cars.bigdata.turbocow
 import com.cars.bigdata.turbocow.test.SparkTestContext._
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.functions._
 import org.json4s._
 import DataFrameUtil._
 import RowUtil._
@@ -640,12 +641,16 @@ class DataFrameUtilSpec
     )
 
     // helper test class
-    case class TC[T](newType: DataType, testVal: T, expectedVal: Option[Any])
+    case class TC[T](
+      testVal: Option[T], 
+      newType: DataType, 
+      expectedVal: Option[Any]) // none indicates error and null, Some(null) is success and null
+      //success: Boolean = expectedVal.nonEmpty)
 
     /** generic run tests function
       */
     def runTestCases[T](
-      createInitialDataFrameFn: Any => DataFrame,
+      createInitialDataFrameFn: TC[T] => DataFrame,
       testVals: List[TC[T]],
       fieldName: String,
       oldType: DataType
@@ -653,8 +658,9 @@ class DataFrameUtilSpec
 
       val fieldIndex = schema.indexWhere( _.structField.name == fieldName )
       testVals.foreach{ t =>
+        println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT")
         println("TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT Testing testVal: "+t)
-        val startDF = createInitialDataFrameFn(t.testVal)
+        val startDF = createInitialDataFrameFn(t)
         val newType = t.newType
 
         val newSchema = schema.map{ e => 
@@ -698,7 +704,12 @@ class DataFrameUtilSpec
           goodRows.size should be (0)
 
           errorRows.size should be (1)
-          errorRows.head.getAs[String](fieldName) should be (t.testVal)
+
+          if (t.testVal.nonEmpty)
+            errorRows.head.getAs[String](fieldName) should be (t.testVal.get)
+          else { // input is null, so output should be null
+            errorRows.head.fieldIsNull(fieldName) should be (true)
+          }
         }
       }
     }
@@ -708,44 +719,67 @@ class DataFrameUtilSpec
       val fieldName = "StringField"
       val oldType = StringType
       val testVals = List(
-        TC(IntegerType, "X", None), 
-        TC(IntegerType, "2", Some(2)),
-        TC(LongType, "X", None), 
-        TC(LongType, "-4", Some(-4L)),
-        TC(DoubleType, "X", None), 
-        TC(DoubleType, "-6.1", Some(-6.1)),
-        TC(BooleanType, "", Some(false)), // NOTE this will change in spark 1.6 to be 'true/false/t/f'
-        TC(BooleanType, "true", Some(true))
+        TC[String](Some("X"), StringType, Some("X")), 
+        TC[String](Some("2.1"), StringType, Some("2.1")), 
+        TC[String](Some("X"), IntegerType, None), 
+        TC[String](Some("2"), IntegerType, Some(2)),
+        TC[String](Some("X"), LongType, None), 
+        TC[String](Some("-4"), LongType, Some(-4L)),
+        TC[String](Some("X"), DoubleType, None), 
+        TC[String](Some("-6.1"), DoubleType, Some(-6.1)),
+        TC[String](Some(""), BooleanType, Some(false)), // NOTE this will change in spark 1.6 to be 'true/false/t/f'
+        TC[String](Some("true"), BooleanType, Some(true)),
+        TC[String](None, StringType, Some(null)),
+        TC[String](None, IntegerType, Some(null)),
+        TC[String](None, LongType, Some(null)),
+        TC[String](None, DoubleType, Some(null)),
+        TC[String](None, BooleanType, Some(null))
       )
 
-      def createInitialDataFrame[T](testVal: T): DataFrame = {
+      def createInitialDataFrame[T](tc: TC[T]): DataFrame = {
         val startStSchema = StructType(schema.map{ _.structField })
-        sqlCtx.createDataFrame( sc.parallelize(
-          List(//            str       int lng,  dbl, bool
-            Row.fromSeq(List(testVal, 10, 20L, 30.1, true)))),
-          startStSchema)
+        if (tc.testVal.nonEmpty)
+          sqlCtx.createDataFrame( sc.parallelize(
+            List(//            str       int lng,  dbl, bool
+              Row.fromSeq(List(tc.testVal.get, 10, 20L, 30.1, true)))),
+            startStSchema)
+        else  { // use null value
+          val df = sqlCtx.createDataFrame( sc.parallelize(
+            List(//            str       int lng,  dbl, bool
+              Row.fromSeq(List(null,    10, 20L, 30.1, true)))),
+            startStSchema).withColumn(fieldName, col(fieldName).cast(tc.newType))
+          df.schema.find( _.name==fieldName ).get.dataType should be (tc.newType)
+          df
+        }
       }
 
-      runTestCases(createInitialDataFrame, testVals, fieldName, oldType)
+      runTestCases[String](createInitialDataFrame, testVals, fieldName, oldType)
     }
 
+    /*
     it("should change Int column types to other types correctly") {
       val fieldName = "IntField"
       val oldType = IntegerType
-      // test class
       val testVals = List(
-        TC(IntegerType, 11, Some(11)),
-        TC(IntegerType, -22, Some(-22)),
-        TC(LongType, 11, Some(11L)), 
-        TC(LongType, -22, Some(-22L)),
-        TC(DoubleType, 11, Some(11.0)), 
-        TC(DoubleType, -22, Some(-22.0)),
-        TC(BooleanType, 11, Some(true)), // nonzero=true, zero=false
-        TC(BooleanType, -22, Some(true)),
-        TC(BooleanType, 0, Some(false))
+        TC(Some(11), StringType, Some("11")), 
+        TC(Some(-22), StringType, Some("-22")), 
+        TC(Some(11), IntegerType, Some(11)),
+        TC(Some(-22), IntegerType, Some(-22)),
+        TC(Some(11), LongType, Some(11L)), 
+        TC(Some(-22), LongType, Some(-22L)),
+        TC(Some(11), DoubleType, Some(11.0)), 
+        TC(Some(-22), DoubleType, Some(-22.0)),
+        TC(Some(11), BooleanType, Some(true)), // nonzero=true, zero=false
+        TC(Some(-22), BooleanType, Some(true)),
+        TC(Some(0), BooleanType, Some(false)),
+        TC(None, StringType, None),
+        TC(None, IntegerType, None),
+        TC(None, LongType, None),
+        TC(None, DoubleType, None),
+        TC(None, BooleanType, None)
       )
 
-      def createInitialDataFrame[T](testVal: T): DataFrame = {
+      def createInitialDataFrame[T](tc: TC[T]): DataFrame = {
         val startStSchema = StructType(schema.map{ _.structField })
         sqlCtx.createDataFrame( sc.parallelize(
           List(//             str   int        lng,  dbl, bool
@@ -757,8 +791,38 @@ class DataFrameUtilSpec
     }
 
     it("should change Long column types to other types correctly") {
-      fail()
+      val fieldName = "LongField"
+      val oldType = LongType
+      val testVals = List(
+        TC(Some(11L), StringType, Some("11")), 
+        TC(Some(-22L), StringType, Some("-22")), 
+        TC(Some(11L), IntegerType, Some(11)),
+        TC(Some(-22L), IntegerType, Some(-22)),
+        TC(Some(11L), LongType, Some(11L)), 
+        TC(Some(-22L), LongType, Some(-22L)),
+        TC(Some(11L), DoubleType, Some(11.0)), 
+        TC(Some(-22L), DoubleType, Some(-22.0)),
+        TC(Some(11L), BooleanType, Some(true)), // nonzero=true, zero=false
+        TC(Some(-22L), BooleanType, Some(true)),
+        TC(Some(0L), BooleanType, Some(false)),
+        TC(None, StringType, None),
+        TC(None, IntegerType, None),
+        TC(None, LongType, None),
+        TC(None, DoubleType, None),
+        TC(None, BooleanType, None)
+      )
+
+      def createInitialDataFrame[T](tc: TC[T]): DataFrame = {
+        val startStSchema = StructType(schema.map{ _.structField })
+        sqlCtx.createDataFrame( sc.parallelize(
+          List(//             str   int long,    dbl, bool
+            Row.fromSeq(List("STR", 11, testVal, 30.1, true)))),
+          startStSchema)
+      }
+
+      runTestCases(createInitialDataFrame, testVals, fieldName, oldType)
     }
+    */
 
     it("should change Double column types to other types correctly") {
       fail()

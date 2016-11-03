@@ -14,6 +14,7 @@ case class AvroOutputWriterConfig(
   // repartitioned/coalesced to before writing out.
   // Note that lower values may run into a Spark Int.MAX_VALUE error.
   // Tune this to your liking.
+  // Setting to zero disables the dataframe repartition before writing.
   numOutputPartitions: Int = AvroOutputWriterConfig.defaultNumOutputPartitions
 )
 

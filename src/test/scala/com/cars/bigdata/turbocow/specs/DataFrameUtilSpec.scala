@@ -515,22 +515,30 @@ class DataFrameUtilSpec
         sfSchema)
 
       // check start schema
-      def checkSchema(df: DataFrame) = {
-        df.schema.fields(0).dataType should be (StringType)
-        df.schema.fields(1).dataType should be (IntegerType)
-        df.schema.fields(2).dataType should be (LongType)
-        //df.schema.fields(3).dataType should be (DoubleType)
-        df.schema.fields(3).dataType should be (BooleanType)
-      }
-      checkSchema(startDF)
+      startDF.schema.fields(0).dataType should be (StringType)
+      startDF.schema.fields(1).dataType should be (IntegerType)
+      startDF.schema.fields(2).dataType should be (LongType)
+      //startDF.schema.fields(3).dataType should be (DoubleType)
+      startDF.schema.fields(3).dataType should be (BooleanType)
       startDF.schema.fields.size should be (4)
 
       // changing to fullSchema adds DoubleField
       val result = startDF.changeSchema(fullSchema.toListAvroFieldConfig)
 
-      checkSchema(result.goodDF)
-      result.goodDF.schema.fields.size should be (5)
-      result.goodDF.schema.fields(4).name should be ("DoubleField")
+      def checkSchema(schema: StructType) = {
+        println("schema = "+schema.fields.mkString("\n"))
+        schema.fields(0).dataType should be (StringType)
+        schema.fields(1).dataType should be (IntegerType)
+        schema.fields(2).dataType should be (LongType)
+        schema.fields(3).dataType should be (BooleanType)
+        schema.fields(4).name should be ("DoubleField")
+        schema.fields(4).dataType should be (DoubleType)
+        schema.fields.size should be (5)
+      }
+      println("checking goodDF schema....")
+      checkSchema(result.goodDF.schema)
+      println("checking errorDF schema....")
+      checkSchema(result.errorDF.schema)
 
       val rows = result.goodDF.collect
       rows.size should be (1)
@@ -615,6 +623,9 @@ class DataFrameUtilSpec
       result.errorDF.count should be (0)
     }
 
+    it("should reorder fields to match new schema") {
+      fail() // todo
+    }
   }
 
   describe("changeSchema() where schemas are same except for one type") {

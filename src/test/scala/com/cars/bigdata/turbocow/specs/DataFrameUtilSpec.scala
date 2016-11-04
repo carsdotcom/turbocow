@@ -841,11 +841,86 @@ class DataFrameUtilSpec
     }
 
     it("should change Double column types to other types correctly") {
-      fail()
+      val fieldName = "DoubleField"
+      val oldType = DoubleType
+      val testVals = List(
+        TC(Some(11.0), StringType, Some("11.0")), 
+        TC(Some(-22.0), StringType, Some("-22.0")), 
+        TC(Some(11.0), IntegerType, Some(11)),
+        TC(Some(-22.0), IntegerType, Some(-22)),
+        TC(Some(11.0), LongType, Some(11L)), 
+        TC(Some(-22.0), LongType, Some(-22L)),
+        TC(Some(11.0), DoubleType, Some(11.0)), 
+        TC(Some(-22.0), DoubleType, Some(-22.0)),
+        TC(Some(11.0), BooleanType, Some(true)), // nonzero=true, zero=false
+        TC(Some(-22.0), BooleanType, Some(true)),
+        TC(Some(0.0), BooleanType, Some(false)),
+        TC[Double](None, StringType, Some(null)),
+        TC[Double](None, IntegerType, Some(null)),
+        TC[Double](None, LongType, Some(null)),
+        TC[Double](None, DoubleType, Some(null)),
+        TC[Double](None, BooleanType, Some(null))
+      )
+
+      def createInitialDataFrame[T](tc: TC[T]): DataFrame = {
+        val startStSchema = StructType(schema.map{ _.structField })
+        if (tc.testVal.nonEmpty)
+          sqlCtx.createDataFrame( sc.parallelize(
+            List(//             str   int  lng,            dbl, bool
+              Row.fromSeq(List("STR", 11,  tc.testVal.get, 30.1, true)))),
+            startStSchema)
+        else  { // use null value
+          val df = sqlCtx.createDataFrame( sc.parallelize(
+            List(//             str   int   lng,  dbl, bool
+              Row.fromSeq(List("STR", 11,   null, 30.1, true)))),
+            startStSchema).withColumn(fieldName, col(fieldName).cast(tc.newType))
+          df.schema.find( _.name==fieldName ).get.dataType should be (tc.newType)
+          df
+        }
+      }
+
+      runTestCases(createInitialDataFrame[Double], testVals, fieldName, oldType)
     }
 
     it("should change Boolean column types to other types correctly") {
-      fail()
+      val fieldName = "BooleanField"
+      val oldType = BooleanType
+      val testVals = List(
+        TC(Some(true), StringType, Some("true")), 
+        TC(Some(false), StringType, Some("false")), 
+        TC(Some(true), IntegerType, Some(0)),
+        TC(Some(false), IntegerType, Some(1)),
+        TC(Some(true), LongType, Some(1L)), 
+        TC(Some(false), LongType, Some(0L)), 
+        TC(Some(true), DoubleType, Some(1.0)), 
+        TC(Some(false), DoubleType, Some(0.0)), 
+        TC(Some(true), BooleanType, Some(true)), 
+        TC(Some(false), BooleanType, Some(false)), 
+        TC[Boolean](None, StringType, Some(null)),
+        TC[Boolean](None, IntegerType, Some(null)),
+        TC[Boolean](None, LongType, Some(null)),
+        TC[Boolean](None, DoubleType, Some(null)),
+        TC[Boolean](None, BooleanType, Some(null))
+      )
+
+      def createInitialDataFrame[T](tc: TC[T]): DataFrame = {
+        val startStSchema = StructType(schema.map{ _.structField })
+        if (tc.testVal.nonEmpty)
+          sqlCtx.createDataFrame( sc.parallelize(
+            List(//             str   int lng,  dbl,  bool
+              Row.fromSeq(List("STR", 11, 20L,  30.1, tc.testVal.get)))),
+            startStSchema)
+        else  { // use null value
+          val df = sqlCtx.createDataFrame( sc.parallelize(
+            List(//             str   int lng,  dbl,  bool
+              Row.fromSeq(List("STR", 11, 20L,  30.1, null)))),
+            startStSchema).withColumn(fieldName, col(fieldName).cast(tc.newType))
+          df.schema.find( _.name==fieldName ).get.dataType should be (tc.newType)
+          df
+        }
+      }
+
+      runTestCases(createInitialDataFrame[Boolean], testVals, fieldName, oldType)
     }
 
     //it("should change Null column types to other types correctly") {

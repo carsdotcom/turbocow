@@ -245,8 +245,33 @@ object DataFrameUtil
         else {
           val oldNew = fields.head
 
+          NOTE this is wrong... i need to restore the original code.
+          Then add everything to the errordf with string column.
+
           val newDFR = {
-            if (oldNew.oldField.nonEmpty && oldNew.newAFC.nonEmpty) {
+            if ( (oldNew.oldField.isEmpty && oldNew.newAFC.nonEmpty) ||
+                 // (special case - Doubles cannot be cast to ints or longs)
+                 (oldNew.oldField.nonEmpty && oldNew.newAFC.nonEmpty && 
+                  oldNew.oldField.get.dataType == DoubleType && 
+                  (oldNew.newAFC.get.structField.dataType == IntegerType ||
+                   oldNew.newAFC.get.structField.dataType == LongType) ) ) {
+
+              // Add the new field as null.
+              // Note for adding fields that are NOT String, we need to be fancier.
+              val sf = oldNew.newAFC.get.structField
+              val newDF = df.withColumn(sf.name, lit(null).cast(sf.dataType))
+              DataFrameOpResult(
+                newDF,
+                sqlCtx.createEmptyDataFrame(stNewSchema))
+            }
+            else if (oldNew.oldField.nonEmpty && oldNew.newAFC.isEmpty) {
+              // Just drop the field
+              val sf = oldNew.oldField.get
+              DataFrameOpResult(
+                df.drop(sf.name),
+                sqlCtx.createEmptyDataFrame(stNewSchema))
+            }
+            else if (oldNew.oldField.nonEmpty && oldNew.newAFC.nonEmpty) {
               // old & new schema contains the same field name
               val old = oldNew.oldField.get
               val nu = oldNew.newAFC.get
@@ -312,21 +337,6 @@ object DataFrameUtil
                 DataFrameOpResult(posMod, errorDFProcessed.unionAll(negMod))
               }
               else dfr
-            }
-            else if (oldNew.oldField.isEmpty && oldNew.newAFC.nonEmpty) {
-              // Add the new field as null.
-              // Note for adding fields that are NOT String, we need to be fancier.
-              val sf = oldNew.newAFC.get.structField
-              DataFrameOpResult(
-                df.withColumn(sf.name, lit(null).cast(sf.dataType)),
-                sqlCtx.createEmptyDataFrame(stNewSchema))
-            }
-            else if (oldNew.oldField.nonEmpty && oldNew.newAFC.isEmpty) {
-              // Just drop the field
-              val sf = oldNew.oldField.get
-              DataFrameOpResult(
-                df.drop(sf.name),
-                sqlCtx.createEmptyDataFrame(stNewSchema))
             }
             else {
               throw new Exception("It should be impossible for oldNew.oldField AND oldNew.newAFC to both be empty.")

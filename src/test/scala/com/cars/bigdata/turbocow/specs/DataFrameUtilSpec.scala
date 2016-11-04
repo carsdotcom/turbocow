@@ -681,10 +681,10 @@ class DataFrameUtilSpec
           val sf = result.goodDF.schema.fields.filter( _.name == fieldName )
           sf.size should be (1)
           sf.head.dataType should be (t.newType)
-
+        
           errorRows.size should be (0)
           goodRows.size should be (1)
-
+        
           val expected: Any = t.expectedVal.get
           val row = goodRows.head
           expected match {
@@ -693,18 +693,18 @@ class DataFrameUtilSpec
           }
         }
         else { // expected val is empty (error)
-
+        
           result.errorDF should not be (None)
           val sf = result.errorDF.schema.fields.filter( _.name == fieldName )
           sf.size should be (1)
           sf.head.dataType should be (StringType)
-
+        
           println("GGGGG good rows = ")
           result.goodDF.show()
           goodRows.size should be (0)
-
+        
           errorRows.size should be (1)
-
+        
           if (t.testVal.nonEmpty)
             errorRows.head.getAs[String](fieldName) should be (t.testVal.get)
           else { // input is null, so output should be null
@@ -844,36 +844,37 @@ class DataFrameUtilSpec
       val fieldName = "DoubleField"
       val oldType = DoubleType
       val testVals = List(
-        TC(Some(11.0), StringType, Some("11.0")), 
-        TC(Some(-22.0), StringType, Some("-22.0")), 
-        TC(Some(11.0), IntegerType, Some(11)),
-        TC(Some(-22.0), IntegerType, Some(-22)),
-        TC(Some(11.0), LongType, Some(11L)), 
-        TC(Some(-22.0), LongType, Some(-22L)),
-        TC(Some(11.0), DoubleType, Some(11.0)), 
-        TC(Some(-22.0), DoubleType, Some(-22.0)),
-        TC(Some(11.0), BooleanType, Some(true)), // nonzero=true, zero=false
-        TC(Some(-22.0), BooleanType, Some(true)),
-        TC(Some(0.0), BooleanType, Some(false)),
-        TC[Double](None, StringType, Some(null)),
-        TC[Double](None, IntegerType, Some(null)),
-        TC[Double](None, LongType, Some(null)),
-        TC[Double](None, DoubleType, Some(null)),
-        TC[Double](None, BooleanType, Some(null))
+        TC(Some(11.0), StringType, Some("11.0"))
+        ,TC(Some(-22.0), StringType, Some("-22.0"))
+        ,TC(Some(11.9), IntegerType, Some(11))
+        ,TC(Some(-22.9), IntegerType, Some(-22))
+        ,TC(Some(11.9), LongType, Some(11L))
+        ,TC(Some(-22.9), LongType, Some(-22L))
+        ,TC(Some(11.0), DoubleType, Some(11.0))
+        ,TC(Some(-22.0), DoubleType, Some(-22.0))
+        ,TC(Some(11.0), BooleanType, Some(true)) // nonzero=true, zero=false
+        ,TC(Some(-22.0), BooleanType, Some(true))
+        ,TC(Some(0.0), BooleanType, Some(false))
+        ,TC[Double](None, StringType, Some(null))
+        ,TC[Double](None, IntegerType, Some(null))
+        ,TC[Double](None, LongType, Some(null))
+        ,TC[Double](None, DoubleType, Some(null))
+        ,TC[Double](None, BooleanType, Some(null))
       )
 
       def createInitialDataFrame[T](tc: TC[T]): DataFrame = {
         val startStSchema = StructType(schema.map{ _.structField })
         if (tc.testVal.nonEmpty)
           sqlCtx.createDataFrame( sc.parallelize(
-            List(//             str   int  lng,            dbl, bool
-              Row.fromSeq(List("STR", 11,  tc.testVal.get, 30.1, true)))),
+            List(//             str   int  lng, dbl,            bool
+              Row.fromSeq(List("STR", 11,  21L, tc.testVal.get, true)))),
             startStSchema)
         else  { // use null value
           val df = sqlCtx.createDataFrame( sc.parallelize(
             List(//             str   int   lng,  dbl, bool
-              Row.fromSeq(List("STR", 11,   null, 30.1, true)))),
-            startStSchema).withColumn(fieldName, col(fieldName).cast(tc.newType))
+              Row.fromSeq(List("STR", 11,   21L,  null, true)))),
+            startStSchema)
+            .withColumn(fieldName, col(fieldName).cast(tc.newType))
           df.schema.find( _.name==fieldName ).get.dataType should be (tc.newType)
           df
         }
@@ -888,8 +889,8 @@ class DataFrameUtilSpec
       val testVals = List(
         TC(Some(true), StringType, Some("true")), 
         TC(Some(false), StringType, Some("false")), 
-        TC(Some(true), IntegerType, Some(0)),
-        TC(Some(false), IntegerType, Some(1)),
+        TC(Some(true), IntegerType, Some(1)),
+        TC(Some(false), IntegerType, Some(0)),
         TC(Some(true), LongType, Some(1L)), 
         TC(Some(false), LongType, Some(0L)), 
         TC(Some(true), DoubleType, Some(1.0)), 

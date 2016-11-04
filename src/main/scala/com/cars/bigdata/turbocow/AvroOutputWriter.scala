@@ -125,14 +125,22 @@ class AvroOutputWriter(
     val structTypeSchema = StructType(schema.map{ _.structField }.toArray)
     val sqlContext = new SQLContext(sc)
 
-    // this gives 18,000 or something like it
-    //val numPartitions = rowRDD.partitions.size
-    //println("Avro writer: rowRDD.partitions = "+numPartitions)
-    val dataFrame = sqlContext.createDataFrame(rowRDD, structTypeSchema).repartition(30)
+    println("Avro writer: rowRDD num partitions = "+rowRDD.partitions.size)
+    val dataFrame = { 
+      val df = sqlContext.createDataFrame(rowRDD, structTypeSchema)
+      val num = avroWriterConfig.numOutputPartitions
+      if (num > 0 ) {
+        println("Avro writer: repartitionining dataFrame to: "+num)
+        // Note: using repartition() because there's no way to tell how many 
+        // partitions are in the DF using public API:
+        df.repartition(num)
+      }
+      else df
+    }
     dataFrame.persist(StorageLevel.MEMORY_AND_DISK_SER)
 
-    //println("================================= dataFrame = ")
-    //dataFrame.printSchema
+    println("================================= avro dataFrame schema = ")
+    dataFrame.printSchema
     //dataFrame.show
 
     // Ensure the dir can be written to by deleting it.
@@ -144,6 +152,7 @@ class AvroOutputWriter(
     }
 
     // lastly, write it out
+    println("Avro writer: Writing out to dir: "+outputDir)
     dataFrame.write.format("com.databricks.spark.avro").save(outputDir)
 
     // Unpersist anything we are done with.

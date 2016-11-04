@@ -131,7 +131,9 @@ class AvroOutputWriter(
       val num = avroWriterConfig.numOutputPartitions
       if (num > 0 ) {
         println("Avro writer: repartitionining dataFrame to: "+num)
-        df.coalesce(num)
+        // Note: using repartition() because there's no way to tell how many 
+        // partitions are in the DF using public API:
+        df.repartition(num)
       }
       else df
     }

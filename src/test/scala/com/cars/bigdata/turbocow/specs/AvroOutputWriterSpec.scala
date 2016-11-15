@@ -40,8 +40,6 @@ class AvroOutputWriterSpec
     super.afterAll()
   }
 
-  val wConfig = AvroOutputWriterConfig(numOutputPartitions=0)
-
   import AvroOutputWriter._
 
   def fieldIsNull(row: Row, fieldName: String): Boolean = {
@@ -452,7 +450,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc, wConfig)).write(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
 
       // now read what we wrote - should only have the union, field C
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -574,7 +572,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc, wConfig)).write(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -685,8 +683,8 @@ class AvroOutputWriterSpec
       }
     
       // write
-      (new AvroOutputWriter(sc, wConfig)).write(enriched, avroFile, outputDir.toString)
-
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
+    
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
       //println("======== rows = ")
@@ -789,7 +787,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc, wConfig)).write(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -888,7 +886,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc, wConfig)).write(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -1038,7 +1036,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      val rejectedRDD = (new AvroOutputWriter(sc, wConfig)).write(enriched, avroFile, outputDir.toString)
+      val rejectedRDD = (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
       val rejects = rejectedRDD.collect()
 
       // all but one will be rejected.
@@ -1153,7 +1151,7 @@ class AvroOutputWriterSpec
       }
     
       // write
-      (new AvroOutputWriter(sc, wConfig)).write(enriched, avroFile, outputDir.toString)
+      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
     
       // now read what we wrote - should only have the union, field C
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()

@@ -457,12 +457,10 @@ object AvroOutputWriter {
       Row.fromSeq(vals)
     }
 
-    // this gives 18,000 or something like it
-    //val dataFrame = sqlContext.createDataFrame(rowRDD, safeSchema).repartition(30)
     println("Avro writer: rowRDD num partitions = "+rowRDD.partitions.size)
     val dataFrame = { 
       val df = sqlContext.createDataFrame(rowRDD, safeSchema)
-      val num = avroWriterConfig.numOutputPartitions
+      val num = writerConfig.numOutputPartitions
       if (num > 0 ) {
         println("Avro writer: repartitionining dataFrame to: "+num)
         // Note: using repartition() because there's no way to tell how many 

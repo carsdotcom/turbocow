@@ -73,6 +73,7 @@ class AvroOutputWriter(
     //dataFrame.printSchema
     //dataFrame.show
 
+    println("AvroOutputWriter: writing to outputDir: "+outputDir)
     write(dataFrame, new Path(outputDir))
 
     // Unpersist anything we are done with.

@@ -49,6 +49,8 @@ class AvroOutputWriterSpec
 
   sc.setLogLevel("WARN") 
 
+  val wConfig = AvroOutputWriterConfig(numOutputPartitions = 0)
+
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
   // Tests start
@@ -450,7 +452,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
+      (new AvroOutputWriter(sc, wConfig)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
 
       // now read what we wrote - should only have the union, field C
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -572,7 +574,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
+      (new AvroOutputWriter(sc, wConfig)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -683,7 +685,7 @@ class AvroOutputWriterSpec
       }
     
       // write
-      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
+      (new AvroOutputWriter(sc, wConfig)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
     
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -787,7 +789,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
+      (new AvroOutputWriter(sc, wConfig)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -886,7 +888,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
+      (new AvroOutputWriter(sc, wConfig)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
 
       // now read what we wrote
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -1036,7 +1038,7 @@ class AvroOutputWriterSpec
       }
 
       // write
-      val rejectedRDD = (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
+      val rejectedRDD = (new AvroOutputWriter(sc, wConfig)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
       val rejects = rejectedRDD.collect()
 
       // all but one will be rejected.
@@ -1151,7 +1153,7 @@ class AvroOutputWriterSpec
       }
     
       // write
-      (new AvroOutputWriter(sc)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
+      (new AvroOutputWriter(sc, wConfig)).writeEnrichedRDD(enriched, avroFile, sqlCtx, outputDir.toString)
     
       // now read what we wrote - should only have the union, field C
       val rows: Array[Row] = sqlCtx.read.avro(outputDir.toString).collect()
@@ -1270,7 +1272,7 @@ class AvroOutputWriterSpec
         StructField("B", IntegerType, nullable=true)
       ))
   
-      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
+      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig)
       val rows = goodDF.collect()
   
       goodDF.count should be (2)
@@ -1308,7 +1310,7 @@ class AvroOutputWriterSpec
         StructField("B", IntegerType, nullable=true)
       ))
   
-      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
+      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig)
       val rows = goodDF.collect()
   
       goodDF.count should be (2)
@@ -1342,7 +1344,7 @@ class AvroOutputWriterSpec
         StructField("C", DoubleType, nullable=false)
       ))
   
-      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
+      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig)
       val rows = goodDF.collect()
   
       goodDF.count should be (2)
@@ -1376,7 +1378,7 @@ class AvroOutputWriterSpec
         StructField("B", IntegerType, nullable=true)
       ))
   
-      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
+      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig)
       val rows = goodDF.collect()
   
       goodDF.count should be (2)
@@ -1407,7 +1409,7 @@ class AvroOutputWriterSpec
         StructField("B", IntegerType, nullable=true)
       ))
   
-      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
+      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig)
       goodDF.count should be (0)
     }
   
@@ -1415,14 +1417,14 @@ class AvroOutputWriterSpec
       val enrichedRDD = sc.parallelize(List.empty[Map[String, String]])
       val schema = StructType( Array.empty[StructField] )
 
-      intercept[Exception] { convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx) }
+      intercept[Exception] { convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig) }
     }
 
     it("should throw if schema is null") {
       val enrichedRDD = sc.parallelize(List.empty[Map[String, String]])
       val schema: StructType = null
 
-      intercept[Exception] { convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx) }
+      intercept[Exception] { convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig) }
     }
 
     it("""should set columns as (nullable) String if they don't yet exist in the enriched record""") {
@@ -1441,7 +1443,7 @@ class AvroOutputWriterSpec
         StructField("reasonForReject", StringType, nullable=true)
       ))
     
-      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx)
+      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig)
       val rows = goodDF.collect()
     
       goodDF.count should be (2)

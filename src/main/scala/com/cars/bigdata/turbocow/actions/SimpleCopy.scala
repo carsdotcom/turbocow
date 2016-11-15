@@ -40,12 +40,14 @@ class SimpleCopy(sourceList: List[String]) extends Action
     val enrichedUpdates = sourceList.flatMap{ inputFieldName =>
     
       // search in the source json for this field name.
-      val inputFieldValue = JsonUtil.extractOptionString(inputRecord \ inputFieldName)
+      val inputFieldValue = (inputRecord \ inputFieldName)
 
       inputFieldValue match {
         // Returning None in a flatMap adds nothing to the resulting collection:
-        case None => None
-        case Some(fieldVal) => Some( (inputFieldName, fieldVal) )
+        case JNothing => None
+        case JNull => None
+        case j: JString => Some( (inputFieldName, j.extract[String]) )
+        case j: JValue => Some( (inputFieldName, j.extract[String]))
       }
     }.toMap
     

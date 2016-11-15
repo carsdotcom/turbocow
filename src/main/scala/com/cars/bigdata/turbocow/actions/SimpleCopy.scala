@@ -45,7 +45,7 @@ class SimpleCopy(sourceList: List[String]) extends Action
       inputFieldValue match {
         // Returning None in a flatMap adds nothing to the resulting collection:
         case JNothing => None
-        case JNull => None
+        case JNull => Some( (inputFieldName, null))
         case j: JString => Some( (inputFieldName, j.extract[String]) )
         case j: JValue => Some( (inputFieldName, j.extract[String]))
       }

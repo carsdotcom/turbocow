@@ -19,8 +19,6 @@ import org.json4s.jackson.JsonMethods._
 class SimpleCopySpec 
   extends UnitSpec 
 {
-  val testTable = "testtable"
-
   // before all tests have run
   override def beforeAll() = {
     super.beforeAll()
@@ -29,7 +27,6 @@ class SimpleCopySpec
   // before each test has run
   override def beforeEach() = {
     super.beforeEach()
-    if (hiveCtx.tableNames.contains(testTable)) hiveCtx.dropTempTable(testTable)
   }
 
   // after each test has run
@@ -40,7 +37,6 @@ class SimpleCopySpec
   // after all tests have run
   override def afterAll() = {
     super.afterAll()
-    if (hiveCtx.tableNames.contains(testTable)) hiveCtx.dropTempTable(testTable)
   }
 
   /** Helper fn
@@ -53,144 +49,90 @@ class SimpleCopySpec
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  describe("simple copy") // ------------------------------------------------
+  describe("perform()") // ------------------------------------------------
   {
     it("should successfully process one field") {
-      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        Seq(s"""{ "md": { "AField": "A", "BField": "B" }, "activityMap": { "CField": 10, "DField": 11, "EField": "" }}"""),
-        """{
-            "activityType": "impressions",
-            "items": [
-              {
-                "actions":[{
-                    "actionType":"simple-copy",
-                    "config": {
-                      "inputSource": [ "AField" ]
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        """,
-        sc).collect()
-  
-      enriched.size should be (1) // always one because there's only one json input object
-      enriched.head.size should be (1)
-      enriched.head.get("AField") should be (Some("A"))
+      val action: Action = new SimpleCopy(List("AField"))
+      val enriched = action.perform(
+        // input:
+        parse("""{ "AField": "A", "BField": "B", "CField": 10, "DField": 11, "EField": ""}"""),
+        // current enriched map:
+        Map.empty[String, String],
+        ActionContext()
+      ).enrichedUpdates
+
+      enriched.size should be (1)
+      enriched.get("AField") should be (Some("A"))
     }
 
     it("should successfully process two fields") {
     
-      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        Seq(s"""{ "md": { "AField": "A", "BField": "B" }, "activityMap": { "CField": 10, "DField": 11, "EField": "" }}"""),
-        """{
-            "activityType": "impressions",
-            "items": [
-              {
-                "actions":[{
-                    "actionType":"simple-copy",
-                    "config": {
-                      "inputSource": [ "AField", "CField" ]
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        """,
-        sc).collect()
-  
-      enriched.size should be (1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be (2)
-      enriched.head.get("AField") should be (Some("A"))
-      enriched.head.get("CField") should be (Some("10"))
+      val action: Action = new SimpleCopy(List("AField", "CField"))
+      val enriched = action.perform(
+        // input:
+        parse("""{ "AField": "A", "BField": "B", "CField": 10, "DField": 11, "EField": ""}"""),
+        // current enriched map:
+        Map.empty[String, String],
+        ActionContext()
+      ).enrichedUpdates
+
+      enriched.size should be (2)
+      enriched.get("AField") should be (Some("A"))
+      enriched.get("CField") should be (Some("10"))
     }
 
     it("should successfully copy over a field even if it is blank in the input") {
-    
-      // Note: EField is empty ("") in the input record
-      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        Seq(s"""{ "md": { "AField": "", "BField": "B" }, "activityMap": { "CField": 10, "DField": 11, "EField": "" }}"""),
-        """{
-            "activityType": "impressions",
-            "items": [
-              {
-                "actions":[{
-                    "actionType":"simple-copy",
-                    "config": {
-                      "inputSource": [ "AField" ]
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        """,
-        sc).collect()
+      val action: Action = new SimpleCopy(List("AField"))
+      val enriched = action.perform(
+        // input:
+        parse("""{ "AField": "", "BField": "B", "CField": 10, "DField": 11, "EField": ""}"""),
+        // current enriched map:
+        Map.empty[String, String],
+        ActionContext()
+      ).enrichedUpdates
 
-      enriched.size should be (1) // always one because there's only one json input object
-      enriched.head.size should be (1)
-      enriched.head.get("AField") should be (Some(""))
+      enriched.size should be (1)
+      enriched.get("AField") should be (Some(""))
     }
 
     it("""should successfully copy over a field even if it is " " in the input""") {
     
-      // Note: EField is empty ("") in the input record
-      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        Seq(s"""{ "md": { "AField": " ", "BField": "B" }, "activityMap": { "CField": 10, "DField": 11, "EField": "" }}"""),
-        """{
-            "activityType": "impressions",
-            "items": [
-              {
-                "actions":[{
-                    "actionType":"simple-copy",
-                    "config": {
-                      "inputSource": [ "AField" ]
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        """,
-        sc).collect()
+      val action: Action = new SimpleCopy(List("AField"))
+      val enriched = action.perform(
+        // input:
+        parse("""{ "AField": " ", "BField": "B", "CField": 10, "DField": 11, "EField": ""}"""),
+        // current enriched map:
+        Map.empty[String, String],
+        ActionContext()
+      ).enrichedUpdates
 
-      enriched.size should be (1) // always one because there's only one json input object
-      enriched.head.size should be (1)
-      enriched.head.get("AField") should be (Some(" "))
+      enriched.size should be (1)
+      enriched.get("AField") should be (Some(" "))
     }
 
-    it("""should NOT copy over a field if it is null in the input""") {
-      // Note copying a null value is a waste of memory in the map.
-      // The value gets copied over later, when converted to a dataframe.
-    
-      val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        Seq(s"""{ "md": { "AField": null, "BField": "B" }, "activityMap": { "CField": 10, "DField": 11, "EField": "" }}"""),
-        """{
-            "activityType": "impressions",
-            "items": [
-              {
-                "actions":[{
-                    "actionType":"simple-copy",
-                    "config": {
-                      "inputSource": [ "AField", "BField" ]
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        """,
-        sc).collect()
+    it("""should copy over a field even if it is null in the input""") {
 
-      enriched.size should be (1) // always one because there's only one json input object
-      enriched.head.size should be (1)
-      enriched.head.get("AField") should be (None)
+      // Note, copying a null value is a slight, momentary waste of memory, 
+      // because when the record is done processing, all input fields in the schema
+      // are copied in regardless.
+    
+      val action: Action = new SimpleCopy(List("AField", "BField"))
+      val enriched = action.perform(
+        // input:
+        parse("""{ "AField": null, "BField": "B", "CField": 10, "DField": 11, "EField": ""}"""),
+        // current enriched map:
+        Map.empty[String, String],
+        ActionContext()
+      ).enrichedUpdates
+
+      enriched.size should be (2)
+      enriched.get("AField") should be (Some(null))
+      enriched.get("BField") should be (Some("B"))
     }
 
     it("should fail parsing missing config") {
+
+      // todo call constructor rather than ActionEngine for these tests
 
       val e = intercept[Exception] {
         ActionEngine.processJsonStrings(

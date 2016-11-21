@@ -233,7 +233,7 @@
             // This is the exact value to write for this field.  
             "newValue": "Some text",
 
-            // Specify where the new value is written to.  Valid values are:
+            // [OPTIONAL] Specify where the new value is written to.  Valid values are:
             //   "enriched" = the enriched record (the default; not necessary to specify)
             //   "scratchpad" = the scratchpad (temporary storage, only lives for 
             //                  while this record is being processed - from this

@@ -1,5 +1,7 @@
 package com.cars.bigdata.turbocow
 
+import org.apache.spark.storage.StorageLevel
+
 case class AvroOutputWriterConfig(
 
   alwaysTrimStrings: Boolean = true,
@@ -15,7 +17,11 @@ case class AvroOutputWriterConfig(
   // Note that lower values may run into a Spark Int.MAX_VALUE error.
   // Tune this to your liking.
   // Setting to zero disables the dataframe repartition before writing.
-  numOutputPartitions: Int = AvroOutputWriterConfig.defaultNumOutputPartitions
+  numOutputPartitions: Int = AvroOutputWriterConfig.defaultNumOutputPartitions,
+
+  // If this is a Some, the AvroOutputWriter will persist the dataframe 
+  // in the manner specified before writing.  TODO consider DISK_ONLY as default after testing.
+  persistence: Option[StorageLevel] = None
 )
 
 object AvroOutputWriterConfig {

@@ -137,9 +137,10 @@ class AvroOutputWriter(
       }
       else df
     }
-    //dataFrame.persist(StorageLevel.MEMORY_AND_DISK_SER)
-    dataFrame.persist(StorageLevel.DISK_ONLY)
-    //dataFrame.persist(StorageLevel.MEMORY_AND_DISK)
+
+    if (writerConfig.persistence.nonEmpty) {
+      dataFrame.persist(writerConfig.persistence.get)
+    }
 
     println("================================= avro dataFrame schema = ")
     dataFrame.printSchema

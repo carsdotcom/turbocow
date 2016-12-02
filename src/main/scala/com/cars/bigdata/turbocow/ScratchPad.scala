@@ -7,11 +7,11 @@ class ScratchPad extends Serializable
 {
 
   // main storage is a k-v map, Any values
-  private var mainPad: Map[String, Any] = new HashMap[String, Any]
+  @volatile private var mainPad: Map[String, Any] = new HashMap[String, Any]
   def allMainPad = mainPad
 
   // result storage is also a k-v map but with String values
-  private var results: Map[String, String] = new HashMap[String, String]
+  @volatile private var results: Map[String, String] = new HashMap[String, String]
   def allResults = results
 
   // -----------------------------------------------------------------
@@ -20,14 +20,18 @@ class ScratchPad extends Serializable
   def size = mainPad.size
 
   def set(key: String, value: Any) = {
-    mainPad = mainPad + (key->value)
+    mainPad.synchronized {
+      mainPad = mainPad + (key->value)
+    }
   }
 
   def get(key: String): Option[Any] = mainPad.get(key)
 
   def remove(key: String): Option[Any] = {
     val removed = get(key)
-    mainPad = mainPad - key 
+    mainPad.synchronized {
+      mainPad = mainPad - key 
+    }
     removed
   }
 
@@ -36,7 +40,9 @@ class ScratchPad extends Serializable
   // Note these will be overwritten as new results come in.
 
   def setResult(actionType: String, result: String) = {
-    results = results + (actionType->result)
+    results.synchronized {
+      results = results + (actionType->result)
+    }
   }
 
   def getResult(actionType: String): Option[String] = results.get(actionType)
@@ -45,7 +51,9 @@ class ScratchPad extends Serializable
 
   def removeResult(key: String): Option[String] = {
     val removed = getResult(key)
-    results = results - key 
+    results.synchronized {
+      results = results - key 
+    }
     removed
   }
 }

@@ -350,6 +350,7 @@ object AvroOutputWriter {
 
   /** Write out a dataframe to Avro at the specified path, using the 
     * existing schema of the input dataframe.
+    * @todo make this an instance method
     * 
     */
   def write(df: DataFrame, outputDir: Path) = {
@@ -370,6 +371,7 @@ object AvroOutputWriter {
   /** Write out a dataframe to Avro at the specified path, using the 
     * schema provided.  The dataframe will be modified to fit the schema 
     * according to DataFrame.changeSchema().
+    * @todo make this an instance method
     *
     * @return the 'errorDF' as returned from changeSchema(), which is any records
     *         whose data could not be converted to requested type.
@@ -470,7 +472,9 @@ object AvroOutputWriter {
       }
       else df
     }
-    dataFrame.persist(StorageLevel.MEMORY_AND_DISK_SER)
+
+    if(writerConfig.persistence.isDefined)
+      dataFrame.persist(writerConfig.persistence.get)
 
     // unpersist our temp RDDs
     rowRDD.unpersist(blocking=true)

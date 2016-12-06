@@ -79,15 +79,15 @@ class HiveTableCache(
   def convertToCorrectLookupType(keyField: String, keyValue: String): Option[Any] = {
 
     // TODO test coverage
-    println(s"CCCCCCCCCCCCCCCCCCCCCCCC converting keyField, keyValue($keyField, $keyValue) to.......")
+    //println(s"CCCCCCCCCCCCCCCCCCCCCCCC converting keyField, keyValue($keyField, $keyValue) to.......")
     val lookupTable = tableMap.get(keyField).getOrElse(return Option(keyValue)) // todo handle failure
     lookupTable.head._1 match {
-      case a: Long => println("LONG"); Try{Option(keyValue.toLong)}.getOrElse( None)
-      case a: Int => println("INT"); Try{Option(keyValue.toInt)}.getOrElse( None)
-      case a: Double => println("DOUBLE"); Try{Option(keyValue.toDouble)}.getOrElse( None)
-      case a: Float => println("FLOAT"); Try{Option(keyValue.toFloat)}.getOrElse( None)
-      case a: String => println("STRING"); Option(keyValue.toString)
-      case a => println("(NOTHING)"); Option(a)
+      case a: Long => Try{Option(keyValue.toLong)}.getOrElse( None)
+      case a: Int => Try{Option(keyValue.toInt)}.getOrElse( None)
+      case a: Double => Try{Option(keyValue.toDouble)}.getOrElse( None)
+      case a: Float => Try{Option(keyValue.toFloat)}.getOrElse( None)
+      case a: String => Option(keyValue.toString)
+      case a => Option(a)
     }
   }
 }

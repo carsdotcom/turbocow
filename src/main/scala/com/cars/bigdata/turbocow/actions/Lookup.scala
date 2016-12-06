@@ -127,7 +127,20 @@ class Lookup(
     }
     else { // ok, found it
 
-      context.scratchPad.setResult("lookup", s"""Field '$where' exists in table '$fromDBTable':  '${lookupValueOpt.getOrElse("")}'""")
+      val resultMessage = s"""Field '$where' exists in table '$fromDBTable':  '${lookupValueOpt.getOrElse("")}'"""
+      // TODO TEMP - RESTOREME
+      //context.scratchPad.setResult("lookup", resultMessage)
+
+      // TODO TEMP
+      if ( resultMessage == MAGICSTRING ) {
+        //println("54321111111111111111111 Setting magic string!  The input record is: "+pretty(render(inputRecord)))
+        //println("^^^^^^^^^^^^^^^^^^^^^")
+        val uid = JsonUtil.extractOptionString(inputRecord\"ALSUID")
+        println("54321111111111111111111 Setting magic string: the input record ALSUID is: "+uid)
+        context.scratchPad.setResult("lookup", resultMessage + " / ALSUID of this record: [" + uid + "]")
+      }
+      else 
+        context.scratchPad.setResult("lookup", resultMessage)
 
       val enrichedAdditions = selectedFields.get.flatMap{ case(key, value) => 
         if (value.isEmpty) None
@@ -161,6 +174,8 @@ object Lookup
       onFail = new ActionList(actionConfig \ "onFail", actionFactory)
     )
   }
+
+  val MAGICSTRING = "Field 'web_page_type_id' exists in table 'master_data.web_page_type':  '2102'"
 
 }
 

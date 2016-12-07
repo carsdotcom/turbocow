@@ -3,15 +3,16 @@ package com.cars.bigdata.turbocow
 import scala.collection.immutable.HashMap
 import scala.collection.mutable.Queue
 
-class ScratchPad extends Serializable
-{
-
+class ScratchPad(
   // main storage is a k-v map, Any values
-  @volatile private var mainPad: Map[String, Any] = new HashMap[String, Any]
-  def allMainPad = mainPad
-
+  @volatile private var mainPad: Map[String, Any] = new HashMap[String, Any],
   // result storage is also a k-v map but with String values
   @volatile private var results: Map[String, String] = new HashMap[String, String]
+)
+extends Serializable
+{
+
+  def allMainPad = mainPad
   def allResults = results
 
   // -----------------------------------------------------------------
@@ -55,6 +56,17 @@ class ScratchPad extends Serializable
       results = results - key 
     }
     removed
+  }
+
+
+  /** Make a copy of this object.
+    * 
+    */
+  def copy: ScratchPad = {
+    new ScratchPad(
+      new HashMap[String,Any] ++ mainPad, 
+      new HashMap[String,String] ++ results
+    ) 
   }
 }
 

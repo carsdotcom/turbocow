@@ -215,7 +215,10 @@ object ActionEngine
     jdbcClients: Map[String, Statement] = Map.empty[String, Statement]): 
     Map[String, String] = {
 
-    val actionContext = ActionContext(tableCaches, scratchPad = initialScratchPad, jdbcClients = jdbcClients)
+    val actionContext = ActionContext(
+      tableCaches, 
+      scratchPad = initialScratchPad.copy,
+      jdbcClients = jdbcClients)
 
     // This is the output map, to be filled with the results of validation &
     // enrichment actions.  Later it will be converted to Avro format and saved.

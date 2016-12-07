@@ -76,21 +76,6 @@ class Reject(
       else None
     )
 
-    import Lookup.MAGICSTRING
-    if ( reason.isDefined && reason.get.contains(MAGICSTRING) ) {
-        println("54321222222222222222222222 Getting magic string!  The input record is: "+pretty(render(inputRecord)))
-        println("^^^^^^^^^^^^^^^^^^^^^ (input record)")
-        println("The current Enriched Map is: "+currentEnrichedMap.toString)
-        println("^^^^^^^^^^^^^^^^^^^^^ (enriched record)")
-        println("The current scratchpad.allResults is: "+context.scratchPad.allResults.mkString(", "))
-        println("^^^^^^^^^^^^^^^^^^^^^ (scratchpad allResults")
-        println("The current scratchpad.allMainPad is: "+context.scratchPad.allMainPad.mkString(", "))
-        println("^^^^^^^^^^^^^^^^^^^^^ (scratchpad allMainPad")
-        println("The current actionContext.rejectionReasons is: "+context.rejectionReasons.toString)
-        println("^^^^^^^^^^^^^^^^^^^^^ (rejectionReasons)")
-        //println("#$#$ 22 Getting magic string: the input record ALSUID is: "+JsonUtil.extractOptionString(inputRecord\"ALSUID"))
-    }
-
     // make sure nonempty, 
     if (reason.nonEmpty)
       context.rejectionReasons.add(reason.get)

@@ -123,6 +123,30 @@ class ScratchPadSpec
     }
   }
 
+  describe("copy") {
+    it("should make a copy of itself with different hash map objects but same items") {
+      val sp = new ScratchPad
+      sp.setResult("a", "A")
+      sp.setResult("b", "B")
+      sp.set("c", "C")
+      sp.set("d", "D")
+
+      val copy = sp.copy
+      copy.allMainPad eq sp.allMainPad should be (false)
+      copy.allResults eq sp.allResults should be (false)
+
+      copy.getResult("a") eq sp.getResult("a") should be (false)
+      copy.getResult("b") eq sp.getResult("b") should be (false)
+      copy.get("c") eq sp.get("c") should be (false)
+      copy.get("d") eq sp.get("d") should be (false)
+
+      copy.getResult("a") should be (sp.getResult("a"))
+      copy.getResult("b") should be (sp.getResult("b"))
+      copy.get("c") should be (sp.get("c"))
+      copy.get("d") should be (sp.get("d"))
+    }
+  }
+
 }
     
 

@@ -23,6 +23,10 @@ class EmptyCheckerSpec extends UnitSpec {
     it("should return true if field is empty") {
       doCheck("""{"fieldA": ""}""") should be (true)
     }
+    it("should return false if field contains one space") {
+      doCheck("""{"fieldA": " "}""") should be (false)
+    }
+
     it("should return true if field is null") {
       doCheck("""{"fieldA": null}""") should be (true)
     }

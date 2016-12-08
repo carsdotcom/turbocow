@@ -1,20 +1,18 @@
 package com.cars.bigdata.turbocow
 
-import java.net.URI
+import java.sql.{Connection, DriverManager, Statement}
 
-import com.cars.bigdata.turbocow.actions.{ActionList, Lookup}
 import org.apache.spark.SparkContext
-import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.hive.HiveContext
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
 
 import scala.collection.immutable.HashMap
-import java.sql.{Connection, DriverManager, Statement}
 
 object ActionEngine
 {
+  val addedInputFieldsMarker = "___TURBOCOW_ACTIONENGINE_ADDEDINPUTFIELDSMARKER__"
 
   /** Process a set of input files by running the actions specified in the config file.
     * This is the process function that will mostly be called.
@@ -133,7 +131,7 @@ object ActionEngine
     RDD[Map[String, String]] = {
 
     // parse the input json data
-    val flattenedImpressionsRDD = inputJsonRDD.map( jsonString => {
+    val flattenedRDD = inputJsonRDD.map( jsonString => {
       val ast = parse(jsonString)
       // 'flatten' the json so activityMap & metaData's members are together at the
       // same level:
@@ -156,7 +154,7 @@ object ActionEngine
     })
 
     // for every impression, perform all actions from config file.
-    val enrichedRDD = flattenedImpressionsRDD.mapPartitions{ iter =>
+    val enrichedRDD = flattenedRDD.mapPartitions{ iter =>
 
       val jdbcClients: Map[String, Statement] = createJdbcClients(bc.jdbcClientConfigsBC.value)
 
@@ -174,8 +172,7 @@ object ActionEngine
             val message = "Unhandled Exception:  " + e.getMessage() +
               e.getStackTrace().mkString("\n    ", "\n    ", "")
 
-            // TODO log somewhere
-            println("EEEEEEEEEEEEEEEEEEEEEEE Error:  "+message)
+            println("Error:  "+message)
 
             scratchPad.setResult("unhandled-exception", message)
 
@@ -225,6 +222,27 @@ object ActionEngine
       // Note that the 'stopProcessingActionList' field is ignored and not
       // passed on to the next action list.
       enrichedMap = enrichedMap ++ result.enrichedUpdates
+    }
+
+    // For every field in the input, make sure it has a value in enriched.
+    // If not, copy it over.
+    val inputMap: Map[String, Any] = record.values match { case m: Map[String, Any] => m }
+    var addedFields = Set.empty[String]
+    inputMap.foreach{ case (iKey, iVal) => 
+      if ( enrichedMap.get(iKey).isEmpty ) {
+        val stringVal = iVal match {
+          case null => null
+          case a: Any => a.toString
+        }
+        enrichedMap = enrichedMap + (iKey-> stringVal)
+        addedFields = addedFields + iKey
+      }
+    }
+
+    // For all the added fields, add yet another field that lists all the added
+    // input fields
+    if (addedFields.nonEmpty) {
+      enrichedMap = enrichedMap + (ActionEngine.addedInputFieldsMarker -> addedFields.toList.sorted.mkString(","))
     }
 
     // (For now, just return the enriched data)

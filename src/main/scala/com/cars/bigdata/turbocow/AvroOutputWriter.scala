@@ -13,6 +13,7 @@ import utils._
 import org.apache.hadoop.fs.{FileSystem, Path}
 import AvroOutputWriter._
 import org.apache.spark.storage.StorageLevel
+import DataFrameUtil._
 
 class AvroOutputWriter(
   sc: SparkContext,
@@ -28,140 +29,55 @@ class AvroOutputWriter(
     * @return RDD of rejected records due to data types.  The RDD will
     *         be empty if no records are rejected.
     */
-  def write(
+  def writeEnrichedRDD(
     rdd: RDD[Map[String, String]],
     schemaPath: String,
+    sqlContext: SQLContext,
     outputDir: String):
     RDD[Map[String, String]] = {
 
     // get the list of field names from avro schema
     val schema: List[AvroFieldConfig] = getAvroSchemaFromHdfs(schemaPath, sc)
 
-    write(rdd, schema, outputDir)
+    writeEnrichedRDD(rdd, schema, sqlContext, outputDir)
   }
 
   /** Output data to avro - with list of fields for the schema (useful for testing)
-    * 
+    *
     * @param rdd       RDD to write out
     * @param outputDir the dir to write to (hdfs:// typically)
     * @param schema    list of fields to write
     * @return RDD of rejected records due to data types.  The RDD will
-    *         be empty if all records write successfully.  Each record will have an 
+    *         be empty if all records write successfully.  Each record will have an
     *         additional field named AvroOutputWriter.avroOutputWriterTypeErrorMarker,
     *         with all of the type errors separated by semicolons.
     */
-  def write(
+  def writeEnrichedRDD(
     rdd: RDD[Map[String, String]],
     schema: List[AvroFieldConfig],
+    sqlContext: SQLContext,
     outputDir: String): 
     RDD[Map[String, String]] = {
 
-    val writerConfig = avroWriterConfig // make local ref so whole obj doesn't get serialized (which includes the sc and therefore can't be serialized)
-    val errorMarker = avroTypeErrorMarker
+    val (goodDataFrame: DataFrame, errorRDD: RDD[Map[String, String]]) = 
+      convertEnrichedRDDToDataFrame(
+        rdd, 
+        StructType( schema.map{ _.structField }.toArray ), 
+        sqlContext, 
+        avroWriterConfig)
 
-    // Loop through enriched record fields, and extract the value of each field 
-    // in the order of schema list (so the order matches the Avro schema). 
-    // Convert to the correct type as well.
-    val anyRDD: RDD[Map[String, Any]] = rdd.map{ record => 
+    val dataFrame = goodDataFrame.setDefaultValues(schema)
+    dataFrame.persist(StorageLevel.MEMORY_AND_DISK_SER)
 
-      var errors = List.empty[String]
-
-      val newRecord: Map[String, Any] = schema.map{ fieldConfig =>
-
-        val key = fieldConfig.structField.name
-        val v = record.get(key)
-        val value = {
-          if (v.isDefined) {
-            try{
-              convertToType(v.get, fieldConfig.structField, writerConfig).get
-            }
-            catch {
-              case e: EmptyStringConversionException => {
-                //println(s"Detected empty string in '${fieldConfig.structField.name}' when trying to convert; using default value.")
-                fieldConfig.getDefaultValue
-              }
-              case e: Throwable => {
-                errors = errors :+ e.getMessage
-                v.get.toString
-              }
-            }
-          }
-          else {
-            // add the default value
-            fieldConfig.getDefaultValue
-          }
-        }
-
-        (key, value)
-      }.toMap
-
-      if (errors.nonEmpty) newRecord + (errorMarker-> errors.mkString("; "))
-      else newRecord
-    }
-
-    // Now filter out the error records for later returning.
-    val errorRDD: RDD[Map[String, String]] = anyRDD.filter{ 
-      _.get(errorMarker).nonEmpty
-    }.map{ record =>  
-      // convert to strings - can't write out if the type is incorrect
-      record.map{ case(k,v) => v match {
-        case null => (k, null)
-        case _ => (k, v.toString) 
-      }}
-    }
-
-    // Filter them out in the main rdd.
-    val rowRDD: RDD[Row] = anyRDD.filter {
-      _.get(errorMarker).isEmpty
-    }.map{ record =>
-      val vals: List[Any] = schema.map{ fieldConfig =>
-        val field = fieldConfig.structField.name
-        record.getOrElse(field, throw new Exception(s"couldn't find field name $field in anyRDD"))
-      }
-      Row.fromSeq(vals)
-    }
-
-    // create a dataframe of RDD[row] and Avro schema
-    val structTypeSchema = StructType(schema.map{ _.structField }.toArray)
-    val sqlContext = new SQLContext(sc)
-
-    println("Avro writer: rowRDD num partitions = "+rowRDD.partitions.size)
-    val dataFrame = { 
-      val df = sqlContext.createDataFrame(rowRDD, structTypeSchema)
-      val num = avroWriterConfig.numOutputPartitions
-      if (num > 0 ) {
-        println("Avro writer: repartitionining dataFrame to: "+num)
-        // Note: using repartition() because there's no way to tell how many 
-        // partitions are in the DF using public API:
-        df.repartition(num)
-      }
-      else df
-    }
-
-    if (writerConfig.persistence.nonEmpty) {
-      dataFrame.persist(writerConfig.persistence.get)
-    }
-
-    println("================================= avro dataFrame schema = ")
-    dataFrame.printSchema
+    //println("================================= dataFrame = ")
+    //dataFrame.printSchema
     //dataFrame.show
 
-    // Ensure the dir can be written to by deleting it.
-    // It is up to the operator to ensure it is safe to overwrite this dir.
-    val fs = FileSystem.get(sc.hadoopConfiguration)
-    val outputDirPath = new Path(outputDir)
-    if (fs.exists(outputDirPath)) {
-      fs.delete(outputDirPath, true)
-    }
-
-    // lastly, write it out
-    println("Avro writer: Writing out to dir: "+outputDir)
-    dataFrame.write.format("com.databricks.spark.avro").save(outputDir)
+    println("AvroOutputWriter: writing to outputDir: "+outputDir)
+    write(dataFrame, new Path(outputDir))
 
     // Unpersist anything we are done with.
     dataFrame.unpersist(blocking=true)
-    rowRDD.unpersist(blocking=true)
-    anyRDD.unpersist(blocking=true)
 
     // return the errors
     errorRDD
@@ -202,7 +118,18 @@ object AvroOutputWriter {
     // collect fields list from avro schema
     val fields = (parsedSchema \ "fields").children
 
-    fields.map { eachChild => AvroFieldConfig(eachChild) }
+    fields.map { eachChild => 
+      val afc = AvroFieldConfig(eachChild) 
+
+      // Float fields are disallowed due to https://issues.apache.org/jira/browse/SPARK-14081
+      if (afc.structField.dataType == FloatType) throw new RuntimeException(""""float" types are not allowed in the avro schema due to a Spark bug.  Please change all "float" types to "double".""")
+
+      // NullType fields are disallowed because casts can't be done to them
+      // without exceptions and basically because they're useless:
+      if (afc.structField.dataType == NullType) throw new RuntimeException(""""null-only (NullType)" types are not allowed in the avro schema due to Spark issue with casting.  Please change all null-only types to nullable strings or ints like: ["null", "string"] """)
+
+      afc
+    }
   }
 
   /** get the DataType type from a string description
@@ -233,36 +160,68 @@ object AvroOutputWriter {
     */
   def getStructFieldFromAvroElement(fieldConfig: JValue): StructField = {
     
-    val name = JsonUtil.extractValidString(fieldConfig\"name").getOrElse(throw new Exception("could not find valid 'name' element in avro field config"))
-    val fields = (fieldConfig \ "type").toOption.getOrElse(throw new Exception(s"avro field configuration for '$name' is missing the 'type' array"))
-    implicit val jsonFormats = org.json4s.DefaultFormats
-    val typeList = fields match {
-      case j: JString => List(getDataTypeFromString(j.extract[String]))
-      case j: JArray => {
-        j.children.map{ typeJval =>
-          getDataTypeFromString(typeJval.extract[String])
+    val asf = AvroSchemaField(fieldConfig)
+    asf.toStructField
+  }
+
+  /** Transform an RDD of string data into correctly typed data according to the
+    * schema.
+    * Missing values are NOT defaulted but instead NULL is written.
+    */
+  def createTypedEnrichedRDD(
+    rdd: RDD[Map[String, String]], 
+    schema: StructType,
+    errorMarker: String,
+    writerConfig: AvroOutputWriterConfig = AvroOutputWriterConfig()):
+    RDD[Map[String, Any]] = {
+
+    // Now change all the types to the actual needed types.
+    // Any fields that are in 'allAddedFieldsBC' need to be String because
+    // they may have come from the input.
+    rdd.map{ record => 
+
+      var errors = List.empty[String]
+
+      val newRecord: Map[String, Any] = schema.fields.flatMap{ structField =>
+
+        val key = structField.name
+        val v = record.get(key)
+        val value: Option[Any] = {
+          if (v.isDefined) {
+            try{
+              Option(convertToType(v.get, structField, writerConfig).get)
+            }
+            catch {
+              case e: EmptyStringConversionException => {
+                //println(s"Detected empty string in '${structField.name}' when trying to convert; using default value.")
+                None
+              }
+              case e: Throwable => {
+                errors = errors :+ e.getMessage
+                Option(v.get.toString)
+              }
+            }
+          }
+          else {
+            None
+          }
         }
+
+        // Only add new keys if the value is non-null.  Null values are added
+        // later when converted into the dataframe.
+        if (value.nonEmpty) {
+          Option((key, value.get))
+        }
+        else {
+          None
+        }
+      }.toMap
+
+      if (errors.nonEmpty) { 
+        newRecord + (errorMarker-> errors.mkString("; "))
       }
-      case _ => throw new RuntimeException(s"invalid 'type' field for field named '$name'")
+      else newRecord
     }
-
-    val nullable = typeList.contains(NullType)
-
-    // Filter out the non-null types.
-    // Can only have one non-null data type listed.  We wouldn't know how to handle 
-    // a type that can be string OR int.
-    val filtered = typeList.filter( _ != NullType )
-    val dataType = filtered.size match {
-      // No non-nulls.  Only allowed if NullType is the only type (nullable is set)
-      case 0 => if (nullable) NullType; else throw new Exception("couldn't determine type for avro field name="+name)
-      // One non-null, perfect.
-      case 1 => filtered.head
-      // cannot have more than one (non-null) data type listed.
-      case i: Int => throw new Exception(s"not able to parse type list for avro field: '$name'.  Cannot have more than one non-null data type listed.")
-    }
-
-    //println(s"========== name = $name, dataType=$dataType, nullable=$nullable")
-    StructField(name, dataType, nullable)
   }
 
   /** Convert a string to a datatype as specified.  
@@ -291,7 +250,9 @@ object AvroOutputWriter {
     }
 
     // If value is actually null, just return null
-    if (string == null) null
+    if (string == null) { 
+      null
+    }
     else {
       // value is not null
 
@@ -302,14 +263,14 @@ object AvroOutputWriter {
         case IntegerType | LongType | FloatType | DoubleType => {
           val t = string.optionalTrim(conf.alwaysTrimNumerics)
           if (t.nonEmpty && List( 'd', 'D', 'f', 'F', 'l', 'L').contains(t.last)) {
-            throw new NumberFormatException(s"can't convert '$string' to ${structField.dataType.toString} type. (No alphanumeric characters are allowed in numeric fields.)")
+            throw new NumberFormatException(s"can't convert '$string' in field '${structField.name}' to ${structField.dataType.toString} type. (No alphanumeric characters are allowed in numeric fields.)")
           }
           else t
         }
         // Optionally trim bools and strings too, per the config.
         case BooleanType => string.optionalTrim(conf.alwaysTrimBooleans)
         case StringType => string.optionalTrim(conf.alwaysTrimStrings)
-        case _ => string;
+        case _ => string
       }
 
       // For numeric and boolean types, if the config specifies, then throw a 
@@ -325,7 +286,7 @@ object AvroOutputWriter {
       }
 
       // Do the core conversion.
-      try {
+      val result = try {
         structField.dataType match {
           case StringType => string
           case IntegerType => trimmedStr.toInt
@@ -343,11 +304,13 @@ object AvroOutputWriter {
       catch {
         // for numeric and boolean conversions, add more info to say why
         case e: java.lang.IllegalArgumentException => {
-          val message = s"could not convert value in '${structField.name}' to a '${structField.dataType.toString}'."
+          val message = s"""could not convert value '$string' in field '${structField.name}' to a '${structField.dataType.toString}'."""
           throw new java.lang.IllegalArgumentException(message, e)
         }
         case e: java.lang.Throwable => throw e
       }
+
+      result
     }
   }
 
@@ -383,7 +346,142 @@ object AvroOutputWriter {
 
       AvroFieldConfig(newStructField, newDefaultValue)
     }
-    
+  }
+
+  /** Write out a dataframe to Avro at the specified path, using the 
+    * existing schema of the input dataframe.
+    * @todo make this an instance method
+    * 
+    */
+  def write(df: DataFrame, outputDir: Path) = {
+
+    val sc = df.sqlContext.sparkContext
+
+    // Ensure the dir can be written to by deleting it.
+    // It is up to the client to ensure it is safe to overwrite this dir.
+    val fs = FileSystem.get(sc.hadoopConfiguration)
+    if (fs.exists(outputDir)) {
+      fs.delete(outputDir, true)
+    }
+
+    // lastly, write it out
+    df.write.format("com.databricks.spark.avro").save(outputDir.toString)
+  }
+
+  /** Write out a dataframe to Avro at the specified path, using the 
+    * schema provided.  The dataframe will be modified to fit the schema 
+    * according to DataFrame.changeSchema().
+    * @todo make this an instance method
+    *
+    * @return the 'errorDF' as returned from changeSchema(), which is any records
+    *         whose data could not be converted to requested type.
+    */
+  def write(
+    df: DataFrame, 
+    conformToSchema: List[AvroFieldConfig], 
+    outputDir: Path): 
+    DataFrame = {
+
+    val conversionResult = df.changeSchema(conformToSchema)
+    write(conversionResult.goodDF, outputDir)
+    conversionResult.errorDF
+  }
+
+  /** Convert the enriched RDD map to a dataframe.  
+    * Records that couldn't be converted due to type conversion issues are returned
+    * as an RDD of the same type.
+    *
+    * @return (DataFrame, RDD) where the dataframe is the good records, and 
+    *         the RDD is the bad records that need to be handled separately due
+    *         to type conversion issues.
+    */
+  def convertEnrichedRDDToDataFrame(
+    enrichedRDD: RDD[Map[String, String]],
+    schema: StructType,
+    sqlContext: SQLContext,
+    writerConfig: AvroOutputWriterConfig = AvroOutputWriterConfig()): 
+    (DataFrame, RDD[Map[String, String]]) = {
+
+    val errorMarker = avroTypeErrorMarker
+    val sc = enrichedRDD.sparkContext
+
+    // Create a schema that ensures every field is nullable,
+    // and accounts for the fields added from the input record (makes them string).
+    if (schema == null || schema.fields == null) throw new RuntimeException("schema must not be null in convertEnrichedRDDToDataFrame()")
+    if (schema.fields.isEmpty) throw new RuntimeException("schema must not be empty in convertEnrichedRDDToDataFrame()")
+    val safeSchema = { 
+
+      // Merge all of the added input fields from each record, get a master 
+      // set of added fields.  
+      val allAddedFields = enrichedRDD.map{ e =>
+        val list = e.get( ActionEngine.addedInputFieldsMarker )
+        if (list.nonEmpty) 
+          list.get.split(",").toSet
+        else 
+          Set.empty[String] 
+      }.fold(Set.empty[String]){ _ ++ _ }
+
+      StructType( schema.fields.map{ sf => 
+        // If field is in the added fields set, modify the structfield to be 
+        // string type and nullable:
+        if (allAddedFields.contains(sf.name))
+          sf.copy(dataType=StringType, nullable=true)
+        else 
+          sf.copy(nullable=true)
+      })
+    }
+
+    // Loop through enriched record fields, and extract the value of each field 
+    // in the order of schema list (so the order matches the Avro schema). 
+    // Convert to the correct type as well.
+    val anyRDD: RDD[Map[String, Any]] = createTypedEnrichedRDD(enrichedRDD, safeSchema, errorMarker, writerConfig)
+    //println("HERE IS anyRDD:")
+    //anyRDD.foreach{println}
+
+    // Now filter out the error records for later returning.
+    val errorRDD: RDD[Map[String, String]] = anyRDD.filter{
+      _.get(errorMarker).nonEmpty
+    }.map{ record =>
+      // convert to strings - can't write out if the type is incorrect
+      record.map{ case(k,v) => v match {
+        case null => (k, null)
+        case _ => (k, v.toString)
+      }}
+    }
+
+    // Filter them out in the main rdd.
+    val rowRDD: RDD[Row] = anyRDD.filter {
+      _.get(errorMarker).isEmpty
+    }.map{ record =>
+      val vals: Seq[Any] = safeSchema.fields.map{ structField =>
+        val field = structField.name
+        record.getOrElse(field, null)
+      }
+      Row.fromSeq(vals)
+    }
+
+    println("Avro writer: rowRDD num partitions = "+rowRDD.partitions.size)
+    val dataFrame = { 
+      val df = sqlContext.createDataFrame(rowRDD, safeSchema)
+      val num = writerConfig.numOutputPartitions
+      if (num > 0 ) {
+        println("Avro writer: repartitionining dataFrame to: "+num)
+        // Note: using repartition() because there's no way to tell how many 
+        // partitions are in the DF using public API:
+        df.repartition(num)
+      }
+      else df
+    }
+
+    if(writerConfig.persistence.isDefined)
+      dataFrame.persist(writerConfig.persistence.get)
+
+    // unpersist our temp RDDs
+    rowRDD.unpersist(blocking=true)
+    anyRDD.unpersist(blocking=true)
+   
+    // return the tuple
+    (dataFrame, errorRDD)
   }
 
 }

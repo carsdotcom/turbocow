@@ -201,12 +201,11 @@ class LookupSpec extends UnitSpec {
         Option(hiveCtx)).collect()
 
       enriched.size should be(1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
-      enriched.head.size should be(3)
+      println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched.head = "+enriched.head)
+      enriched.head.size should be >= (4)
       enriched.head("IntTarget") should be("12")
       enriched.head("BooleanTarget") should be("true")
       enriched.head("FloatTarget") should be("12.3")
-
     }
 
     it("should correctly reject a record when the lookup fails") {

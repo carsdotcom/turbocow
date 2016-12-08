@@ -67,7 +67,7 @@ class AvroOutputWriter(
         avroWriterConfig)
 
     val dataFrame = goodDataFrame.setDefaultValues(schema)
-    dataFrame.persist(StorageLevel.MEMORY_AND_DISK_SER)
+    dataFrame.persist(StorageLevel.DISK_ONLY) // TODO make configurable
 
     //println("================================= dataFrame = ")
     //dataFrame.printSchema
@@ -391,6 +391,9 @@ object AvroOutputWriter {
     * Records that couldn't be converted due to type conversion issues are returned
     * as an RDD of the same type.
     *
+    * Callers may wish to persist the enrichedRDD before calling this, as it is reused
+    * for at least 2 actions.
+    *
     * @return (DataFrame, RDD) where the dataframe is the good records, and 
     *         the RDD is the bad records that need to be handled separately due
     *         to type conversion issues.
@@ -462,19 +465,23 @@ object AvroOutputWriter {
 
     println("Avro writer: rowRDD num partitions = "+rowRDD.partitions.size)
     val dataFrame = { 
-      val df = sqlContext.createDataFrame(rowRDD, safeSchema)
-      val num = writerConfig.numOutputPartitions
-      if (num > 0 ) {
-        println("Avro writer: repartitionining dataFrame to: "+num)
-        // Note: using repartition() because there's no way to tell how many 
-        // partitions are in the DF using public API:
-        df.repartition(num)
+      var df = sqlContext.createDataFrame(rowRDD, safeSchema)
+      df = {
+        val num = writerConfig.numOutputPartitions
+        if (num > 0 ) {
+          println("Avro writer: repartitionining dataFrame to: "+num)
+          // Note: using repartition() because there's no way to tell how many 
+          // partitions are in the DF using public API:
+          df.repartition(num)
+        }
+        else df
       }
-      else df
-    }
 
-    if(writerConfig.persistence.isDefined)
-      dataFrame.persist(writerConfig.persistence.get)
+      if(writerConfig.persistence.isDefined)
+        df.persist(writerConfig.persistence.get)
+
+      df
+    }
 
     // unpersist our temp RDDs
     rowRDD.unpersist(blocking=true)

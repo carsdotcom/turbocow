@@ -47,9 +47,10 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
 
       // get name
       val name = JsonUtil.extractOptionString(item \ "name")
+      //if (name.isEmpty) throw new Exception(s"Couldn't find 'name' string for one of the action lists.  Every action list must have a non-empty name.")
 
       val actions = createActionList(item \ "actions")
-      if (actions.isEmpty) throw new Exception("Couldn't find 'actions' array in the config file.")
+      if (actions.isEmpty) throw new Exception(s"""Couldn't find 'actions' array in the config file for named item "${name.getOrElse("")}".""")
 
       Item( actions, name )
     }

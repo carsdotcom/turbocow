@@ -93,7 +93,7 @@ class NumericCheckerSpec extends UnitSpec {
         sc).collect()
 
       enriched.size should be (1) // always
-      enriched.head should be (Map("XXX"->"PASS"))
+      enriched.head("XXX") should be ("PASS")
     }
 
     it("should run numeric action successfully with a float value") {
@@ -142,7 +142,7 @@ class NumericCheckerSpec extends UnitSpec {
         sc).collect()
 
       enriched.size should be (1) // always
-      enriched.head should be (Map("XXX"->"PASS"))
+      enriched.head("XXX") should be ("PASS")
     }
 
     it("should run numeric action successfully with negative float numbers") {
@@ -191,7 +191,7 @@ class NumericCheckerSpec extends UnitSpec {
         sc).collect()
 
       enriched.size should be (1) // always
-      enriched.head should be (Map("XXX"->"PASSED"))
+      enriched.head("XXX") should be ("PASSED")
     }
 
     it("should run numeric action with OnFail search and replace action ") {

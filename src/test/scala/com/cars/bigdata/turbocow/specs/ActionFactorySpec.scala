@@ -183,6 +183,28 @@ class ActionFactorySpec extends UnitSpec {
       }
     }
 
+    // TODO restore later - other tests will have to be fixed
+    //it("should throw if no 'name' is given for an action list.")
+    //{
+    //  val actionFactory = new ActionFactoryForTest
+    //  val config = """
+    //    {
+    //    	"activityType": "impressions",
+    //    	"items": [
+    //    		{
+    //          "actions": [
+    //            {
+    //              "actionType":"Action1"
+    //            }
+    //          ]
+    //    		}
+    //    	]
+    //    }
+    //  """
+    //  val ex = intercept[Exception]{ actionFactory.createItems(config) }
+    //  ex.getMessage() should be ("Couldn't find 'name' string for one of the action lists.  Every action list must have a non-empty name.")
+    //}
+
     it("should throw if no 'actions' list is given in the config")
     {
       val actionFactory = new ActionFactoryForTest

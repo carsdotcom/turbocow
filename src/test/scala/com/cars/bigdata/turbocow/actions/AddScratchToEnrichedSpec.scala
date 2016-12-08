@@ -68,10 +68,10 @@ class AddScratchToEnrichedSpec
       enriched.size should be (1) // always one because there's only one json input object
       enriched.head("jobRunTime") should be ("test123")
       enriched.head("applicationID") should be ("applicationID_1234567890")
-      enriched.head.size should be (2)
+      enriched.head.size should be >= (7)
     }
 
-    it("should return empty map in enriched when trying to enrich on an empty scratchpad") {
+    it("should not add fields to enriched if they don't exist in the scratch pad") {
       val enriched: Array[Map[String, String]] = ActionEngine.processDir(
         new URI("./src/test/resources/input-integration.json"),
         """{
@@ -92,7 +92,8 @@ class AddScratchToEnrichedSpec
         None,
         new ActionFactory(new CustomActionCreator)).collect()
 
-      enriched.size should be (0) // empty enriched records get filtered out
+      enriched.head.get("applicationID") should be (None)
+      enriched.head.get("jobRunTime") should be (None)
     }
   }
   describe("Primary constructor") {

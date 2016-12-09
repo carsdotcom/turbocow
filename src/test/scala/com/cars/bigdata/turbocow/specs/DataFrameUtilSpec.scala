@@ -417,6 +417,41 @@ class DataFrameUtilSpec
 
       check(modDF)
     }
+
+    //it("should error out the same way when trying to na.fill a non-existent field") {
+    //  
+    //  val schemaWithDefaults = List(
+    //    AvroFieldConfig( StructField("id",  StringType, nullable=false), 
+    //      JString("")),
+    //    AvroFieldConfig( StructField("intfield", IntegerType, nullable=true),
+    //      JInt(1))
+    //  )
+    //  val stSchema = StructType( schemaWithDefaults.map{ _.structField }.toArray )
+    //
+    //  val df = sqlCtx.createDataFrame( sc.parallelize(
+    //    List(//             id  int   
+    //      Row.fromSeq(List( "0", 7   )),
+    //      Row.fromSeq(List("10", 17  )),
+    //      Row.fromSeq(List("20", null)),
+    //      Row.fromSeq(List("30", 37  )))),
+    //    stSchema)
+    //
+    //  val rows = df.na.fill(Map("intfield"->69, "non-existent-field"->47)).collect
+    //
+    //  rows.size should be (4)
+    //  rows.foreach{ row => row.getAs[String]("id") match {
+    //    case "0" =>
+    //      row.getAs[Int]("intfield") should be(7)
+    //    case "10" =>
+    //      row.getAs[Int]("intfield") should be(17)
+    //    case "20" =>
+    //      row.getAs[Int]("intfield") should be(69)
+    //    case "30" =>
+    //      row.getAs[Int]("intfield") should be(37)
+    //    case _ => fail()
+    //  }}
+    //}
+
   }
 
   describe("changeSchema()") {
@@ -465,8 +500,7 @@ class DataFrameUtilSpec
       val result = startDF.changeSchema(schema.toListAvroFieldConfig)
 
       checkSchema(result.goodDF)
-      result.goodDF.schema.fields.size should be (6)
-      result.goodDF.schema.fields(5).name should be (DataFrameUtil.changeSchemaErrorField)
+      result.goodDF.schema.fields.size should be (5)
 
       val rows = result.goodDF.collect
       rows.size should be (1)
@@ -476,10 +510,16 @@ class DataFrameUtilSpec
           row.getAs[Long]("LongField") should be (2L)
           row.getAs[Double]("DoubleField") should be (4.1)
           row.getAs[Boolean]("BooleanField") should be (true)
-          row.fieldIsNull(changeSchemaErrorField) should be (true)
+          row.fieldIsNull(changeSchemaErrorField) should be (true) // should be removed
       }}
 
       result.errorDF.count should be (0)
+      //println("error DF fields = ")
+      //result.errorDF.schema.fields.foreach(println)
+      //println("---")
+      result.errorDF.schema.fields.size should be (6)
+      result.errorDF.schema.fields.foreach{ f => f.dataType should be (StringType) }
+      result.errorDF.schema.fields(5).name should be (changeSchemaErrorField)
     }
 
     it("should set columns in schema that are missing in DF to null") {
@@ -526,20 +566,36 @@ class DataFrameUtilSpec
       // changing to fullSchema adds DoubleField
       val result = startDF.changeSchema(fullSchema.toListAvroFieldConfig)
 
-      def checkSchema(schema: StructType) = {
-        println("schema = "+schema.fields.mkString("\n"))
+      println("checking goodDF schema....")
+      //checkSchema(result.goodDF.schema)
+
+      {
+        val schema = result.goodDF.schema
+        println("goodDF schema = "+schema.fields.mkString("\n"))
         // note: not checking order; it is different between goodDF & errorDF
-        schema.fields.find( _.dataType == StringType ).get.name should be ("StringField")
-        schema.fields.find( _.dataType == IntegerType ).get.name should be ("IntField")
-        schema.fields.find( _.dataType == LongType ).get.name should be ("LongField")
-        schema.fields.find( _.dataType == BooleanType ).get.name should be ("BooleanField")
-        schema.fields.find( _.dataType == DoubleType ).get.name should be ("DoubleField")
+        schema.fields.find( _.name == "StringField" ).get.dataType should be (StringType)
+        schema.fields.find( _.name == "IntField" ).get.dataType should be (IntegerType)
+        schema.fields.find( _.name == "LongField" ).get.dataType should be (LongType)
+        schema.fields.find( _.name == "BooleanField" ).get.dataType should be (BooleanType)
+        schema.fields.find( _.name == "DoubleField" ).get.dataType should be (DoubleType)
         schema.fields.size should be (5)
       }
-      println("checking goodDF schema....")
-      checkSchema(result.goodDF.schema)
+
       println("checking errorDF schema....")
-      checkSchema(result.errorDF.schema)
+      //checkSchema(result.errorDF.schema)
+
+      {
+        val schema = result.errorDF.schema
+        println("errorDF schema = "+schema.fields.mkString("\n"))
+        // note: not checking order; it is different between goodDF & errorDF
+        schema.fields.find( _.name == "StringField" ).get.dataType should be (StringType)
+        schema.fields.find( _.name == "IntField" ).get.dataType should be (StringType)
+        schema.fields.find( _.name == "LongField" ).get.dataType should be (StringType)
+        schema.fields.find( _.name == "BooleanField" ).get.dataType should be (StringType)
+        schema.fields.find( _.name == "DoubleField" ).get.dataType should be (StringType)
+        schema.fields.find( _.name ==  changeSchemaErrorField ).get.dataType should be (StringType)
+        schema.fields.size should be (6)
+      }
 
       val rows = result.goodDF.collect
       rows.size should be (1)
@@ -597,19 +653,53 @@ class DataFrameUtilSpec
 
       // changing to 'schema' removes DoubleField
       val result = startDF.changeSchema(schema.toListAvroFieldConfig)
-      def checkSchema(schema: StructType) = {
-        println("schema = "+schema)
-        schema.fields(0).dataType should be (StringType)
-        schema.fields(1).dataType should be (IntegerType)
-        schema.fields(2).dataType should be (LongType)
-        //schema.fields(3).dataType should be (DoubleType)
-        schema.fields(3).dataType should be (BooleanType)
+      //def checkSchema(schema: StructType) = {
+      //  println("schema = "+schema)
+      //  schema.fields(0).dataType should be (StringType)
+      //  schema.fields(1).dataType should be (IntegerType)
+      //  schema.fields(2).dataType should be (LongType)
+      //  //schema.fields(3).dataType should be (DoubleType)
+      //  schema.fields(3).dataType should be (BooleanType)
+      //  schema.fields.size should be (4)
+      //}
+      println("checking goodDF schema....")
+      //checkSchema(result.goodDF.schema)
+
+      {
+        val schema = result.goodDF.schema
+        println("goodDF schema = "+schema.fields.mkString("\n"))
+        // note: not checking order; it is different between goodDF & errorDF
+        schema.fields.find( _.name == "StringField" ).get.dataType should be (StringType)
+        schema.fields.find( _.name == "IntField" ).get.dataType should be (IntegerType)
+        schema.fields.find( _.name == "LongField" ).get.dataType should be (LongType)
+        schema.fields.find( _.name == "BooleanField" ).get.dataType should be (BooleanType)
+
+        // these should be missing
+        schema.fields.find( _.name == "DoubleField" ) should be (None)
+        schema.fields.find( _.name ==  changeSchemaErrorField ) should be (None)
+
         schema.fields.size should be (4)
       }
-      println("checking goodDF schema....")
-      checkSchema(result.goodDF.schema)
+
       println("checking errorDF schema....")
-      checkSchema(result.errorDF.schema)
+      //checkSchema(result.errorDF.schema)
+
+      {
+        val schema = result.errorDF.schema
+        println("errorDF schema = "+schema.fields.mkString("\n"))
+        // note: not checking order; it is different between goodDF & errorDF
+        schema.fields.find( _.name == "StringField" ).get.dataType should be (StringType)
+        schema.fields.find( _.name == "IntField" ).get.dataType should be (StringType)
+        schema.fields.find( _.name == "LongField" ).get.dataType should be (StringType)
+        schema.fields.find( _.name == "BooleanField" ).get.dataType should be (StringType)
+        schema.fields.find( _.name ==  changeSchemaErrorField ).get.dataType should be (StringType)
+
+        // these should be missing
+        schema.fields.find( _.name == "DoubleField" ) should be (None)
+
+        schema.fields.size should be (5)
+      }
+
 
       val rows = result.goodDF.collect
       rows.size should be (1)

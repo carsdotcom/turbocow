@@ -1226,7 +1226,8 @@ class AvroOutputWriterSpec
       ))
       val schema = StructType(Array(
         StructField("A", StringType, nullable=true),
-        StructField("B", IntegerType, nullable=true)
+        StructField("B", IntegerType, nullable=true),
+        StructField("C", DoubleType, nullable=true)
       ))
   
       val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig)
@@ -1234,18 +1235,25 @@ class AvroOutputWriterSpec
   
       goodDF.count should be (2)
       val afs: Array[StructField] = goodDF.schema.fields
-      afs.size should be (2)
+      afs.size should be (3)
       afs(0).name should be ("A")
       afs(0).dataType should be (StringType)
       afs(0).nullable should be (true)
       afs(1).name should be ("B")
       afs(1).dataType should be (IntegerType)
       afs(1).nullable should be (true)
+      afs(2).name should be ("C")
+      afs(2).dataType should be (DoubleType)
+      afs(2).nullable should be (true)
   
       rows.size should be (2)
       rows.foreach{ row => row.getAs[String]("A") match {
-        case "A1" => row.getAs[Int]("B") should be (1)
-        case "A2" => fieldIsNull(row, "B") should be (true)
+        case "A1" => 
+          row.getAs[Int]("B") should be (1)
+          fieldIsNull(row, "C") should be (true)
+        case "A2" => 
+          fieldIsNull(row, "B") should be (true)
+          fieldIsNull(row, "C") should be (true)
         case _ => fail()
       }}
   
@@ -1346,7 +1354,8 @@ class AvroOutputWriterSpec
       intercept[Exception] { convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig) }
     }
 
-    it("""should set columns as (nullable) String if they don't yet exist in the enriched record""") {
+    it("""should set columns as (nullable) String if they don't yet exist in 
+          the enriched record""") {
     
       val mark = ActionEngine.addedInputFieldsMarker
       val enrichedRDD = sc.parallelize(List( 
@@ -1365,7 +1374,7 @@ class AvroOutputWriterSpec
       val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig)
       val rows = goodDF.collect()
     
-      goodDF.count should be (2)
+      rows.size should be (2)
       val afs: Array[StructField] = goodDF.schema.fields
       afs.size should be (6)
     
@@ -1386,11 +1395,11 @@ class AvroOutputWriterSpec
       afs(3).dataType should be (StringType)
       afs(3).nullable should be (true)
     
-      // These are unchanged
       afs(4).name should be ("accepted")
       afs(4).dataType should be (StringType)
       afs(4).nullable should be (true)
     
+      // this is the new one:
       afs(5).name should be ("reasonForReject")
       afs(5).dataType should be (StringType)
       afs(5).nullable should be (true)

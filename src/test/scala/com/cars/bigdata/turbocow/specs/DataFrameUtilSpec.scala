@@ -718,6 +718,99 @@ class DataFrameUtilSpec
     //  //NOTE this shouldn't matter, according to Alexey from Oracle.
     //  fail("TODOTODO test writing with one order, then write another day with a different order, then try reading with hive & spark")
     //}
+
+    it("should populate an error field with all of the field names that had conversion errors")
+    {
+      val allStringJsonSchema = """{
+          "namespace": "NS",
+          "type": "record",
+          "name": "impression",
+          "fields": [{
+            "name": "StringField", "type": [ "null", "string" ], "default": null
+          }, {
+            "name": "IntField", "type": [ "null", "string" ], "default": null
+          }, {
+            "name": "LongField", "type": [ "null", "string" ], "default": null
+          }, {
+            "name": "DoubleField", "type": [ "null", "string" ], "default": null
+          }, {
+            "name": "BooleanField", "type": [ "null", "string" ], "default": null
+          }
+        ],
+        "doc": ""
+      }"""
+      val allStringSchema = AvroSchema(allStringJsonSchema)
+      val sfAllStringSchema = allStringSchema.toStructType
+
+      val startDF = sqlCtx.createDataFrame(
+        sc.parallelize(
+          List(//             str   int    lng,    dbl,   bool
+            Row.fromSeq(List("ID0", "1",   "2",    "4.1", "true")),
+            Row.fromSeq(List("ID1", "FAIL", "20", "FAIL", "false"))
+          )
+        ),
+        sfAllStringSchema
+      )
+
+      // new schema
+      val jsonAvroSchema = """{
+          "namespace": "NS",
+          "type": "record",
+          "name": "impression",
+          "fields": [{
+            "name": "StringField", "type": [ "null", "string" ], "default": null
+          }, {
+            "name": "IntField", "type": [ "null", "int" ], "default": null
+          }, {
+            "name": "LongField", "type": [ "null", "long" ], "default": null
+          }, {
+            "name": "DoubleField", "type": [ "null", "double" ], "default": null
+          }, {
+            "name": "BooleanField", "type": [ "null", "boolean" ], "default": null
+          }
+        ],
+        "doc": ""
+      }"""
+      val schema = AvroSchema(jsonAvroSchema)
+      val sfSchema = schema.toStructType
+
+      val result = startDF.changeSchema(schema.toListAvroFieldConfig)
+
+      result.goodDF.schema.fields.size should be (5)
+
+      // check the good df
+      { 
+        val rows = result.goodDF.collect
+        rows.size should be (1)
+        rows.foreach{ row => row.getAs[String]("StringField") match {
+          case "ID0" => 
+            row.getAs[Int]("IntField") should be (1)
+            row.getAs[Long]("LongField") should be (2L)
+            row.getAs[Double]("DoubleField") should be (4.1)
+            row.getAs[Boolean]("BooleanField") should be (true)
+            row.fieldIsNull(changeSchemaErrorField) should be (true) 
+        }}
+      }
+
+      // check the error df - should have the error field
+      result.errorDF.schema.fields.size should be (6)
+      result.errorDF.schema.fields(5).name should be (changeSchemaErrorField)
+      result.errorDF.schema.fields(5).dataType should be (StringType)
+
+      { 
+        val rows = result.errorDF.collect
+        rows.size should be (1)
+        rows.foreach{ row => row.getAs[String]("StringField") match {
+          case "ID1" => 
+            row.getAs[String]("IntField") should be ("FAIL")
+            row.getAs[String]("DoubleField") should be ("FAIL")
+            row.getAs[String]("LongField") should be ("20")
+            row.getAs[String]("BooleanField") should be ("false")
+            row.getAs[String](changeSchemaErrorField) should be ("could not convert field 'IntField' to 'IntegerType'; could not convert field 'DoubleField' to 'DoubleType'")
+        }}
+      }
+    }
+
   }
 
   describe("changeSchema() where schemas are same except for one type") {

@@ -382,7 +382,23 @@ object AvroOutputWriter {
     outputDir: Path): 
     DataFrame = {
 
+    println("AvroOutputWriter.write: changing schema...")
     val conversionResult = df.changeSchema(conformToSchema)
+
+    println("=============111vvv")
+    println("conversionResult.goodDF.schema = ")
+    conversionResult.goodDF.schema.fields.foreach(println)
+    println("=============111^^^")
+
+    {
+      println("=============222vvv")
+      val confSchema = conformToSchema.map( _.structField )
+      val goodDFSchema = conversionResult.goodDF.schema.fields
+      println("confSchema.diff(goodDFSchema) = "+confSchema.diff(goodDFSchema).mkString("; "))
+      println("goodDFSchema.diff(confSchema) = "+goodDFSchema.diff(confSchema).mkString("; "))
+      println("=============222^^^")
+    }
+
     write(conversionResult.goodDF, outputDir)
     conversionResult.errorDF
   }

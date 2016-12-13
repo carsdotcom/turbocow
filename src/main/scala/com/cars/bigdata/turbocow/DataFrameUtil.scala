@@ -174,10 +174,7 @@ object DataFrameUtil
             else if (boolVal) true
             else false
           }
-          val tempField = "___TURBOCOW_TEMP_DATAFRAMEUTIL_SETDEFAULTVALUES___"
-          val newDF = df.withColumn(tempField, defaultBools(col(name)))
-            .drop(name)
-            .withColumnRenamed(tempField, name)
+          val newDF = df.withColumn(name, defaultBools(col(name)))
 
           recursiveDefault(newDF, schema.tail)
         }

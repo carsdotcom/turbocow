@@ -8,9 +8,15 @@ object SchemaUtil {
     */
   def convertToAllStringStructType(fields: Seq[AvroFieldConfig]): StructType = {
     StructType(
-      fields = fields.map(
-        _.structField.copy(dataType=StringType)
-      ).toArray
+      fields = convertToAllString(fields).map( _.structField ).toArray
+    )
+  }
+
+  /** Conversion helper function
+    */
+  def convertToAllString(fields: Seq[AvroFieldConfig]): Seq[AvroFieldConfig] = {
+    fields.map( afc =>
+      afc.copy(structField = afc.structField.copy(dataType=StringType))
     )
   }
 }

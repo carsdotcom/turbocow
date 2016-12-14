@@ -54,6 +54,32 @@ class SchemaUtilSpec
     }
   }
 
+  describe("convertToAllString(Seq[AvroFieldConfig])") {
+
+    it("should convert to all strings") {
+
+      val default = JNull
+      val nullable = true
+      val fields = List(
+        AvroFieldConfig(StructField("a", IntegerType, nullable), default),
+        AvroFieldConfig(StructField("b", BooleanType, nullable), default),
+        AvroFieldConfig(StructField("c", DoubleType, nullable), default)
+      )
+
+      val results = convertToAllString(fields)
+
+      results.size should be (3)
+      results(0).structField.name should be ("a")
+      results(1).structField.name should be ("b")
+      results(2).structField.name should be ("c")
+
+      results.foreach{ e =>
+        e.structField.dataType should be (StringType)
+        e.structField.nullable should be (nullable)
+        e.defaultValue should be (default)
+      }
+    }
+  }
 }
 
 

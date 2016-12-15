@@ -16,7 +16,10 @@ object SchemaUtil {
     */
   def convertToAllString(fields: Seq[AvroFieldConfig]): Seq[AvroFieldConfig] = {
     fields.map( afc =>
-      afc.copy(structField = afc.structField.copy(dataType=StringType))
+      afc.copy(
+        structField = afc.structField.copy(dataType=StringType, nullable=true),
+        defaultValue = afc.defaultToString()
+      )
     )
   }
 }

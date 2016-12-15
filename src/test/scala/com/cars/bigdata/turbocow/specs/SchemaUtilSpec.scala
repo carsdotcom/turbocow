@@ -75,8 +75,8 @@ class SchemaUtilSpec
 
       results.foreach{ e =>
         e.structField.dataType should be (StringType)
-        e.structField.nullable should be (nullable)
-        e.defaultValue should be (default)
+        e.structField.nullable should be (true)
+        e.defaultValue should be (JNull)
       }
     }
   }

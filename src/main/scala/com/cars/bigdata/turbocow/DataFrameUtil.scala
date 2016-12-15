@@ -319,10 +319,10 @@ object DataFrameUtil
                   //negMod.schema.fields.foreach{println}
 
                   // now merge back together
-                  posMod.unionAll(negMod)
+                  posMod.safeUnionAll(negMod)
                 }
 
-                DataFrameOpResult(posMod, errorDFProcessed.unionAll(negMod))
+                DataFrameOpResult(posMod, errorDFProcessed.safeUnionAll(negMod))
               }
               else dfr
             }

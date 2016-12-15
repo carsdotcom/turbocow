@@ -94,6 +94,24 @@ case class AvroFieldConfig( // todo rename, this is not necessarily avro-specifi
     }
   }
 
+  /** Convert the default value to a value safe for an all-string schema.
+    * 
+    * @return JValue that is either JNull for null default (if appropriate), 
+    *         or JString for non-null default values.
+    */
+  def defaultToString(): JValue = {
+    implicit val jsonFormats = org.json4s.DefaultFormats
+    defaultValue match {
+      case j: JString => j
+      case j: JInt => JString(j.extract[String])
+      case j: JDouble => JString(j.extract[String])
+      case j: JBool => JString( if (j.extract[Boolean]) "true" else "false" )
+      case JNull => JNull
+      case JNothing => throw new Exception("a default value MUST be specified for every avro output field.")
+      case _ => throw new Exception(s"an unsupported JSON type was specified as 'default' value for '${structField.name}' field.")
+    }
+  }
+
 }
 
 object AvroFieldConfig {

@@ -278,6 +278,71 @@ class AvroFieldConfigSpec
     }
   }
 
+  describe("defaultToString()") {
+    it("should convert all types properly") {
+
+      // string ---------------------------------------------------
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "null", "string" ],
+        "default": null
+      }""")).defaultToString should be (JNull)
+
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "string" ],
+        "default": "defString"
+      }""")).defaultToString should be (JString("defString"))
+
+      // integral ---------------------------------------------------
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "int" ],
+        "default": 10
+      }""")).defaultToString should be (JString("10"))
+
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "null", "int" ],
+        "default": null
+      }""")).defaultToString should be (JNull)
+
+      // floating ---------------------------------------------------
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "float" ],
+        "default": 0.1
+      }""")).defaultToString should be (JString("0.1"))
+
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "null", "float" ],
+        "default": null
+      }""")).defaultToString should be (JNull)
+
+      // boolean ---------------------------------------------------
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "boolean" ],
+        "default": true
+      }""")).defaultToString should be (JString("true"))
+
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "null", "boolean" ],
+        "default": null
+      }""")).defaultToString should be (JNull)
+
+      // null ---------------------------------------------------
+      AvroFieldConfig(parse("""{
+        "name": "n",
+        "type": [ "null" ],
+        "default": null
+      }""")).defaultToString should be (JNull)
+
+    }
+  }
+
 }
 
 

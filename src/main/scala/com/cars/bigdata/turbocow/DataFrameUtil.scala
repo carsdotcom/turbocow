@@ -196,7 +196,7 @@ object DataFrameUtil
       *         where at least 1 field did not convert successfully.
       */
     def changeSchema(
-      newSchema: List[AvroFieldConfig]): 
+      newSchema: Seq[AvroFieldConfig]): 
       DataFrameOpResult = {
 
       val stNewSchema = StructType( newSchema.map{ _.structField }.toArray )
@@ -247,10 +247,11 @@ object DataFrameUtil
 
         count += 1
 
-        println("===changeSchema.processFields() count = "+count)
         if (fields.isEmpty) dfr
         else {
           val headON = fields.head
+
+          println("===changeSchema.processFields(); field = " +headON + "; count = "+count)
 
           //println("on.oldField = "+on.oldField)
           //println("on.newAFC = "+on.newAFC)
@@ -364,6 +365,30 @@ object DataFrameUtil
       }
       println("changeSchema: DONE")
       result
+    }
+
+
+    /** Reorder columns to match something else.  Required before doing unionAll()
+      * in Spark 1.5.
+      */
+    def reorderColumns(seq: Seq[String]): DataFrame = {
+
+      // compare sets of columns, they must match
+      val requestedSet = seq.toSet
+      val thisSet = df.schema.fields.map(_.name).toSet
+      if (requestedSet != thisSet) throw new Exception("DataFrameUtil.reorderColumns: new column set must match content and size of existing column set.")
+
+      df.select(seq.head, seq.tail: _*)
+      //df.select(seq)
+    }
+
+    /** Do a safe unionall that reorders columns to match before unioning.
+      */
+    def safeUnionAll(other: DataFrame): DataFrame = {
+      // reorder 'other' schema to match this one.
+      val reorderedOther = other.reorderColumns(df.schema.fields.map(_.name).toSeq)
+      // Now do the union
+      df.unionAll(reorderedOther)
     }
   }
 }

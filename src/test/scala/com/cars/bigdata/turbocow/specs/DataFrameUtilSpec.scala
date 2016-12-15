@@ -767,6 +767,8 @@ class DataFrameUtilSpec
             "name": "DoubleField", "type": [ "null", "double" ], "default": null
           }, {
             "name": "BooleanField", "type": [ "null", "boolean" ], "default": null
+          }, {
+            "name": "NewField", "type": [ "null", "double" ], "default": 10.1
           }
         ],
         "doc": ""
@@ -776,7 +778,9 @@ class DataFrameUtilSpec
 
       val result = startDF.changeSchema(schema.toListAvroFieldConfig)
 
-      result.goodDF.schema.fields.size should be (5)
+      result.goodDF.schema.fields.size should be (6)
+      result.goodDF.schema.fields.find( _.name == "NewField" ).nonEmpty should be (true)
+      result.goodDF.schema.fields.find( _.name == "NewField" ).get.dataType should be (DoubleType)
 
       // check the good df
       { 
@@ -788,25 +792,34 @@ class DataFrameUtilSpec
             row.getAs[Long]("LongField") should be (2L)
             row.getAs[Double]("DoubleField") should be (4.1)
             row.getAs[Boolean]("BooleanField") should be (true)
+            row.fieldIsNull("NewField") should be (true) 
             row.fieldIsNull(changeSchemaErrorField) should be (true) 
+            row.size should be (6)
         }}
       }
 
       // check the error df - should have the error field
-      result.errorDF.schema.fields.size should be (6)
-      result.errorDF.schema.fields(5).name should be (changeSchemaErrorField)
-      result.errorDF.schema.fields(5).dataType should be (StringType)
+      result.errorDF.schema.fields.foreach(println)
+
+      result.errorDF.schema.fields.size should be (7)
+      result.errorDF.schema.fields.find( _.name == "NewField" ).nonEmpty should be (true)
+      result.errorDF.schema.fields.find( _.name == "NewField" ).get.dataType should be (StringType)
+
+      result.errorDF.schema.fields.find( _.name == changeSchemaErrorField ).nonEmpty should be (true)
+      result.errorDF.schema.fields.find( _.name == changeSchemaErrorField ).get.dataType should be (StringType)
 
       { 
         val rows = result.errorDF.collect
         rows.size should be (1)
         rows.foreach{ row => row.getAs[String]("StringField") match {
-          case "ID1" => 
+          case "ID1" =>
             row.getAs[String]("IntField") should be ("FAIL")
             row.getAs[String]("DoubleField") should be ("FAIL")
             row.getAs[String]("LongField") should be ("20")
             row.getAs[String]("BooleanField") should be ("false")
+            row.fieldIsNull("NewField") should be (true) 
             row.getAs[String](changeSchemaErrorField) should be ("could not convert field 'IntField' to 'IntegerType'; could not convert field 'DoubleField' to 'DoubleType'")
+            row.size should be (7)
         }}
       }
     }
@@ -1173,6 +1186,167 @@ class DataFrameUtilSpec
       }
     }
   }
+
+  // DF with same types
+  val sameDF = sqlCtx.createDataFrame(sc.parallelize(
+    List(//             a    b    c
+      Row.fromSeq(List( "0", "1", "2")))),
+    StructType( List(
+      StructField("a", StringType),
+      StructField("b", StringType),
+      StructField("c", StringType))))
+  sameDF.persist
+
+  // DF with same types, reversed
+  val sameRevDF = sqlCtx.createDataFrame(sc.parallelize(
+    List(//              c     b    a
+      Row.fromSeq(List( "22", "21", "20")))),
+    StructType( List(
+      StructField("c", StringType),
+      StructField("b", StringType),
+      StructField("a", StringType))))
+  sameRevDF.persist
+
+  // DF with different types
+  val diffDF = sqlCtx.createDataFrame(sc.parallelize(
+    List(//             a    b    c
+      Row.fromSeq(List( "0", 1,   2.0)))),
+    StructType( List(
+      StructField("a", StringType),
+      StructField("b", IntegerType),
+      StructField("c", DoubleType))))
+  diffDF.persist
+
+  // DF with different types, reversed
+  val diffRevDF = sqlCtx.createDataFrame(sc.parallelize(
+    List(//              c    b    a
+      Row.fromSeq(List( 22.0, 21,  "20")))),
+    StructType( List(
+      StructField("c", DoubleType),
+      StructField("b", IntegerType),
+      StructField("a", StringType))))
+  diffRevDF.persist
+
+  /** Helper fn
+    */
+  def compareSchema(df: DataFrame, schema: StructType) {
+    df.schema.fields.size should be (schema.fields.size)
+    df.schema.fields.zip(schema.fields).foreach{ case( left, right) =>
+      left should be (right)
+    }
+  }
+
+  /** Helper fn
+    */
+  def checkABC(df: DataFrame) = {
+    val rows = df.collect()
+    rows.foreach{ row => row.getAs[String]("a") match {
+      case "0" =>
+        row.getAs[Integer]("b") should be (1)
+        row.getAs[Double]("c") should be (2.0)
+      case "20" =>
+        row.getAs[Integer]("b") should be (21)
+        row.getAs[Double]("c") should be (22.0)
+      case _ => fail
+    }}
+  }
+
+  /** Helper fn
+    */
+  def checkABCStrings(df: DataFrame) = {
+    val rows = df.collect()
+    rows.foreach{ row => row.getAs[String]("a") match {
+      case "0" =>
+        row.getAs[String]("b") should be ("1")
+        row.getAs[String]("c") should be ("2")
+      case "20" =>
+        row.getAs[String]("b") should be ("21")
+        row.getAs[String]("c") should be ("22")
+      case _ => fail
+    }}
+  }
+
+  describe("reorderColumns") {
+
+    it("should create a new dataframe that has the specified order") {
+      val newSchema = sameRevDF.schema
+      val newOrdering = newSchema.fields.map( _.name )
+      val df = sameDF.reorderColumns(newOrdering)
+
+      compareSchema(df, newSchema)
+
+      val rows = df.collect()
+      rows.foreach{ row => row.getAs[String]("a") match {
+        case "0" =>
+          row.getAs[String]("b") should be ("1")
+          row.getAs[String]("c") should be ("2")
+        case _ => fail
+      }}
+    }
+
+    it("should throw if the specified order set does not match existing field set") {
+
+      // extra field
+      {
+        val newSchema = 
+          StructType( List(
+            StructField("d", StringType),
+            StructField("c", DoubleType),
+            StructField("b", IntegerType),
+            StructField("a", StringType)))
+
+        val newOrdering = newSchema.fields.map( _.name )
+        intercept[Exception]{ sameDF.reorderColumns(newOrdering) }
+      }
+
+      // missing field
+      {
+        val newSchema = 
+          StructType( List(
+            StructField("b", IntegerType),
+            StructField("a", StringType)))
+
+        val newOrdering = newSchema.fields.map( _.name )
+        intercept[Exception]{ sameDF.reorderColumns(newOrdering) }
+      }
+
+      // field that doesn't match
+      {
+        val newSchema = 
+          StructType( List(
+            StructField("c", DoubleType),
+            StructField("BBBBBBBBB", IntegerType),
+            StructField("a", StringType)))
+
+        val newOrdering = newSchema.fields.map( _.name )
+        intercept[Exception]{ sameDF.reorderColumns(newOrdering) }
+      }
+    }
+
+  }
+
+  describe("unionAll") {
+
+    it("should safely union out-of-order dataframes with a mix of datatypes") {
+      //val df = diffDF.unionAll(diffRevDF)
+      val df = diffDF.safeUnionAll(diffRevDF)
+      compareSchema(df, diffDF.schema)
+      checkABC(df)
+    }
+
+    it("should safely union out-of-order dataframes with all the same datatypes") {
+      //val df = sameDF.unionAll(sameRevDF)
+      val df = sameDF.safeUnionAll(sameRevDF)
+      compareSchema(df, sameDF.schema)
+      checkABCStrings(df)
+    }
+  }
+
+  // unpersist all
+  diffRevDF.unpersist
+  sameRevDF.unpersist
+  diffDF.unpersist
+  sameDF.unpersist
 }
 
 

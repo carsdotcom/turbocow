@@ -1354,13 +1354,13 @@ class AvroOutputWriterSpec
       intercept[Exception] { convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig) }
     }
 
-    it("""should set columns as (nullable) String if they don't yet exist in 
-          the enriched record""") {
-    
+    it("""should not add columns in the schema that were not in input nor created 
+          via enrichement (addMissingFields is true (the default))""") {
+
       val mark = ActionEngine.addedInputFieldsMarker
       val enrichedRDD = sc.parallelize(List( 
-        Map("A"->"A1", "B"->"BX", "C"->"CX", "D"->"100", "accepted"->"Yes", mark-> "B,C"),
-        Map("A"->"A2", "B"->"2",  "C"->"CY", "D"->"DX",  "accepted"->"Yes", mark-> "C,D")
+        Map("A"->"A1", "B"->"BX", "C"->"CX", "accepted"->"Yes", mark-> "A,B"),
+        Map("A"->"A2", "B"->"2",  "C"->"CY", "accepted"->"Yes", mark-> "B,C")
       ))
       val schema = StructType(Array(
         StructField("A", StringType, nullable=true),
@@ -1371,59 +1371,142 @@ class AvroOutputWriterSpec
         StructField("reasonForReject", StringType, nullable=true)
       ))
     
-      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig)
+      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(
+        enrichedRDD, schema, sqlCtx, wConfig) //, addMissingFields = true)
       val rows = goodDF.collect()
     
-      rows.size should be (2)
       val afs: Array[StructField] = goodDF.schema.fields
-      afs.size should be (6)
     
+      // A added because marked as addded from input
       afs(0).name should be ("A")
       afs(0).dataType should be (StringType)
       afs(0).nullable should be (true)
     
-      // The union of all added columns is B,C,D, so all those should be strings:
+      // The union of all added columns is A,B,C, so all those should be strings:
+      // B added because marked as addded from input
       afs(1).name should be ("B")
       afs(1).dataType should be (StringType)
       afs(1).nullable should be (true)
     
+      // C added because marked as addded from input
       afs(2).name should be ("C")
       afs(2).dataType should be (StringType)
       afs(2).nullable should be (true)
     
+      // D added cuz in schema
       afs(3).name should be ("D")
-      afs(3).dataType should be (StringType)
+      afs(3).dataType should be (DoubleType)
       afs(3).nullable should be (true)
     
+      // accepted was in enriched and schema
       afs(4).name should be ("accepted")
       afs(4).dataType should be (StringType)
       afs(4).nullable should be (true)
     
-      // this is the new one:
+      // this should be added too cuz in schema
       afs(5).name should be ("reasonForReject")
       afs(5).dataType should be (StringType)
       afs(5).nullable should be (true)
     
-      rows.size should be (2)
+      afs.size should be (6)
+
       rows.foreach{ row => row.getAs[String]("A") match {
         case "A1" => 
           row.getAs[String]("B") should be ("BX")
           row.getAs[String]("C") should be ("CX")
-          row.getAs[String]("D") should be ("100")
+          row.fieldIsNull("D") should be (true)
           row.getAs[String]("accepted") should be ("Yes")
           row.fieldIsNull("reasonForReject") should be (true)
+          row.size should be (6)
         case "A2" => 
           row.getAs[String]("B") should be ("2")
           row.getAs[String]("C") should be ("CY")
-          row.getAs[String]("D") should be ("DX")
+          row.fieldIsNull("D") should be (true)
           row.getAs[String]("accepted") should be ("Yes")
           row.fieldIsNull("reasonForReject") should be (true)
+          row.size should be (6)
         case _ => fail()
       }}
+      rows.size should be (2)
     
       badRDD.count should be (0)
     }
 
+    it("""should not add columns in the schema that were not in input nor created 
+          via enrichement (addMissingFields is false)""") {
+    
+      val mark = ActionEngine.addedInputFieldsMarker
+      val enrichedRDD = sc.parallelize(List( 
+        Map("A"->"A1", "B"->"BX", "C"->"CX", "accepted"->"Yes", mark-> "A,B"),
+        Map("A"->"A2", "B"->"2",  "C"->"CY", "accepted"->"Yes", mark-> "B,C")
+      ))
+      val schema = StructType(Array(
+        StructField("A", StringType, nullable=true),
+        StructField("B", IntegerType, nullable=false),
+        StructField("C", LongType, nullable=false),
+        StructField("D", DoubleType, nullable=false),
+        StructField("accepted", StringType, nullable=true),
+        StructField("reasonForReject", StringType, nullable=true)
+      ))
+    
+      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(
+        enrichedRDD, schema, sqlCtx, wConfig,
+        addMissingFields = false
+      )
+      val rows = goodDF.collect()
+    
+      val afs: Array[StructField] = goodDF.schema.fields
+    
+      // A added because marked as addded from input
+      afs(0).name should be ("A")
+      afs(0).dataType should be (StringType)
+      afs(0).nullable should be (true)
+    
+      // The union of all added columns is A,B,C, so all those should be strings:
+      // B added because marked as addded from input
+      afs(1).name should be ("B")
+      afs(1).dataType should be (StringType)
+      afs(1).nullable should be (true)
+    
+      // C added because marked as addded from input
+      afs(2).name should be ("C")
+      afs(2).dataType should be (StringType)
+      afs(2).nullable should be (true)
+    
+      //afs(3).name should be ("D")
+      //afs(3).dataType should be (StringType)
+      //afs(3).nullable should be (true)
+    
+      // accepted was in enriched and schema
+      afs(3).name should be ("accepted")
+      afs(3).dataType should be (StringType)
+      afs(3).nullable should be (true)
+    
+      //// this is the new one:
+      //afs(4).name should be ("reasonForReject")
+      //afs(4).dataType should be (StringType)
+      //afs(4).nullable should be (true)
+    
+      afs.size should be (4)
+
+      rows.foreach{ row => row.getAs[String]("A") match {
+        case "A1" => 
+          row.getAs[String]("B") should be ("BX")
+          row.getAs[String]("C") should be ("CX")
+          row.getAs[String]("accepted") should be ("Yes")
+          row.size should be (4)
+        case "A2" => 
+          row.getAs[String]("B") should be ("2")
+          row.getAs[String]("C") should be ("CY")
+          row.getAs[String]("accepted") should be ("Yes")
+          row.size should be (4)
+        case _ => fail()
+      }}
+      rows.size should be (2)
+    
+      badRDD.count should be (0)
+    }
+    
     //it("should properly copy over the reasonForReject field") {
     //  fail()
     //}

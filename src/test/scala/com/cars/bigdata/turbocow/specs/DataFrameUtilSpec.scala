@@ -1325,17 +1325,17 @@ class DataFrameUtilSpec
 
   }
 
-  describe("unionAll") {
+  describe("safeUnionAll()") {
 
     it("should safely union out-of-order dataframes with a mix of datatypes") {
-      //val df = diffDF.unionAll(diffRevDF)
+      //val df = diffDF.unionAll(diffRevDF) // fails the test
       val df = diffDF.safeUnionAll(diffRevDF)
       compareSchema(df, diffDF.schema)
       checkABC(df)
     }
 
     it("should safely union out-of-order dataframes with all the same datatypes") {
-      //val df = sameDF.unionAll(sameRevDF)
+      //val df = sameDF.unionAll(sameRevDF) // fails the test
       val df = sameDF.safeUnionAll(sameRevDF)
       compareSchema(df, sameDF.schema)
       checkABCStrings(df)

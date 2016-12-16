@@ -7,6 +7,7 @@ import org.json4s.JsonAST.JNull
 
 import scala.annotation.tailrec
 import SQLContextUtil._
+import org.apache.spark.storage.StorageLevel._
 
 /** DataFrame helper functions.
   */
@@ -240,7 +241,7 @@ object DataFrameUtil
 
       var count = 0
       @tailrec
-      def processFields( 
+      def processField( 
         fields: Seq[OldNewFields], 
         dfr: DataFrameOpResult ): 
         DataFrameOpResult = {
@@ -251,7 +252,7 @@ object DataFrameUtil
         else {
           val headON = fields.head
 
-          println("===changeSchema.processFields(); field = " +headON + "; count = "+count)
+          println("===changeSchema.processField(); field = " +headON + "; count = "+count)
 
           //println("on.oldField = "+on.oldField)
           //println("on.newAFC = "+on.newAFC)
@@ -264,18 +265,22 @@ object DataFrameUtil
               val nu = headON.newAFC.get
               val name = old.name
               if ( old.dataType != nu.structField.dataType ) {
+                println(">>>>>>>> datatypes are different.")
                 val dfTemp = {
                   if (nu.structField.dataType == NullType) throw new Exception("can't cast anything to a NullType (schemas with NullType types not supported in this Spark version).")
                   else {
+                    println(">>>>>>>> Adding column: "+tempField)
                     dfr.goodDF.withColumn(
                       tempField, 
                       col(name).cast(nu.structField.dataType))
                   }
                 }
+                println(">>>>>>>> splitting on null field "+tempField)
                 val split = dfTemp.split( col(tempField).isNotNull )
                 val errString = s"could not convert field '${name}' to '${nu.structField.dataType}'"
 
                 // Get all the successful conversions and fix the field name.
+                println(s">>>>>>>> posmod - dropping $name, renaming $tempField to $name")
                 val posMod = split.positive
                   .drop(name)
                   .withColumnRenamed(tempField, name)
@@ -284,6 +289,7 @@ object DataFrameUtil
                 //posMod.schema.fields.foreach{println}
 
                 // Convert errors (negative) to all-strings schema
+                println(s">>>>>>>> split.negative.drop($tempField) and convertToAllStrings")
                 val negAllStrings = split.negative.drop(tempField).convertToAllStrings()
                 val negMod = negAllStrings
                   .withColumn(
@@ -296,19 +302,24 @@ object DataFrameUtil
                 // now process the error side of the input.
                 // (needs slightly different processing, don't combine with above code)
                 val errorDFProcessed = {
+                  println(s">>>>>>>> dfr.errorDF.withColumn($tempField)...")
                   val dfErrorTemp = dfr.errorDF.withColumn(
                     tempField,
                     col(name).cast(nu.structField.dataType))
+                  println(s">>>>>>>> dfErrorTemp.split")
                   val split = dfErrorTemp.split( col(tempField).isNotNull )
 
                   // for success, drop the tempfield
+                  println(s">>>>>>>> split.positive.drop($tempField)")
                   val posMod = split.positive.drop(tempField)
 
                   //println("SSSSSSSSSSSSS posMod schema = ")
                   //posMod.schema.fields.foreach{println}
 
                   val negMod = {
+                    println(s">>>>>>>> split.negative.drop($tempField)")
                     val dropped = split.negative.drop(tempField)
+                    println(s">>>>>>>> dropped.withColumn($errorField)")
                     val errorUpdated = dropped.withColumn(
                       errorField,
                       addToErrorFieldUdf(col(errorField), lit(errString)))
@@ -319,9 +330,13 @@ object DataFrameUtil
                   //negMod.schema.fields.foreach{println}
 
                   // now merge back together
-                  posMod.safeUnionAll(negMod)
+                  println(s">>>>>>>> posMod.safeUnionAll(negMod)")
+                  val result = posMod.safeUnionAll(negMod)
+                  println(s">>>>>>>> posMod.safeUnionAll(negMod) DONE")
+                  result
                 }
 
+                println(">>>>>>>> >>>>>>>> returning posMod, errorDFProcessed.safeUnionAll...")
                 DataFrameOpResult(posMod, errorDFProcessed.safeUnionAll(negMod))
               }
               else dfr
@@ -330,6 +345,7 @@ object DataFrameUtil
               // Add the new field as null.
               // Note for adding fields that are NOT String, we need to be fancier.
               val sf = headON.newAFC.get.structField
+              println(s">>>>>>>> ELSE adding new null column: ${sf.name}")
               DataFrameOpResult(
                 dfr.goodDF.withColumn(sf.name, lit(null).cast(sf.dataType)),
                 dfr.errorDF.withColumn(sf.name, lit(null).cast(StringType)))
@@ -337,6 +353,7 @@ object DataFrameUtil
             else if (headON.oldField.nonEmpty && headON.newAFC.isEmpty) {
               // Just drop the field
               val sf = headON.oldField.get
+              println(s">>>>>>>> ELSE dropping ${sf.name}")
               DataFrameOpResult(
                 dfr.goodDF.drop(sf.name),
                 dfr.errorDF.drop(sf.name))
@@ -346,7 +363,26 @@ object DataFrameUtil
             }
           }
 
-          processFields(fields.tail, newDFR)
+          // persist the new one
+          val saveGood = (newDFR.goodDF ne dfr.goodDF) 
+          val saveError = (newDFR.errorDF ne dfr.errorDF) 
+          if (saveGood) {
+            println("Persisting new goodDF...")
+            newDFR.goodDF.persist(MEMORY_ONLY)
+          }
+          if (saveError) {
+            println("Persisting new errorDF...")
+            newDFR.errorDF.persist(MEMORY_ONLY)
+          }
+          if (saveGood) {
+            println("Unpersisting old goodDF...")
+            dfr.goodDF.unpersist(blocking=true)
+          }
+          if (saveError) {
+            println("Unpersisting old errorDF...")
+            dfr.errorDF.unpersist(blocking=true)
+          }
+          processField(fields.tail, newDFR)
         }
       }
       println("changeSchema: 3")
@@ -356,11 +392,16 @@ object DataFrameUtil
       val allStringSchema = StructType( dfWithErrorField.schema.fields.map{ _.copy(dataType=StringType, nullable=true) }.toArray )
       println("changeSchema: 4")
       val result = { 
-        val res = processFields(
-          listOldNew, 
+
+        val initialResult = 
           DataFrameOpResult(
-            dfWithErrorField, 
-            df.sqlContext.createEmptyDataFrame(allStringSchema) ) )
+            dfWithErrorField.persist(MEMORY_ONLY), 
+            df.sqlContext.createEmptyDataFrame(allStringSchema).persist(MEMORY_ONLY) )
+
+        val res = processField(
+          listOldNew, 
+          initialResult )
+
         DataFrameOpResult(res.goodDF.drop(errorField), res.errorDF)
       }
       println("changeSchema: DONE")

@@ -416,7 +416,7 @@ class AvroOutputWriterSpec
 
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
         // Input has A-E
-        List("""{ "md": { "AField": "A", "BField": "B" }, "activityMap": { "CField": "C", "DField": 11, "EField": true }}"""),
+        List("""{ "AField": "A", "BField": "B", "CField": "C", "DField": 11, "EField": true }"""),
         // Config has B & C
         """{
             "activityType": "impressions",
@@ -519,7 +519,7 @@ class AvroOutputWriterSpec
 
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
         // input record:
-        List("""{ "md":{}, "activityMap": { 
+        List("""{
             "StringField": "String", 
             "IntField": "10",
             "IntField2": "-10",
@@ -528,7 +528,7 @@ class AvroOutputWriterSpec
             "DoubleField2": "-10.1",
             "BooleanField": "true",
             "BooleanField2": "false"
-          }}"""),
+          }"""),
             //"FloatField": "-11.1",
         // config: 
         """{
@@ -647,9 +647,9 @@ class AvroOutputWriterSpec
 
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
         // input record:
-        List("""{ "md":{}, "activityMap": { 
+        List("""{
             "UnknownField": "String"
-          }}"""),
+          }"""),
         // config:  no fields added from schema
         """{
             "activityType": "impressions",
@@ -742,12 +742,12 @@ class AvroOutputWriterSpec
 
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
         // input record:
-        List("""{ "md":{}, "activityMap": { 
+        List("""{
             "IntField": "",
             "LongField": "",
             "DoubleField": "",
             "BooleanField": ""
-          }}"""),
+          }"""),
            // "FloatField": "",
         // config
         """{
@@ -842,12 +842,12 @@ class AvroOutputWriterSpec
 
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
         // input record:
-        List("""{ "md":{}, "activityMap": { 
+        List("""{
             "IntField": " ",
             "LongField": "  ",
             "DoubleField": "     ",
             "BooleanField": "      "
-          }}"""),
+          }"""),
             //"FloatField": "   ",
         // config
         """{
@@ -950,57 +950,46 @@ class AvroOutputWriterSpec
 
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
         // input records:
-        List("""{ "md":{}, "activityMap": { 
+        List("""{
             "id": "r1",
             "IntField": "X1",
             "LongField": "1",
             "DoubleField": "1",
             "BooleanField": "true",
             "StringField": "String"
-          }}""",
-          """{ "md":{}, "activityMap": { 
+          }""",
+          """{
             "id": "r2",
             "IntField": "1",
             "LongField": "X1",
             "DoubleField": "1",
             "BooleanField": "true",
             "StringField": "String"
-          }}""",
-          """{ "md":{}, "activityMap": {
+          }""",
+          """{
             "id": "r4",
             "IntField": "1",
             "LongField": "1",
             "DoubleField": "X1",
             "BooleanField": "true",
             "StringField": "String"
-          }}""",
-          """{ "md":{}, "activityMap": { 
+          }""",
+          """{
             "id": "r5",
             "IntField": "1",
             "LongField": "1",
             "DoubleField": "1",
             "BooleanField": "Xtrue",
             "StringField": "String"
-          }}""",
-          """{ "md":{}, "activityMap": { 
-            "id": "r6",
+          }""",
+           """{
+             "id": "r6",
             "IntField": "1",
             "LongField": "1",
             "DoubleField": "1",
             "BooleanField": "true",
             "StringField": "XString"
-          }}"""),
-
-        //"""{ "md":{}, "activityMap": {
-        //    "id": "r3",
-        //    "IntField": "1",
-        //    "LongField": "1",
-        //    "DoubleField": "1",
-        //    "BooleanField": "true",
-        //    "StringField": "String"
-        //  }}""",
-
-            //"FloatField": "1",
+          }"""),
 
         // config
         """{

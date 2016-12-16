@@ -59,15 +59,12 @@ class ActionEngineSpec
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
         // input record:
         List("""{ 
-          "md": { 
-            "AField": "A", 
-            "BField": "B" 
-          }, 
-          "activityMap": { 
-            "CField": 10, 
+            "AField": "A",
+            "BField": "B",
+            "CField": 10,
             "DField": "", 
             "EField": null 
-        }}"""),
+        }"""),
         // config:
         """{
           "items": [
@@ -95,7 +92,7 @@ class ActionEngineSpec
         sc).collect()
 
       enriched.size should be (1) // always one because there's only one json input object
-      enriched.head.size should be (5 + 1) // input records always get copied in, plus the addedInputFieldsMarker
+      enriched.head.size should be (6)
       enriched.head.get("AField") should be (Some("A"))
       enriched.head.get("BField") should be (Some("B Value"))
       enriched.head.get("CField") should be (Some("C Value"))
@@ -117,15 +114,12 @@ class ActionEngineSpec
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
         // input record:
         List("""{ 
-          "md": { 
-            "AField": "A", 
-            "BField": "B" 
-          }, 
-          "activityMap": { 
-            "CField": 10, 
+            "AField": "A",
+            "BField": "B",
+            "CField": 10,
             "DField": "", 
             "EField": null 
-        }}"""),
+        }"""),
         // config:
         """{
           "items": []
@@ -145,15 +139,12 @@ class ActionEngineSpec
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
         // input record:
         List("""{
-          "md": {
             "AField": "A",
-            "BField": "B"
-          },
-          "activityMap": {
+            "BField": "B",
             "CField": 10,
             "DField": "",
             "EField": null
-        }}"""),
+        }"""),
         // config:
         """{}""",
         sc).collect()

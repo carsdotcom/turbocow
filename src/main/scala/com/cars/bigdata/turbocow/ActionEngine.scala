@@ -41,7 +41,7 @@ object ActionEngine
     RDD[Map[String, String]] = {
 
     // Get the input file
-    val inputJsonRDD = sc.textFile(inputDir.toString)
+    val inputJsonRDD = sc.textFile(inputDir.toString).map{ text => parse(text) }
 
     processJsonRDD(inputJsonRDD, config, sc, hiveContext, actionFactory, initialScratchPad, jdbcClientConfigs)
   }
@@ -72,7 +72,7 @@ object ActionEngine
     RDD[Map[String, String]] = {
 
     // Create RDD from the inputJson strings
-    val inputJsonRDD = sc.parallelize(inputJson)
+    val inputJsonRDD = sc.parallelize(inputJson).map{ text => parse(text) }
 
     processJsonRDD(inputJsonRDD, config, sc, hiveContext, actionFactory, initialScratchPad, jdbcClientConfigs)
   }
@@ -93,7 +93,7 @@ object ActionEngine
     * @return RDD of enriched data records, where each record is a key-value map.
     */
   def processJsonRDD(
-    inputJsonRDD: RDD[String],
+    inputJsonRDD: RDD[JValue],
     config: String,
     sc: SparkContext,
     hiveContext : Option[HiveContext] = None,
@@ -126,7 +126,7 @@ object ActionEngine
     * @todo add similar functions to the other process..() functions above
     */
   def processJsonRDD(
-    inputJsonRDD: RDD[String],
+    inputJsonRDD: RDD[JValue],
     bc: EngineBroadcasts):
     RDD[Map[String, String]] = {
 

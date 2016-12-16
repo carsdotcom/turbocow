@@ -1,1 +1,1 @@
-{ "md": { "AField": "A", "BField": "B" }, "activityMap": { "CField": 10, "DField": 11, "EField": "" }}
+{ "AField": "A", "BField": "B", "CField": 10, "DField": 11, "EField": "" }

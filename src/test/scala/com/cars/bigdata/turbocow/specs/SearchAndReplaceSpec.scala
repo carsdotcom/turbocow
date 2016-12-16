@@ -276,7 +276,7 @@ class SearchAndReplaceSpec extends UnitSpec {
 
     it("should do nothing if input field is null"){
         val enrichedRecords = doSearchAndReplace(
-          """{ "md": { "field": null } }""",
+          """{ "field": null }""",
           "a",
           "A"
         )
@@ -286,7 +286,7 @@ class SearchAndReplaceSpec extends UnitSpec {
 
     it(" should do nothing if input field is missing"){
       val enrichedRecords = doSearchAndReplace(
-        """{ "md": { "fieldX": "Banana" } }""",
+        """{ "fieldX": "Banana" }""",
         "a",
         "A"
       )
@@ -296,7 +296,7 @@ class SearchAndReplaceSpec extends UnitSpec {
 
     it("should replace characters successfully") {
       val enrichedRecords = doSearchAndReplace(
-        """{ "md": { "field": "Banana" } }""",
+        """{ "field": "Banana" }""",
         "a",
         "~~~"
       )
@@ -306,7 +306,7 @@ class SearchAndReplaceSpec extends UnitSpec {
 
     it("should do nothing if characters are not found") {
       val enrichedRecords = doSearchAndReplace(
-        """{ "md": { "field": "Banana" } }""",
+        """{ "field": "Banana" }""",
         "X", // no X in Banana
         "~~~"
       )

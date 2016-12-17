@@ -7,6 +7,8 @@ import org.apache.spark.sql.functions._
 import org.json4s._
 import DataFrameUtil._
 import RowUtil._
+import com.cars.bigdata.turbocow.utils.FileUtil
+import org.apache.spark.rdd.RDD
 
 class DataFrameUtilSpec
   extends UnitSpec 
@@ -1347,6 +1349,91 @@ class DataFrameUtilSpec
   sameRevDF.unpersist
   diffDF.unpersist
   sameDF.unpersist
+
+  describe("flatten()") {
+
+    val schema = StructType( List(
+      StructField("a", StringType),
+      StructField("b", StructType(List(
+        StructField("ba", StringType),
+        StructField("bb", StructType(List(
+          StructField("bba", DoubleType),
+          StructField("bbb", IntegerType),
+          StructField("bbc", FloatType)
+        ))),
+        StructField("bc", StringType)
+      ))),
+      StructField("c", StringType)
+    ))
+
+    it("should flatten multi-level schemas properly") {
+      val json = """{
+        "a": "1",
+        "b": {
+          "ba": "2",
+          "bb": {
+            "bba": 3.0,
+            "bbb": 4,
+            "bbc": 5.0
+          },
+          "bc": "6"
+        },
+        "c": "7"
+      }""".filter( c => (c!='\n' && c!='\r'))
+
+      val jsonRDD: RDD[String] = sc.parallelize(List[String](json))
+      jsonRDD.collect.foreach{ e => println("rdd element = "+e) }
+      val df = sqlCtx.read.schema(schema).json(jsonRDD)
+
+      df.count should be (1)
+      println("the dataframe before:")
+      df.show
+      df.schema.fields.map(_.name).toSeq.sorted should be (Seq("a", "b", "c"))
+
+      val rows = df.select("a", "b.ba", "b.bb.bbc").collect
+      rows.size should be (1)
+      rows.head.getAs[String]("a") should be ("1")
+      rows.head.getAs[String]("ba") should be ("2")
+      rows.head.getAs[Float]("bbc") should be (5.0f)
+
+      val flat = df.flatten
+      flat.schema.size should be (7)
+      flat.schema.fields.map(_.name).toSeq.sorted should be (Seq("a",  "ba",  "bba", "bbb", "bbc", "bc",  "c"))
+    }
+
+    it("should return successfully with 0 fields if dataframe has 0 fields") {
+      val schema = StructType( List.empty[StructField])
+
+      val json = """{}"""
+      val jsonRDD: RDD[String] = sc.parallelize(List[String](json))
+      jsonRDD.collect.foreach{ e => println("rdd element = "+e) }
+      val df = sqlCtx.read.schema(schema).json(jsonRDD)
+
+      df.count should be (1)
+      println("the dataframe before:")
+      df.show
+      df.schema.fields.map(_.name).toSeq.sorted should be (Seq.empty[String])
+
+      val flat = df.flatten
+      flat.schema.fields.size should be (0)
+    }
+
+    it("should flatten multi-level schemas successfully, even if no rows") {
+      val jsonRDD: RDD[String] = sc.parallelize(List.empty[String])
+      jsonRDD.collect.foreach{ e => println("rdd element = "+e) }
+      val df = sqlCtx.read.schema(schema).json(jsonRDD)
+
+      df.count should be (0)
+      println("the dataframe before:")
+      df.show
+      df.schema.fields.map(_.name).toSeq.sorted should be (Seq("a", "b", "c"))
+
+      val flat = df.flatten
+      flat.schema.size should be (7)
+      flat.schema.fields.map(_.name).toSeq.sorted should be (Seq("a",  "ba",  "bba", "bbb", "bbc", "bc",  "c"))
+      flat.count should be (0)
+    }
+  }
 }
 
 

@@ -393,14 +393,28 @@ object DataFrameUtil
       println("changeSchema: 4")
       val result = { 
 
-        val initialResult = 
+        var res = 
           DataFrameOpResult(
             dfWithErrorField.persist(MEMORY_ONLY), 
             df.sqlContext.createEmptyDataFrame(allStringSchema).persist(MEMORY_ONLY) )
 
-        val res = processField(
-          listOldNew, 
-          initialResult )
+        // do the field drops first
+        println("Starting all field drops...")
+        res = processField(
+          listOldNew.filter( on => (on.oldField.nonEmpty && on.newAFC.isEmpty )),
+          res )
+
+        // then the field additions
+        println("Starting all field additions...")
+        res = processField(
+          listOldNew.filter( on => (on.oldField.isEmpty && on.newAFC.nonEmpty )),
+          res )
+
+        // do all the changes last
+        println("Starting all (potential) field changes...")
+        res = processField(
+          listOldNew.filter( on => (on.oldField.nonEmpty && on.newAFC.nonEmpty )),
+          res )
 
         DataFrameOpResult(res.goodDF.drop(errorField), res.errorDF)
       }

@@ -445,5 +445,31 @@ object DataFrameUtil
       // Now do the union
       df.unionAll(reorderedOther)
     }
+
+    /** "Flatten" a dataframe so all the fields in StructTypes are moved to the
+      * top level.  
+      * 
+      * Note that spark removes the prefixes even though this doesn't look like 
+      * it would.
+      */
+    def flatten: DataFrame = {
+
+      def flattenSchema(schema: StructType, prefix: Option[String] = None):
+        Array[Column] = {
+
+        schema.fields.flatMap{structField => {
+          val colName = {
+            if (prefix.isEmpty) structField.name
+            else prefix.get + "." + structField.name
+          }
+          structField.dataType match {
+            case st: StructType => flattenSchema(st, Option(colName))
+            case _ => Array(col(colName))
+          }
+        }}
+      }
+      df.select(flattenSchema(df.schema):_*)
+    }
+
   }
 }

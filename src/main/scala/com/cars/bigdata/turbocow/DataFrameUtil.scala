@@ -290,8 +290,9 @@ object DataFrameUtil
 
                 // Convert errors (negative) to all-strings schema
                 println(s">>>>>>>> split.negative.drop($tempField) and convertToAllStrings")
-                val negAllStrings = split.negative.drop(tempField).convertToAllStrings()
-                val negMod = negAllStrings
+                val negMod = split.negative
+                  .drop(tempField)
+                  .convertToAllStrings()
                   .withColumn(
                     errorField,
                     addToErrorFieldUdf(col(errorField), lit(errString)))
@@ -309,13 +310,14 @@ object DataFrameUtil
                   println(s">>>>>>>> dfErrorTemp.split")
                   val split = dfErrorTemp.split( col(tempField).isNotNull )
 
-                  // for success, drop the tempfield
+                  // for success, just drop the tempfield.  
                   println(s">>>>>>>> split.positive.drop($tempField)")
                   val posMod = split.positive.drop(tempField)
 
                   //println("SSSSSSSSSSSSS posMod schema = ")
                   //posMod.schema.fields.foreach{println}
-
+                          
+                  // for failures, drop the temp field and add a note in the error section.
                   val negMod = {
                     println(s">>>>>>>> split.negative.drop($tempField)")
                     val dropped = split.negative.drop(tempField)

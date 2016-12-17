@@ -810,6 +810,10 @@ class DataFrameUtilSpec
       result.errorDF.schema.fields.find( _.name == changeSchemaErrorField ).nonEmpty should be (true)
       result.errorDF.schema.fields.find( _.name == changeSchemaErrorField ).get.dataType should be (StringType)
 
+      // must be all strings and nullable
+      result.errorDF.schema.fields.foreach( f => f.dataType should be (StringType) )
+      result.errorDF.schema.fields.foreach( f => f.nullable should be (true) )
+
       { 
         val rows = result.errorDF.collect
         rows.size should be (1)
@@ -822,6 +826,7 @@ class DataFrameUtilSpec
             row.fieldIsNull("NewField") should be (true) 
             row.getAs[String](changeSchemaErrorField) should be ("could not convert field 'IntField' to 'IntegerType'; could not convert field 'DoubleField' to 'DoubleType'")
             row.size should be (7)
+          case _ => fail
         }}
       }
     }

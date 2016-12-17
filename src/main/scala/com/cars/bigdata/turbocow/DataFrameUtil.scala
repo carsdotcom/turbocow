@@ -75,9 +75,11 @@ object DataFrameUtil
         if (schemaFields.isEmpty) dfIn
         else {
           val sf = schemaFields.head
-          val modDF = if (sf.dataType != StringType)
-            dfIn.withColumn(sf.name, dfIn(sf.name).cast(StringType))
-          else dfIn
+          val modDF = { 
+            if (sf.dataType != StringType)
+              dfIn.withColumn(sf.name, dfIn(sf.name).cast(StringType))
+            else dfIn
+          }
           process(modDF, schemaFields.tail)
         }
       }

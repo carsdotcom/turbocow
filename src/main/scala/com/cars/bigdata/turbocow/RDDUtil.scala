@@ -14,8 +14,7 @@ object RDDUtil {
     */
   def convertEnrichedRDDToDataFrameForFurtherProcessing(
     enrichedRDD: RDD[Map[String, String]],
-    sqlCtx: SQLContext,
-    repartitionTo: Int = 0):  // 0 disables repartitioning
+    sqlCtx: SQLContext): 
     DataFrame = {
 
     // Find all the fields in each record.
@@ -54,18 +53,7 @@ object RDDUtil {
       }
       Row.fromSeq(vals)
     }
-
-    val df = { 
-      val df = sqlCtx.createDataFrame(rowRDD, schema)
-      if (repartitionTo > 0 ) {
-        println("RDDUtil.convertEnrichedRDDToDataFrameForFurtherProcessing: repartitionining dataFrame to: "+repartitionTo)
-        // Note: using repartition() because there's no way to tell how many 
-        // partitions are in the DF using public API:
-        df.repartition(repartitionTo)
-      }
-      else df
-    }
-
+    val df = sqlCtx.createDataFrame(rowRDD, schema)
     println("RDDUtil.convertEnrichedRDDToDataFrameForFurtherProcessing done.")
     df
   }

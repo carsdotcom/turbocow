@@ -187,7 +187,7 @@ object DataFrameUtil
       * will be modified as follows:
       * 
       *   * Missing columns will be set to null
-      *   * Additional columns not in the specified schema will be filtered out
+      *   * Additional columns not in the specified schema will be dropped.
       *   * Columns that exist in both schemas but with different types will 
       *     be converted, and if not possible to convert, will be filtered out
       *     and returned as a separate dataframe.
@@ -421,7 +421,6 @@ object DataFrameUtil
       println("changeSchema: DONE")
       result
     }
-
 
     /** Reorder columns to match something else.  Required before doing unionAll()
       * in Spark 1.5.

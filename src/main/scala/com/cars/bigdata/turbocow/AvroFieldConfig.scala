@@ -112,6 +112,16 @@ case class AvroFieldConfig( // todo rename, this is not necessarily avro-specifi
     }
   }
 
+
+  /** Converts this into a stringtype and nullable field with an appropriately-
+    * converted default value.
+    */
+  def toRejectedType(): AvroFieldConfig = {
+    this.copy(
+      structField.copy(dataType = StringType, nullable = true),
+      defaultToString()
+    )
+  }
 }
 
 object AvroFieldConfig {

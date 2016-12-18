@@ -153,8 +153,8 @@ object DataFrameUtil
       val safeSchema = schema.filterNot{ filterBoolean }.filter{ filterNull }
 
       // Set the defaults for the non-boolean fields.  Easy:
-      val defaultsMap = safeSchema.map{ fc => 
-        ( fc.structField.name, fc.getDefaultValue )
+      val defaultsMap = safeSchema.map{ afc => 
+        ( afc.structField.name, afc.getDefaultValue )
       }.toMap
       val defaultDF = enrichedPlusDF.na.fill(defaultsMap)
       // na.fill changes Float data types to Double: see https://issues.apache.org/jira/browse/SPARK-14081 (fix in Spark 2.0)
@@ -197,6 +197,8 @@ object DataFrameUtil
       * @return DataFrameOpResult where goodDF contains all rows where 
       *         every field converted successfully; and errorDF contains all rows
       *         where at least 1 field did not convert successfully.
+      *         ErrorDF will be an all-string schema in order to preserve the 
+      *         input data that may have not converted properly.
       */
     def changeSchema(
       newSchema: Seq[AvroFieldConfig]): 
@@ -347,7 +349,6 @@ object DataFrameUtil
             }
             else if (headON.oldField.isEmpty && headON.newAFC.nonEmpty) {
               // Add the new field as null.
-              // Note for adding fields that are NOT String, we need to be fancier.
               val sf = headON.newAFC.get.structField
               println(s">>>>>>>> ELSE adding new null column: ${sf.name}")
               DataFrameOpResult(
@@ -368,24 +369,25 @@ object DataFrameUtil
           }
 
           // persist the new one
-          val saveGood = (newDFR.goodDF ne dfr.goodDF) 
-          val saveError = (newDFR.errorDF ne dfr.errorDF) 
-          if (saveGood) {
-            println("Persisting new goodDF...")
-            newDFR.goodDF.persist(MEMORY_ONLY)
-          }
-          if (saveError) {
-            println("Persisting new errorDF...")
-            newDFR.errorDF.persist(MEMORY_ONLY)
-          }
-          if (saveGood) {
-            println("Unpersisting old goodDF...")
-            dfr.goodDF.unpersist(blocking=true)
-          }
-          if (saveError) {
-            println("Unpersisting old errorDF...")
-            dfr.errorDF.unpersist(blocking=true)
-          }
+          // this seems to just take up time; not sure if there's a benefit:
+          //val saveGood = (newDFR.goodDF ne dfr.goodDF) 
+          //val saveError = (newDFR.errorDF ne dfr.errorDF) 
+          //if (saveGood) {
+          //  println("Persisting new goodDF...")
+          //  newDFR.goodDF.persist(MEMORY_ONLY)
+          //}
+          //if (saveError) {
+          //  println("Persisting new errorDF...")
+          //  newDFR.errorDF.persist(MEMORY_ONLY)
+          //}
+          //if (saveGood) {
+          //  println("Unpersisting old goodDF...")
+          //  dfr.goodDF.unpersist(blocking=true)
+          //}
+          //if (saveError) {
+          //  println("Unpersisting old errorDF...")
+          //  dfr.errorDF.unpersist(blocking=true)
+          //}
           processField(fields.tail, newDFR)
         }
       }
@@ -399,8 +401,8 @@ object DataFrameUtil
 
         var res = 
           DataFrameOpResult(
-            dfWithErrorField.persist(MEMORY_ONLY), 
-            df.sqlContext.createEmptyDataFrame(allStringSchema).persist(MEMORY_ONLY) )
+            dfWithErrorField, //.persist(MEMORY_ONLY), 
+            df.sqlContext.createEmptyDataFrame(allStringSchema)) //.persist(MEMORY_ONLY) )
 
         // do the field drops first
         println("Starting all field drops...")
@@ -420,11 +422,44 @@ object DataFrameUtil
           listOldNew.filter( on => (on.oldField.nonEmpty && on.newAFC.nonEmpty )),
           res )
 
-        DataFrameOpResult(res.goodDF.drop(errorField), res.errorDF)
+        DataFrameOpResult(
+          res.goodDF.drop(errorField), 
+          res.errorDF)
       }
       println("changeSchema: DONE")
       result
     }
+
+    /** After calling changeSchema on a dataframe, you could call this to 
+      * add any errors to a field you specify.
+      */
+    def addChangeSchemaErrorsToRejectReasonField(
+      rejectReasonField: String, 
+      separator: String): 
+      DataFrame = {
+
+      def hasRejectReasonField(df: DataFrame): Boolean = 
+        df.schema.fields.find( _.name == rejectReasonField ).nonEmpty
+
+      // add the error field to the reasonforreject field
+      if ( !hasRejectReasonField(df) ) {
+        // don't have it yet, just rename the error field to be reject reason
+        df.withColumnRenamed(changeSchemaErrorField, rejectReasonField)
+      }
+      else {
+        // have it already, need to do the udf:
+        val addToErrorFieldUdf = udf { (existingErrorField: String, addition: String) =>
+          if (existingErrorField == null || existingErrorField.isEmpty) addition
+          else existingErrorField + separator + addition
+        }
+        df.withColumn(
+          rejectReasonField,
+          addToErrorFieldUdf(col(rejectReasonField), col(changeSchemaErrorField))
+        )
+        .drop(changeSchemaErrorField)
+      }
+    }
+
 
     /** Reorder columns to match something else.  Required before doing unionAll()
       * in Spark 1.5.

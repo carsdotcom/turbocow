@@ -228,7 +228,9 @@ class DataFrameUtilSpec
         AvroFieldConfig( StructField("booleanfield", BooleanType, nullable=true),
           JBool(false)),
         AvroFieldConfig( StructField("booleanfield2", BooleanType, nullable=true),
-          JNull)
+          JNull),
+        AvroFieldConfig( StructField("stringfield",  StringType, nullable=true), 
+          JString("7"))
       )
       val stSchema = StructType( schemaWithDefaults.map{ _.structField }.toArray )
 
@@ -240,48 +242,55 @@ class DataFrameUtilSpec
       //    Row.fromSeq(List("30", 37,  31L,   null,  37.8,   null)))),
       //  stSchema)
       val df = sqlCtx.createDataFrame( sc.parallelize(
-        List(//             id  int   long  double boolean, boolean2
-          Row.fromSeq(List( "0", 7,   1L,     7.8, true,    true)),
-          Row.fromSeq(List("10", 17,  null,  null, null,    null)),
-          Row.fromSeq(List("20", null,21L,   27.8, false,   false)),
-          Row.fromSeq(List("30", 37,  31L,   37.8, null,    null)))),
+        List(//             id  int   long  double boolean, boolean2, stringfield
+          Row.fromSeq(List( "0", 7,   1L,     7.8, true,    true,     "100")),
+          Row.fromSeq(List("10", 17,  null,  null, null,    null,     null)),
+          Row.fromSeq(List("20", null,21L,   27.8, false,   false,    "120")),
+          Row.fromSeq(List("30", 37,  31L,   37.8, null,    null,     "130")))),
         stSchema)
 
       val defaultsDF = df.setDefaultValues(schemaWithDefaults)
       val rows = defaultsDF.collect
 
       rows.size should be (4)
-      rows.foreach{ row => row.getAs[String]("id") match {
-        case "0" => 
-          row.getAs[Int]("intfield") should be (7)
-          row.getAs[Long]("longfield") should be (1L)
-          //row.getAs[Float]("floatfield") should be (2.1f)
-          row.getAs[Double]("doublefield") should be (7.8)
-          row.getAs[Boolean]("booleanfield") should be (true)
-          row.getAs[Boolean]("booleanfield2") should be (true)
-        case "10" => 
-          row.getAs[Int]("intfield") should be (17)
-          row.fieldIsNull("longfield") should be (true)
-          //row.getAs[Float]("floatfield") should be (12.1f)
-          row.getAs[Double]("doublefield") should be (4.0)
-          row.getAs[Boolean]("booleanfield") should be (false)
-          row.fieldIsNull("booleanfield2") should be (true)
-        case "20" => 
-          row.getAs[Int]("intfield") should be (1)
-          row.getAs[Long]("longfield") should be (21L)
-          //row.getAs[Float]("floatfield") should be (3.0f)
-          row.getAs[Double]("doublefield") should be (27.8)
-          row.getAs[Boolean]("booleanfield") should be (false)
-          row.getAs[Boolean]("booleanfield2") should be (false)
-        case "30" => 
-          row.getAs[Int]("intfield") should be (37)
-          row.getAs[Long]("longfield") should be (31L)
-          //row.getAs[Float]("floatfield") should be (3.0f)
-          row.getAs[Double]("doublefield") should be (37.8)
-          row.getAs[Boolean]("booleanfield") should be (false)
-          row.fieldIsNull("booleanfield2") should be (true)
-        case _ => fail()
-      }}
+      rows.foreach{ row => 
+        row.getAs[String]("id") match {
+          case "0" => 
+            row.getAs[Int]("intfield") should be (7)
+            row.getAs[Long]("longfield") should be (1L)
+            //row.getAs[Float]("floatfield") should be (2.1f)
+            row.getAs[Double]("doublefield") should be (7.8)
+            row.getAs[Boolean]("booleanfield") should be (true)
+            row.getAs[Boolean]("booleanfield2") should be (true)
+            row.getAs[String]("stringfield") should be ("100")
+          case "10" => 
+            row.getAs[Int]("intfield") should be (17)
+            row.fieldIsNull("longfield") should be (true)
+            //row.getAs[Float]("floatfield") should be (12.1f)
+            row.getAs[Double]("doublefield") should be (4.0)
+            row.getAs[Boolean]("booleanfield") should be (false)
+            row.fieldIsNull("booleanfield2") should be (true)
+            row.getAs[String]("stringfield") should be ("7")
+          case "20" => 
+            row.getAs[Int]("intfield") should be (1)
+            row.getAs[Long]("longfield") should be (21L)
+            //row.getAs[Float]("floatfield") should be (3.0f)
+            row.getAs[Double]("doublefield") should be (27.8)
+            row.getAs[Boolean]("booleanfield") should be (false)
+            row.getAs[Boolean]("booleanfield2") should be (false)
+            row.getAs[String]("stringfield") should be ("120")
+          case "30" => 
+            row.getAs[Int]("intfield") should be (37)
+            row.getAs[Long]("longfield") should be (31L)
+            //row.getAs[Float]("floatfield") should be (3.0f)
+            row.getAs[Double]("doublefield") should be (37.8)
+            row.getAs[Boolean]("booleanfield") should be (false)
+            row.fieldIsNull("booleanfield2") should be (true)
+            row.getAs[String]("stringfield") should be ("130")
+          case _ => fail()
+        }
+        row.size should be (7)
+      }
     }
   
     it("should set default values for missing fields according to schema") {

@@ -423,6 +423,9 @@ object AvroOutputWriter {
     * @return (DataFrame, RDD) where the dataframe is the good records, and 
     *         the RDD is the bad records that need to be handled separately due
     *         to type conversion issues.
+    *
+    * @todo only optionally split up the return into rejected records.  That is only needed 
+    *       if calling from writeEnrichedRDD().
     */
   def convertEnrichedRDDToDataFrame(
     enrichedRDD: RDD[Map[String, String]],
@@ -432,7 +435,6 @@ object AvroOutputWriter {
     addMissingFields: Boolean = true):
     (DataFrame, RDD[Map[String, String]]) = {
 
-    val errorMarker = avroTypeErrorMarker
     val sc = enrichedRDD.sparkContext
 
     // Create a schema that ensures every field is nullable,
@@ -476,6 +478,8 @@ object AvroOutputWriter {
       })
     }
 
+    val errorMarker = avroTypeErrorMarker
+
     // Loop through enriched record fields, and extract the value of each field 
     // in the order of schema list (so the order matches the Avro schema). 
     // Convert to the correct type as well.
@@ -494,10 +498,11 @@ object AvroOutputWriter {
       }}
     }
 
-    // Filter them out in the main rdd.
+    // Filter out the error records and create the RDD of Rows.  
     val rowRDD: RDD[Row] = anyRDD.filter {
       _.get(errorMarker).isEmpty
-    }.map{ record =>
+    }
+    .map{ record =>
       val vals: Seq[Any] = safeSchema.fields.map{ structField =>
         val field = structField.name
         record.getOrElse(field, null)

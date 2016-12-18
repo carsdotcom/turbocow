@@ -6,11 +6,14 @@ import org.apache.spark.sql.{DataFrame, Row, SQLContext}
 
 object RDDUtil {
 
-  /** convert Enriched RDD To DataFrame For Further Processing
+  /** Convert Enriched RDD To DataFrame For Further Processing
     * 
-    * Just converts the RDD to a DataFrame of all strings, nullable.
+    * This converts the RDD to a DataFrame of all nullable strings.
     * It analyzes the RDD maps and constructs a schema of the union of all
-    * possible fields.
+    * possible fields.  
+    * 
+    * @todo support different datatypes.  Currently only strings are supported
+    *       in RDD processing.
     */
   def convertEnrichedRDDToDataFrameForFurtherProcessing(
     enrichedRDD: RDD[Map[String, String]],

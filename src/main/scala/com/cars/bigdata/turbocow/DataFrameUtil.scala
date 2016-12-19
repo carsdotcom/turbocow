@@ -496,7 +496,7 @@ object DataFrameUtil
       * dataframe is empty or not.
       */
     def isEmpty(): Boolean = {
-      df.take(1).count == 0
+      df.take(1).size == 0
     }
   }
 }

@@ -201,6 +201,136 @@ object DataFrameUtil
       *         input data that may have not converted properly.
       */
     def changeSchema(
+      newSchema: Seq[AvroFieldConfig],
+      uidField: String): 
+      DataFrameOpResult = {
+
+      val stNewSchema = StructType( newSchema.map{ _.structField }.toArray )
+      val oldSchema = df.schema
+
+      case class OldNewFields(
+        oldField: Option[StructField], 
+        newAFC: Option[AvroFieldConfig])
+
+      // Create a list of case classes that include each field mapping.
+      // If either is None, that means it doesn't exist in the other side.
+      // TODO If order matters, then this may not be a good struct to create:
+      println("changeSchema: 0")
+      val listOldNew: Seq[OldNewFields] = {
+        val allOld = oldSchema.fields.map{ oldSF => 
+          val newOpt = newSchema.find( _.structField.name == oldSF.name )
+          OldNewFields( Option(oldSF), newOpt )
+        }.toSeq
+        val allNew = newSchema.flatMap{ newAFC => 
+          // only process this field if not already in allOld:
+          if (allOld.find{ e => (e.oldField.nonEmpty && (e.oldField.get.name == newAFC.structField.name)) }.nonEmpty ) {
+            None
+          }
+          else {
+            Option(OldNewFields( None, Option(newAFC) ))
+          }
+        }.toSeq
+        (allOld ++ allNew)
+      }
+      println("changeSchema: 1")
+
+      val tempField = "__TURBOCOW_DATAFRAMEUTIL_CHANGESCHEMA_PROCESSFIELDS_TEMPFIELD__"
+      val errorField = changeSchemaErrorField
+
+      //val dfWithErrorField = df.withColumn(errorField, lit(null).cast(StringType))
+      val allStringSchema = StructType( 
+        dfWithErrorField.schema.fields.map{ 
+          _.copy(dataType=StringType, nullable=true) 
+        }.toArray :+ StructField(errorField, StringType)
+      )
+      println("changeSchema: 4")
+      val result = { 
+
+        var resultDF = df
+          //DataFrameOpResult(
+          //  df, //.persist(MEMORY_ONLY), 
+          //  df.sqlContext.createEmptyDataFrame(allStringSchema)) //.persist(MEMORY_ONLY) )
+
+        // do the field drops first
+        println("Starting all field drops...")
+        resultDF = 
+          listOldNew
+            .filter( on => (on.oldField.nonEmpty && on.newAFC.isEmpty ))
+            .foldLeft(resultDF){ (lastResult, on) => 
+              val sf = on.oldField.get
+              println(s">>>>>>>> dropping ${sf.name}")
+              lastResult.goodDF.drop(sf.name))
+            }
+
+        // then the field additions
+        println("Starting all field additions...")
+        resultDF = 
+          listOldNew
+            .filter( on => (on.oldField.isEmpty && on.newAFC.nonEmpty ))
+            .foldLeft(resultDF){ (lastResult, on) => 
+              val sf = on.newAFC.get.structField
+              println(s">>>>>>>> adding new null column: ${sf.name}")
+              lastResult.goodDF.withColumn(sf.name, lit(null).cast(sf.dataType)))
+            }
+
+        // do all the changes last
+        println("Starting all (potential) field changes...")
+        resultDF = 
+          listOldNew
+            .filter( on => (on.oldField.nonEmpty && on.newAFC.nonEmpty ))
+            .foldLeft(res){ (lastResult, on) => 
+              changeFieldType(lastResult, on)
+            }
+
+        DataFrameOpResult(
+          res.goodDF.drop(errorField), 
+          res.errorDF)
+      }
+      println("changeSchema: DONE")
+      result
+    }
+
+    /** Change the field type of a field in a dataframe op result.
+      */
+    protected[turbocow] 
+    def changeFieldType(
+      lastResult: DataFrameOpResult, 
+      oldNew: OldNewFields,
+      uidField: String): 
+      DataFrameOpResult = {
+
+      val uid = uidField
+      val old = oldNew.oldField.get
+      val nu = oldNew.newAFC.get
+      val nuType = nu.structField.dataType
+      val name = old.name
+
+      if ( old.dataType != nuType ) {
+        // collect the set of UIDs of records with failed casts
+        val failedUids = 
+          lastResult.goodDF
+            .filter( col(name).cast(nuType).isNotNull )
+            .select(uid)
+            .collect
+            .toSet
+
+        // create new dataframe with UID field and errorNotes field with 
+        // updated error
+        val errorField = changeSchemaErrorField
+
+
+
+
+
+
+        
+      }
+      else lastResult
+    }
+
+    /** old shit
+      */
+    def changeSchemaOLD(
       newSchema: Seq[AvroFieldConfig]): 
       DataFrameOpResult = {
 
@@ -380,8 +510,7 @@ object DataFrameUtil
       }
       println("changeSchema: 3")
 
-      val nullString: String = null
-      val dfWithErrorField = df.withColumn(errorField, lit(nullString).cast(StringType))
+      val dfWithErrorField = df.withColumn(errorField, lit(null).cast(StringType))
       val allStringSchema = StructType( dfWithErrorField.schema.fields.map{ _.copy(dataType=StringType, nullable=true) }.toArray )
       println("changeSchema: 4")
       val result = { 

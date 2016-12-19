@@ -242,12 +242,12 @@ object DataFrameUtil
       @tailrec
       def processField( 
         fields: Seq[OldNewFields], 
-        dfr: DataFrameOpResult ): 
-        DataFrameOpResult = {
+        dfIn: DataFrame ): 
+        DataFrame = {
 
         count += 1
 
-        if (fields.isEmpty) dfr
+        if (fields.isEmpty) dfIn
         else {
           val headON = fields.head
 
@@ -256,94 +256,59 @@ object DataFrameUtil
           //println("on.oldField = "+on.oldField)
           //println("on.newAFC = "+on.newAFC)
 
-          val newDFR = {
+          val newDF = {
 
             if (headON.oldField.nonEmpty && headON.newAFC.nonEmpty) {
               // old & new schema contains the same field name
               val old = headON.oldField.get
               val nu = headON.newAFC.get
+              val nuType = nu.structField.dataType
               val name = old.name
-              if ( old.dataType != nu.structField.dataType ) {
+              if ( old.dataType != nuType ) {
                 println(">>>>>>>> datatypes are different.")
 
-                println(">>>>>>>> splitting on cast results to "+nu.structField.dataType)
-                val goodSplit = dfr.goodDF.split( col(name).cast(nu.structField.dataType).isNotNull )
+                println(">>>>>>>> splitting on cast results to "+nuType)
+                val goodSplit = dfIn.split( col(name).cast(nuType).isNotNull )
 
                 // For all the successful casts, actually write it now.
                 println(s">>>>>>>> posmod - dropping $name, renaming $tempField to $name")
                 val goodSplitPosMod = goodSplit.positive.withColumn(
                   name, 
-                  col(name).cast(nu.structField.dataType))
+                  col(name).cast(nuType))
 
                 //println("RRRRRRRRRRRRRRRR goodSplitPosMod schema = ")
                 //goodSplitPosMod.schema.fields.foreach{println}
 
                 // Convert errors (negative) to all-strings schema and add error note
                 println(s">>>>>>>> goodSplit.negative.drop($tempField) and convertToAllStrings")
-                val errString = s"could not convert field '${name}' to '${nu.structField.dataType}'"
+                val errString = s"could not convert value in field '${name}' to '${nuType}': '"
+                val endQuote = "'"
                 val goodSplitNegMod = goodSplit.negative
-                  .convertToAllStrings()
                   .withColumn(
                     errorField,
-                    concat_ws( "; ", col(errorField), lit(errString)))
+                    concat_ws( "; ", col(errorField), concat(lit(errString), col(name), lit(endQuote))))
+                  .withColumn(name, lit(null).cast(nuType))
 
-                //println("RRRRRRRRRRRRRRR goodSplitNegMod schema = ")
-                //goodSplitNegMod.schema.fields.foreach{println}
+                // Now merge back together
+                println(s">>>>>>>> goodSplitPosMod.safeUnionAll(goodSplitNegMod)")
+                val goodMerged = goodSplitPosMod.safeUnionAll(goodSplitNegMod)
 
-                // now process the error side of the input.
-                // (needs slightly different processing, don't combine with above code)
-                val errorDFProcessed = {
-                  println(s">>>>>>>> dfr.errorDF.goodSplit")
-                  val errorSplit = dfr.errorDF.split( col(name).cast(nu.structField.dataType).isNotNull )
-
-                  // For all the successful casts, there is no need to write out
-                  // a cast.  
-                  println(s">>>>>>>> (dfr.errorDF) goodSplit.positive.withColumn(cast to ${nu.structField.dataType})")
-                  val errorSplitPos = errorSplit.positive
-                    // should already be allstring: .convertToAllStrings()
-
-                  //println("SSSSSSSSSSSSS goodSplitPosMod schema = ")
-                  //goodSplitPosMod.schema.fields.foreach{println}
-                          
-                  // Add error note to neg
-                  val errorSplitNegMod = {
-                    println(s">>>>>>>> (dfr.errorDF) goodSplit.negative.convertToAllStrings() & update of errorField "+errorField)
-                    errorSplit.negative
-                      .withColumn(
-                        errorField,
-                        concat_ws( "; ", col(errorField), lit(errString)))
-                  }
-
-                  //println("SSSSSSSSSSSSS goodSplitNegMod schema = ")
-                  //goodSplitNegMod.schema.fields.foreach{println}
-
-                  // now merge back together
-                  println(s">>>>>>>> goodSplitPosMod.safeUnionAll(goodSplitNegMod)")
-                  val errorMerged = errorSplitPos.safeUnionAll(errorSplitNegMod)
-                  println(s">>>>>>>> goodSplitPosMod.safeUnionAll(goodSplitNegMod) DONE")
-                  errorMerged
-                }
-
-                println(">>>>>>>> >>>>>>>> returning goodSplitPosMod, errorDFProcessed.safeUnionAll...")
-                DataFrameOpResult(goodSplitPosMod, errorDFProcessed.safeUnionAll(goodSplitNegMod))
+                println(">>>>>>>> >>>>>>>> returning DF...")
+                goodMerged
               }
-              else dfr
+              else dfIn
             }
             else if (headON.oldField.isEmpty && headON.newAFC.nonEmpty) {
               // Add the new field as null.
               val sf = headON.newAFC.get.structField
               println(s">>>>>>>> ELSE adding new null column: ${sf.name}")
-              DataFrameOpResult(
-                dfr.goodDF.withColumn(sf.name, lit(null).cast(sf.dataType)),
-                dfr.errorDF.withColumn(sf.name, lit(null).cast(StringType)))
+              dfIn.withColumn(sf.name, lit(null).cast(sf.dataType))
             }
             else if (headON.oldField.nonEmpty && headON.newAFC.isEmpty) {
               // Just drop the field
               val sf = headON.oldField.get
               println(s">>>>>>>> ELSE dropping ${sf.name}")
-              DataFrameOpResult(
-                dfr.goodDF.drop(sf.name),
-                dfr.errorDF.drop(sf.name))
+              dfIn.drop(sf.name)
             }
             else {
               throw new Exception("It should be impossible for on.oldField AND on.newAFC to both be empty.")
@@ -352,43 +317,29 @@ object DataFrameUtil
 
           // Persist only if the count is at 70 or above
           if (count >= 70) {
-            val saveGood = (newDFR.goodDF ne dfr.goodDF) 
-            val saveError = (newDFR.errorDF ne dfr.errorDF) 
+            val saveGood = (newDF ne dfIn) 
             if (saveGood) {
-              println("Persisting new goodDF...")
-              newDFR.goodDF.persist(MEMORY_ONLY)
-              println("size of newDFR.goodDF.take(1).size = "+newDFR.goodDF.take(1).size)
-            }
-            if (saveError) {
-              println("Persisting new errorDF...")
-              newDFR.errorDF.persist(MEMORY_ONLY)
-              println("size of newDFR.errorDF.take(1).size = "+newDFR.errorDF.take(1).size)
+              println("Persisting new newDF...")
+              newDF.persist(MEMORY_ONLY)
+              println("size of newDF.take(1).size = "+newDF.take(1).size)
             }
             if (saveGood) {
-              println("Unpersisting old goodDF...")
-              dfr.goodDF.unpersist(blocking=true)
-            }
-            if (saveError) {
-              println("Unpersisting old errorDF...")
-              dfr.errorDF.unpersist(blocking=true)
+              println("Unpersisting old dfIn...")
+              dfIn.unpersist(blocking=true)
             }
           }
 
-          processField(fields.tail, newDFR)
+          processField(fields.tail, newDF)
         }
       }
       println("changeSchema: 3")
 
-      val nullString: String = null
-      val dfWithErrorField = df.withColumn(errorField, lit(nullString).cast(StringType))
+      val dfWithErrorField = df.withColumn(errorField, lit(null).cast(StringType))
       val allStringSchema = StructType( dfWithErrorField.schema.fields.map{ _.copy(dataType=StringType, nullable=true) }.toArray )
       println("changeSchema: 4")
       val result = { 
 
-        var res =
-          DataFrameOpResult(
-            dfWithErrorField, 
-            df.sqlContext.createEmptyDataFrame(allStringSchema) )
+        var res = dfWithErrorField
         //res.goodDF.persist(MEMORY_ONLY)
         //res.errorDF.persist(MEMORY_ONLY)
 
@@ -410,9 +361,16 @@ object DataFrameUtil
           listOldNew.filter( on => (on.oldField.nonEmpty && on.newAFC.nonEmpty )),
           res )
 
-        DataFrameOpResult(
-          res.goodDF.drop(errorField), 
-          res.errorDF)
+        println("Pulling out all fields where the erroField has something (converting errorFieldSplit to all strings)...")
+        println("!!!!!!!! res.count = "+res.count)
+        res.show
+        val errorFieldSplit = res.split( col(errorField).isNull || length(trim(col(errorField))) === lit(0) )
+        val goodDF = errorFieldSplit.positive.drop(errorField)
+        val errDF = errorFieldSplit.negative.convertToAllStrings
+        println("!!!!!!!! goodDF.count = "+goodDF.count)
+        println("!!!!!!!! errDF.count = "+errDF.count)
+
+        DataFrameOpResult(goodDF, errDF)
       }
       println("changeSchema: DONE")
       result

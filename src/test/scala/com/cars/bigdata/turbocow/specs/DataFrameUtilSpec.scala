@@ -730,7 +730,8 @@ class DataFrameUtilSpec
     //  fail("TODOTODO test writing with one order, then write another day with a different order, then try reading with hive & spark")
     //}
 
-    it("should populate an error field with all of the field names that had conversion errors")
+    it("""should populate an error field with all of the field names that had conversion errors
+          and set offending field to null""")
     {
       val allStringJsonSchema = """{
           "namespace": "NS",
@@ -828,12 +829,12 @@ class DataFrameUtilSpec
         rows.size should be (1)
         rows.foreach{ row => row.getAs[String]("StringField") match {
           case "ID1" =>
-            row.getAs[String]("IntField") should be ("FAIL")
-            row.getAs[String]("DoubleField") should be ("FAIL")
+            row.getAs[String]("IntField") should be (null)
+            row.getAs[String]("DoubleField") should be (null)
             row.getAs[String]("LongField") should be ("20")
-            row.getAs[String]("BooleanField") should be ("false")
+            row.getAs[String]("BooleanField") should be ("true")
             row.fieldIsNull("NewField") should be (true) 
-            row.getAs[String](changeSchemaErrorField) should be ("could not convert field 'IntField' to 'IntegerType'; could not convert field 'DoubleField' to 'DoubleType'")
+            row.getAs[String](changeSchemaErrorField) should be ("could not convert value in field 'IntField' to 'IntegerType': 'FAIL'; could not convert value in field 'DoubleField' to 'DoubleType': 'FAIL'")
             row.size should be (7)
           case _ => fail
         }}
@@ -919,7 +920,7 @@ class DataFrameUtilSpec
           errorRows.size should be (1)
         
           if (t.testVal.nonEmpty)
-            errorRows.head.getAs[String](fieldName) should be (t.testVal.get)
+            errorRows.head.getAs[String](fieldName) should be (null)
           else { // input is null, so output should be null
             errorRows.head.fieldIsNull(fieldName) should be (true)
           }

@@ -272,68 +272,65 @@ object DataFrameUtil
                 println(">>>>>>>> datatypes are different.")
 
                 println(">>>>>>>> splitting on cast results to "+nu.structField.dataType)
-                val split = dfr.goodDF.split( col(name).cast(nu.structField.dataType).isNotNull )
+                val goodSplit = dfr.goodDF.split( col(name).cast(nu.structField.dataType).isNotNull )
 
                 // For all the successful casts, actually write it now.
                 println(s">>>>>>>> posmod - dropping $name, renaming $tempField to $name")
-                val posMod = split.positive.withColumn(
+                val goodSplitPosMod = goodSplit.positive.withColumn(
                   name, 
                   col(name).cast(nu.structField.dataType))
 
-                //println("RRRRRRRRRRRRRRRR posMod schema = ")
-                //posMod.schema.fields.foreach{println}
+                //println("RRRRRRRRRRRRRRRR goodSplitPosMod schema = ")
+                //goodSplitPosMod.schema.fields.foreach{println}
 
                 // Convert errors (negative) to all-strings schema and add error note
-                println(s">>>>>>>> split.negative.drop($tempField) and convertToAllStrings")
+                println(s">>>>>>>> goodSplit.negative.drop($tempField) and convertToAllStrings")
                 val errString = s"could not convert field '${name}' to '${nu.structField.dataType}'"
-                val negMod = split.negative
+                val goodSplitNegMod = goodSplit.negative
                   .convertToAllStrings()
                   .withColumn(
                     errorField,
                     addToErrorFieldUdf(col(errorField), lit(errString)))
 
-                //println("RRRRRRRRRRRRRRR negMod schema = ")
-                //negMod.schema.fields.foreach{println}
+                //println("RRRRRRRRRRRRRRR goodSplitNegMod schema = ")
+                //goodSplitNegMod.schema.fields.foreach{println}
 
                 // now process the error side of the input.
                 // (needs slightly different processing, don't combine with above code)
                 val errorDFProcessed = {
-                  println(s">>>>>>>> dfr.errorDF.split")
-                  val split = dfr.errorDF.split( col(name).cast(nu.structField.dataType).isNotNull )
+                  println(s">>>>>>>> dfr.errorDF.goodSplit")
+                  val errorSplit = dfr.errorDF.split( col(name).cast(nu.structField.dataType).isNotNull )
 
-                  // For all the successful casts, actually write it now.
-                  println(s">>>>>>>> (dfr.errorDF) split.positive.withColumn(cast to ${nu.structField.dataType})")
-                  val posMod = split.positive
-                    .withColumn(
-                      name,
-                      col(name).cast(nu.structField.dataType))
-                    .convertToAllStrings()
+                  // For all the successful casts, there is no need to write out
+                  // a cast.  
+                  println(s">>>>>>>> (dfr.errorDF) goodSplit.positive.withColumn(cast to ${nu.structField.dataType})")
+                  val errorSplitPos = errorSplit.positive
+                    // should already be allstring: .convertToAllStrings()
 
-                  //println("SSSSSSSSSSSSS posMod schema = ")
-                  //posMod.schema.fields.foreach{println}
+                  //println("SSSSSSSSSSSSS goodSplitPosMod schema = ")
+                  //goodSplitPosMod.schema.fields.foreach{println}
                           
-                  // Convert errors (negative) to all-strings schema and add error note
-                  val negMod = {
-                    println(s">>>>>>>> (dfr.errorDF) split.negative.convertToAllStrings() & update of errorField "+errorField)
-                    split.negative
-                      .convertToAllStrings()
+                  // Add error note to neg
+                  val errorSplitNegMod = {
+                    println(s">>>>>>>> (dfr.errorDF) goodSplit.negative.convertToAllStrings() & update of errorField "+errorField)
+                    errorSplit.negative
                       .withColumn(
                         errorField,
                         addToErrorFieldUdf(col(errorField), lit(errString)))
                   }
 
-                  //println("SSSSSSSSSSSSS negMod schema = ")
-                  //negMod.schema.fields.foreach{println}
+                  //println("SSSSSSSSSSSSS goodSplitNegMod schema = ")
+                  //goodSplitNegMod.schema.fields.foreach{println}
 
                   // now merge back together
-                  println(s">>>>>>>> posMod.safeUnionAll(negMod)")
-                  val result = posMod.safeUnionAll(negMod)
-                  println(s">>>>>>>> posMod.safeUnionAll(negMod) DONE")
-                  result
+                  println(s">>>>>>>> goodSplitPosMod.safeUnionAll(goodSplitNegMod)")
+                  val errorMerged = errorSplitPos.safeUnionAll(errorSplitNegMod)
+                  println(s">>>>>>>> goodSplitPosMod.safeUnionAll(goodSplitNegMod) DONE")
+                  errorMerged
                 }
 
-                println(">>>>>>>> >>>>>>>> returning posMod, errorDFProcessed.safeUnionAll...")
-                DataFrameOpResult(posMod, errorDFProcessed.safeUnionAll(negMod))
+                println(">>>>>>>> >>>>>>>> returning goodSplitPosMod, errorDFProcessed.safeUnionAll...")
+                DataFrameOpResult(goodSplitPosMod, errorDFProcessed.safeUnionAll(goodSplitNegMod))
               }
               else dfr
             }

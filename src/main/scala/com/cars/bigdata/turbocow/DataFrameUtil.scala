@@ -270,32 +270,23 @@ object DataFrameUtil
               val name = old.name
               if ( old.dataType != nu.structField.dataType ) {
                 println(">>>>>>>> datatypes are different.")
-                val dfTemp = {
-                  if (nu.structField.dataType == NullType) throw new Exception("can't cast anything to a NullType (schemas with NullType types not supported in this Spark version).")
-                  else {
-                    println(">>>>>>>> Adding column: "+tempField)
-                    dfr.goodDF.withColumn(
-                      tempField, 
-                      col(name).cast(nu.structField.dataType))
-                  }
-                }
-                println(">>>>>>>> splitting on null field "+tempField)
-                val split = dfTemp.split( col(tempField).isNotNull )
-                val errString = s"could not convert field '${name}' to '${nu.structField.dataType}'"
 
-                // Get all the successful conversions and fix the field name.
+                println(">>>>>>>> splitting on cast results to "+nu.structField.dataType)
+                val split = dfr.goodDF.split( col(name).cast(nu.structField.dataType).isNotNull )
+
+                // For all the successful casts, actually write it now.
                 println(s">>>>>>>> posmod - dropping $name, renaming $tempField to $name")
-                val posMod = split.positive
-                  .drop(name)
-                  .withColumnRenamed(tempField, name)
+                val posMod = split.positive.withColumn(
+                  name, 
+                  col(name).cast(nu.structField.dataType))
 
                 //println("RRRRRRRRRRRRRRRR posMod schema = ")
                 //posMod.schema.fields.foreach{println}
 
-                // Convert errors (negative) to all-strings schema
+                // Convert errors (negative) to all-strings schema and add error note
                 println(s">>>>>>>> split.negative.drop($tempField) and convertToAllStrings")
+                val errString = s"could not convert field '${name}' to '${nu.structField.dataType}'"
                 val negMod = split.negative
-                  .drop(tempField)
                   .convertToAllStrings()
                   .withColumn(
                     errorField,
@@ -307,29 +298,28 @@ object DataFrameUtil
                 // now process the error side of the input.
                 // (needs slightly different processing, don't combine with above code)
                 val errorDFProcessed = {
-                  println(s">>>>>>>> dfr.errorDF.withColumn($tempField)...")
-                  val dfErrorTemp = dfr.errorDF.withColumn(
-                    tempField,
-                    col(name).cast(nu.structField.dataType))
-                  println(s">>>>>>>> dfErrorTemp.split")
-                  val split = dfErrorTemp.split( col(tempField).isNotNull )
+                  println(s">>>>>>>> dfr.errorDF.split")
+                  val split = dfr.errorDF.split( col(name).cast(nu.structField.dataType).isNotNull )
 
-                  // for success, just drop the tempfield.  
-                  println(s">>>>>>>> split.positive.drop($tempField)")
-                  val posMod = split.positive.drop(tempField)
+                  // For all the successful casts, actually write it now.
+                  println(s">>>>>>>> (dfr.errorDF) split.positive.withColumn(cast to ${nu.structField.dataType})")
+                  val posMod = split.positive
+                    .withColumn(
+                      name,
+                      col(name).cast(nu.structField.dataType))
+                    .convertToAllStrings()
 
                   //println("SSSSSSSSSSSSS posMod schema = ")
                   //posMod.schema.fields.foreach{println}
                           
-                  // for failures, drop the temp field and add a note in the error section.
+                  // Convert errors (negative) to all-strings schema and add error note
                   val negMod = {
-                    println(s">>>>>>>> split.negative.drop($tempField)")
-                    val dropped = split.negative.drop(tempField)
-                    println(s">>>>>>>> dropped.withColumn($errorField)")
-                    val errorUpdated = dropped.withColumn(
-                      errorField,
-                      addToErrorFieldUdf(col(errorField), lit(errString)))
-                    errorUpdated
+                    println(s">>>>>>>> (dfr.errorDF) split.negative.convertToAllStrings() & update of errorField "+errorField)
+                    split.negative
+                      .convertToAllStrings()
+                      .withColumn(
+                        errorField,
+                        addToErrorFieldUdf(col(errorField), lit(errString)))
                   }
 
                   //println("SSSSSSSSSSSSS negMod schema = ")

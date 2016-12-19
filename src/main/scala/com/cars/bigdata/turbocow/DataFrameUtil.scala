@@ -351,7 +351,7 @@ object DataFrameUtil
           }
 
           // Persist only if the count is at 80 or above
-          if (false) { //count >= 80) {
+          if (count >= 80) {
             val saveGood = (newDFR.goodDF ne dfr.goodDF) 
             val saveError = (newDFR.errorDF ne dfr.errorDF) 
             if (saveGood) {

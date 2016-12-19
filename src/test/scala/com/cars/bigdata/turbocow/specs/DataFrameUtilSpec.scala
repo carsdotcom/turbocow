@@ -831,7 +831,7 @@ class DataFrameUtilSpec
             row.getAs[String]("IntField") should be ("FAIL")
             row.getAs[String]("DoubleField") should be ("FAIL")
             row.getAs[String]("LongField") should be ("20")
-            row.getAs[String]("BooleanField") should be ("true") // in spark 1.5 any non-empty string is converted to true when cast
+            row.getAs[String]("BooleanField") should be ("false")
             row.fieldIsNull("NewField") should be (true) 
             row.getAs[String](changeSchemaErrorField) should be ("could not convert field 'IntField' to 'IntegerType'; could not convert field 'DoubleField' to 'DoubleType'")
             row.size should be (7)

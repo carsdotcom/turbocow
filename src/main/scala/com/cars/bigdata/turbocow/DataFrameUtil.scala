@@ -350,17 +350,19 @@ object DataFrameUtil
             }
           }
 
-          // Persist only if the count is at 80 or above
-          if (count >= 80) {
+          // Persist only if the count is at 70 or above
+          if (count >= 70) {
             val saveGood = (newDFR.goodDF ne dfr.goodDF) 
             val saveError = (newDFR.errorDF ne dfr.errorDF) 
             if (saveGood) {
               println("Persisting new goodDF...")
               newDFR.goodDF.persist(MEMORY_ONLY)
+              println("size of newDFR.goodDF.take(1).size = "+newDFR.goodDF.take(1).size)
             }
             if (saveError) {
               println("Persisting new errorDF...")
               newDFR.errorDF.persist(MEMORY_ONLY)
+              println("size of newDFR.errorDF.take(1).size = "+newDFR.errorDF.take(1).size)
             }
             if (saveGood) {
               println("Unpersisting old goodDF...")

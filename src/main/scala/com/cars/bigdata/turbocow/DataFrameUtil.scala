@@ -236,11 +236,6 @@ object DataFrameUtil
       val tempField = "__TURBOCOW_DATAFRAMEUTIL_CHANGESCHEMA_PROCESSFIELDS_TEMPFIELD__"
       val errorField = changeSchemaErrorField
 
-      // udf function to add an error message to the error field
-      val addToErrorFieldUdf = udf { (existingErrorField: String, addition: String) =>
-        if (existingErrorField == null || existingErrorField.isEmpty) addition
-        else existingErrorField + "; " + addition
-      }
       println("changeSchema: 2")
 
       var count = 0
@@ -290,7 +285,7 @@ object DataFrameUtil
                   .convertToAllStrings()
                   .withColumn(
                     errorField,
-                    addToErrorFieldUdf(col(errorField), lit(errString)))
+                    concat_ws( "; ", col(errorField), lit(errString)))
 
                 //println("RRRRRRRRRRRRRRR goodSplitNegMod schema = ")
                 //goodSplitNegMod.schema.fields.foreach{println}
@@ -316,7 +311,7 @@ object DataFrameUtil
                     errorSplit.negative
                       .withColumn(
                         errorField,
-                        addToErrorFieldUdf(col(errorField), lit(errString)))
+                        concat_ws( "; ", col(errorField), lit(errString)))
                   }
 
                   //println("SSSSSSSSSSSSS goodSplitNegMod schema = ")
@@ -355,26 +350,28 @@ object DataFrameUtil
             }
           }
 
-          // persist the new one
-          // this seems to just take up time; not sure if there's a benefit:
-          //val saveGood = (newDFR.goodDF ne dfr.goodDF) 
-          //val saveError = (newDFR.errorDF ne dfr.errorDF) 
-          //if (saveGood) {
-          //  println("Persisting new goodDF...")
-          //  newDFR.goodDF.persist(MEMORY_ONLY)
-          //}
-          //if (saveError) {
-          //  println("Persisting new errorDF...")
-          //  newDFR.errorDF.persist(MEMORY_ONLY)
-          //}
-          //if (saveGood) {
-          //  println("Unpersisting old goodDF...")
-          //  dfr.goodDF.unpersist(blocking=true)
-          //}
-          //if (saveError) {
-          //  println("Unpersisting old errorDF...")
-          //  dfr.errorDF.unpersist(blocking=true)
-          //}
+          // Persist only if the count is at 80 or above
+          if (false) { //count >= 80) {
+            val saveGood = (newDFR.goodDF ne dfr.goodDF) 
+            val saveError = (newDFR.errorDF ne dfr.errorDF) 
+            if (saveGood) {
+              println("Persisting new goodDF...")
+              newDFR.goodDF.persist(MEMORY_ONLY)
+            }
+            if (saveError) {
+              println("Persisting new errorDF...")
+              newDFR.errorDF.persist(MEMORY_ONLY)
+            }
+            if (saveGood) {
+              println("Unpersisting old goodDF...")
+              dfr.goodDF.unpersist(blocking=true)
+            }
+            if (saveError) {
+              println("Unpersisting old errorDF...")
+              dfr.errorDF.unpersist(blocking=true)
+            }
+          }
+
           processField(fields.tail, newDFR)
         }
       }
@@ -386,10 +383,12 @@ object DataFrameUtil
       println("changeSchema: 4")
       val result = { 
 
-        var res = 
+        var res =
           DataFrameOpResult(
-            dfWithErrorField, //.persist(MEMORY_ONLY), 
-            df.sqlContext.createEmptyDataFrame(allStringSchema)) //.persist(MEMORY_ONLY) )
+            dfWithErrorField, 
+            df.sqlContext.createEmptyDataFrame(allStringSchema) )
+        //res.goodDF.persist(MEMORY_ONLY)
+        //res.errorDF.persist(MEMORY_ONLY)
 
         // do the field drops first
         println("Starting all field drops...")
@@ -434,14 +433,10 @@ object DataFrameUtil
         df.withColumnRenamed(changeSchemaErrorField, rejectReasonField)
       }
       else {
-        // have it already, need to do the udf:
-        val addToErrorFieldUdf = udf { (existingErrorField: String, addition: String) =>
-          if (existingErrorField == null || existingErrorField.isEmpty) addition
-          else existingErrorField + separator + addition
-        }
+        // have it already, need to update the field:
         df.withColumn(
           rejectReasonField,
-          addToErrorFieldUdf(col(rejectReasonField), col(changeSchemaErrorField))
+          concat_ws( separator, col(rejectReasonField), col(changeSchemaErrorField))
         )
         .drop(changeSchemaErrorField)
       }

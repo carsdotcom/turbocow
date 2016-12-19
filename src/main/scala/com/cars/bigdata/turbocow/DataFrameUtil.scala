@@ -491,5 +491,12 @@ object DataFrameUtil
       df.select(flattenSchema(df.schema):_*)
     }
 
+
+    /** Action that does a cheap take & count to determine if this 
+      * dataframe is empty or not.
+      */
+    def isEmpty(): Boolean = {
+      df.take(1).count == 0
+    }
   }
 }

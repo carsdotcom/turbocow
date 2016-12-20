@@ -14,11 +14,17 @@ import org.apache.spark.storage.StorageLevel._
 object DataFrameUtil
 {
 
-  val changeSchemaErrorField = "__TURBOCOW_DATAFRAMEUTIL_CHANGESCHEMA_PROCESSFIELDS_ERRORS__"
+  val changeSchemaErrorField = "__turbocow_dataframeutil_changeschema_processfields_errors__"
+  private val isStringField = "__turbocow_dataframeutil_changeschema_is_row_all_string__"
 
   case class DataFrameOpResult(
     goodDF: DataFrame, 
     errorDF: DataFrame)
+
+  // Used to map old & new types together in changeSchema() and elsewhere
+  private case class OldNewFields(
+    oldField: Option[StructField], 
+    newAFC: Option[AvroFieldConfig])
 
   // New methods for DataFrame you get when importing DataFrameUtil._ :
   implicit class DataFrameAdditions(val df: DataFrame) {
@@ -200,6 +206,9 @@ object DataFrameUtil
       *         ErrorDF will be an all-string schema in order to preserve the 
       *         input data that may have not converted properly.
       */
+    // TODO This version is bad and doesn't save any error information 
+    // or reject any records when converting.
+    // But it allows us to move on and do fields again.
     def changeSchema(
       newSchema: Seq[AvroFieldConfig]): 
       DataFrameOpResult = {
@@ -268,33 +277,9 @@ object DataFrameUtil
                 println(">>>>>>>> datatypes are different.")
 
                 println(">>>>>>>> splitting on cast results to "+nuType)
-                val goodSplit = dfIn.split( col(name).cast(nuType).isNotNull )
-
-                // For all the successful casts, actually write it now.
-                println(s">>>>>>>> posmod - dropping $name, renaming $tempField to $name")
-                val goodSplitPosMod = goodSplit.positive.withColumn(
+                dfIn.withColumn(
                   name, 
                   col(name).cast(nuType))
-
-                //println("RRRRRRRRRRRRRRRR goodSplitPosMod schema = ")
-                //goodSplitPosMod.schema.fields.foreach{println}
-
-                // Convert errors (negative) to all-strings schema and add error note
-                println(s">>>>>>>> goodSplit.negative.drop($tempField) and convertToAllStrings")
-                val errString = s"could not convert value in field '${name}' to '${nuType}': '"
-                val endQuote = "'"
-                val goodSplitNegMod = goodSplit.negative
-                  .withColumn(
-                    errorField,
-                    concat_ws( "; ", col(errorField), concat(lit(errString), col(name), lit(endQuote))))
-                  .withColumn(name, lit(null).cast(nuType))
-
-                // Now merge back together
-                println(s">>>>>>>> goodSplitPosMod.safeUnionAll(goodSplitNegMod)")
-                val goodMerged = goodSplitPosMod.safeUnionAll(goodSplitNegMod)
-
-                println(">>>>>>>> >>>>>>>> returning DF...")
-                goodMerged
               }
               else dfIn
             }
@@ -375,6 +360,100 @@ object DataFrameUtil
       println("changeSchema: DONE")
       result
     }
+    // SAVE:  UNDER CONSTRUCTION (works with modifyColumnTypesViaRDD())
+    //def changeSchema(
+    //  newSchema: Seq[AvroFieldConfig]): 
+    //  DataFrameOpResult = {
+    //
+    //  val stNewSchema = StructType( newSchema.map{ _.structField }.toArray )
+    //  val oldSchema = df.schema
+    //
+    //  // Create a list of case classes that include each field mapping.
+    //  // If either is None, that means it doesn't exist in the other side.
+    //  // TODO If order matters, then this may not be a good struct to create:
+    //  println("changeSchema: 0")
+    //  val listOldNew: Seq[OldNewFields] = {
+    //    val allOld = oldSchema.fields.map{ oldSF => 
+    //      val newOpt = newSchema.find( _.structField.name == oldSF.name )
+    //      OldNewFields( Option(oldSF), newOpt )
+    //    }.toSeq
+    //    val allNew = newSchema.flatMap{ newAFC => 
+    //      // only process this field if not already in allOld:
+    //      if (allOld.find{ e => (e.oldField.nonEmpty && (e.oldField.get.name == newAFC.structField.name)) }.nonEmpty ) {
+    //        None
+    //      }
+    //      else {
+    //        Option(OldNewFields( None, Option(newAFC) ))
+    //      }
+    //    }.toSeq
+    //    (allOld ++ allNew)
+    //  }
+    //  println("changeSchema: 1")
+    //
+    //  val errorField = changeSchemaErrorField
+    //
+    //  val dfWithExtras = df
+    //    .withColumn(errorField, lit(null).cast(StringType))
+    //    .withColumn(isStringField, lit(true).cast(BooleanType))
+    //  val allStringSchema = StructType( 
+    //    dfWithExtras.schema.fields.map{ 
+    //      _.copy(dataType=StringType, nullable=true) 
+    //    }.toArray 
+    //  )
+    //  println("changeSchema: 4")
+    //  val result = { 
+    //
+    //    var resultDF = dfWithExtras
+    //    //resultDF.goodDF.persist(MEMORY_ONLY)
+    //    //resultDF.errorDF.persist(MEMORY_ONLY)
+    //
+    //    // do the field drops first
+    //    println("Starting all field drops...")
+    //    resultDF = 
+    //      listOldNew
+    //        .filter( on => (on.oldField.nonEmpty && on.newAFC.isEmpty ))
+    //        .foldLeft(resultDF){ (lastResult, on) => 
+    //          val sf = on.oldField.get
+    //          println(s">>>>>>>> dropping ${sf.name}")
+    //          lastResult.goodDF.drop(sf.name))
+    //        }
+    //
+    //    // then the field additions
+    //    println("Starting all field additions...")
+    //    resultDF = 
+    //      listOldNew
+    //        .filter( on => (on.oldField.isEmpty && on.newAFC.nonEmpty ))
+    //        .foldLeft(resultDF){ (lastResult, on) => 
+    //          val sf = on.newAFC.get.structField
+    //          println(s">>>>>>>> adding new null column: ${sf.name}")
+    //          lastResult.goodDF.withColumn(sf.name, lit(null).cast(sf.dataType)))
+    //        }
+    //
+    //    // do all the changes last
+    //    println("Starting all (potential) field changes...")
+    //    val finalResult: DataFrameOpResult = resultDF.modifyColumnTypesViaRDD(
+    //      listOldNew.filter( on => (on.oldField.nonEmpty && on.newAFC.nonEmpty )))
+    //
+    //    //DataFrameOpResult(
+    //    //  res.goodDF.drop(errorField), 
+    //    //  res.errorDF)
+    //    //
+    //    //println("Pulling out all fields where the erroField has something (converting errorFieldSplit to all strings)...")
+    //    //println("!!!!!!!! res.count = "+res.count)
+    //    //res.show
+    //    //val errorFieldSplit = res.split( col(errorField).isNull || length(trim(col(errorField))) === lit(0) )
+    //    //val goodDF = errorFieldSplit.positive.drop(errorField)
+    //    //val errDF = errorFieldSplit.negative.convertToAllStrings
+    //    //println("!!!!!!!! goodDF.count = "+goodDF.count)
+    //    //println("!!!!!!!! errDF.count = "+errDF.count)
+    //    //
+    //    //DataFrameOpResult(goodDF, errDF)
+    //
+    //    finalResult
+    //  }
+    //  println("changeSchema: DONE")
+    //  result
+    //}
 
     /** After calling changeSchema on a dataframe, you could call this to 
       * add any errors to a field you specify.
@@ -458,5 +537,38 @@ object DataFrameUtil
     def isEmpty(): Boolean = {
       df.take(1).size == 0
     }
+
+    /** Convert to RDD to change the schema then convert back.
+      */
+    // SAVE:  UNDER CONSTRUCTION
+    //private def modifyColumnTypesViaRDD(
+    //  fieldChanges: Seq[OldNewFields],
+    //  finalSchema: StructType,
+    //  finalSchemaAllString: StructType): 
+    //  DataFrameOpResult = {
+    //
+    //  // convert to RDD
+    //  val origRDD = df.rdd
+    //
+    //  // Modify each row per fieldChanges
+    //  val modRDD = origRDD.map{ row => 
+    //    // convert to seq
+    //    val rowSeq = row.toSeq
+    //
+    //    // modify
+    //    val newSeq = ???
+    //
+    //    // bring back to Row
+    //    Row.fromSeq(newSeq)
+    //  }
+    //
+    //  // split RDD into two based on if any conversion errors
+    //  val splitRDD = modRDD.split( row => row.getAs[Boolean](isStringField) == false )
+    //
+    //  // convert each RDD into a dataframe and return
+    //  val pos = sqlContext.createDataFrame(splitRDD._1, finalSchema)
+    //  val neg = sqlContext.createDataFrame(splitRDD._2, finalSchemaAllString)
+    //  DataFrameOpResult(pos, neg)
+    //}
   }
 }

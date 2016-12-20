@@ -276,7 +276,7 @@ object DataFrameUtil
               if ( old.dataType != nuType ) {
                 println(">>>>>>>> datatypes are different.")
 
-                println(">>>>>>>> splitting on cast results to "+nuType)
+                println(s">>>>>>>> casting column '$name' to: $nuType")
                 dfIn.withColumn(
                   name, 
                   col(name).cast(nuType))
@@ -301,7 +301,7 @@ object DataFrameUtil
           }
 
           // Persist only if the count is at 70 or above
-          if (count >= 70) {
+          if (false) { //count >= 70) {
             val saveGood = (newDF ne dfIn) 
             if (saveGood) {
               println("Persisting new newDF...")

@@ -1,7 +1,7 @@
 name := "turbocow"
 
 // Set the version.  Doing it this way makes it accessible later on via the val.
-val ver = "0.30"
+val ver = "0.30-beta-SNAPSHOT"
 version := ver
 
 // Set scalaVersion.   Doing it this way makes it accessible later on via the val.
@@ -13,7 +13,7 @@ val scalaVerMM = scalaVer.toString.split('.').take(2).mkString(".")
 
 val json4SVer = "3.2.10" // don't use >= 3.3 due to conflicts
 val sparkVer = "1.5.0" // NOTE this is due to cloudera (CDH 5.5.1)
-//val sparkVer = "1.6.1" // for testing
+//val sparkVer = "1.6.0" // testing
 
 // Always fork the jvm (test and run)
 fork := true

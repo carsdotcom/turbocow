@@ -416,7 +416,7 @@ class AvroOutputWriterSpec
 
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
         // Input has A-E
-        List("""{ "md": { "AField": "A", "BField": "B" }, "activityMap": { "CField": "C", "DField": 11, "EField": true }}"""),
+        List("""{ "AField": "A", "BField": "B", "CField": "C", "DField": 11, "EField": true }"""),
         // Config has B & C
         """{
             "activityType": "impressions",
@@ -519,7 +519,7 @@ class AvroOutputWriterSpec
 
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
         // input record:
-        List("""{ "md":{}, "activityMap": { 
+        List("""{
             "StringField": "String", 
             "IntField": "10",
             "IntField2": "-10",
@@ -528,7 +528,7 @@ class AvroOutputWriterSpec
             "DoubleField2": "-10.1",
             "BooleanField": "true",
             "BooleanField2": "false"
-          }}"""),
+          }"""),
             //"FloatField": "-11.1",
         // config: 
         """{
@@ -647,9 +647,9 @@ class AvroOutputWriterSpec
 
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
         // input record:
-        List("""{ "md":{}, "activityMap": { 
+        List("""{
             "UnknownField": "String"
-          }}"""),
+          }"""),
         // config:  no fields added from schema
         """{
             "activityType": "impressions",
@@ -742,12 +742,12 @@ class AvroOutputWriterSpec
 
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
         // input record:
-        List("""{ "md":{}, "activityMap": { 
+        List("""{
             "IntField": "",
             "LongField": "",
             "DoubleField": "",
             "BooleanField": ""
-          }}"""),
+          }"""),
            // "FloatField": "",
         // config
         """{
@@ -842,12 +842,12 @@ class AvroOutputWriterSpec
 
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
         // input record:
-        List("""{ "md":{}, "activityMap": { 
+        List("""{
             "IntField": " ",
             "LongField": "  ",
             "DoubleField": "     ",
             "BooleanField": "      "
-          }}"""),
+          }"""),
             //"FloatField": "   ",
         // config
         """{
@@ -950,57 +950,46 @@ class AvroOutputWriterSpec
 
       val enriched: RDD[Map[String, String]] = ActionEngine.processJsonStrings(
         // input records:
-        List("""{ "md":{}, "activityMap": { 
+        List("""{
             "id": "r1",
             "IntField": "X1",
             "LongField": "1",
             "DoubleField": "1",
             "BooleanField": "true",
             "StringField": "String"
-          }}""",
-          """{ "md":{}, "activityMap": { 
+          }""",
+          """{
             "id": "r2",
             "IntField": "1",
             "LongField": "X1",
             "DoubleField": "1",
             "BooleanField": "true",
             "StringField": "String"
-          }}""",
-          """{ "md":{}, "activityMap": {
+          }""",
+          """{
             "id": "r4",
             "IntField": "1",
             "LongField": "1",
             "DoubleField": "X1",
             "BooleanField": "true",
             "StringField": "String"
-          }}""",
-          """{ "md":{}, "activityMap": { 
+          }""",
+          """{
             "id": "r5",
             "IntField": "1",
             "LongField": "1",
             "DoubleField": "1",
             "BooleanField": "Xtrue",
             "StringField": "String"
-          }}""",
-          """{ "md":{}, "activityMap": { 
-            "id": "r6",
+          }""",
+           """{
+             "id": "r6",
             "IntField": "1",
             "LongField": "1",
             "DoubleField": "1",
             "BooleanField": "true",
             "StringField": "XString"
-          }}"""),
-
-        //"""{ "md":{}, "activityMap": {
-        //    "id": "r3",
-        //    "IntField": "1",
-        //    "LongField": "1",
-        //    "DoubleField": "1",
-        //    "BooleanField": "true",
-        //    "StringField": "String"
-        //  }}""",
-
-            //"FloatField": "1",
+          }"""),
 
         // config
         """{
@@ -1226,7 +1215,8 @@ class AvroOutputWriterSpec
       ))
       val schema = StructType(Array(
         StructField("A", StringType, nullable=true),
-        StructField("B", IntegerType, nullable=true)
+        StructField("B", IntegerType, nullable=true),
+        StructField("C", DoubleType, nullable=true)
       ))
   
       val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig)
@@ -1234,18 +1224,25 @@ class AvroOutputWriterSpec
   
       goodDF.count should be (2)
       val afs: Array[StructField] = goodDF.schema.fields
-      afs.size should be (2)
+      afs.size should be (3)
       afs(0).name should be ("A")
       afs(0).dataType should be (StringType)
       afs(0).nullable should be (true)
       afs(1).name should be ("B")
       afs(1).dataType should be (IntegerType)
       afs(1).nullable should be (true)
+      afs(2).name should be ("C")
+      afs(2).dataType should be (DoubleType)
+      afs(2).nullable should be (true)
   
       rows.size should be (2)
       rows.foreach{ row => row.getAs[String]("A") match {
-        case "A1" => row.getAs[Int]("B") should be (1)
-        case "A2" => fieldIsNull(row, "B") should be (true)
+        case "A1" => 
+          row.getAs[Int]("B") should be (1)
+          fieldIsNull(row, "C") should be (true)
+        case "A2" => 
+          fieldIsNull(row, "B") should be (true)
+          fieldIsNull(row, "C") should be (true)
         case _ => fail()
       }}
   
@@ -1346,12 +1343,13 @@ class AvroOutputWriterSpec
       intercept[Exception] { convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig) }
     }
 
-    it("""should set columns as (nullable) String if they don't yet exist in the enriched record""") {
-    
+    it("""should not add columns in the schema that were not in input nor created 
+          via enrichement (addMissingFields is true (the default))""") {
+
       val mark = ActionEngine.addedInputFieldsMarker
       val enrichedRDD = sc.parallelize(List( 
-        Map("A"->"A1", "B"->"BX", "C"->"CX", "D"->"100", "accepted"->"Yes", mark-> "B,C"),
-        Map("A"->"A2", "B"->"2",  "C"->"CY", "D"->"DX",  "accepted"->"Yes", mark-> "C,D")
+        Map("A"->"A1", "B"->"BX", "C"->"CX", "accepted"->"Yes", mark-> "A,B"),
+        Map("A"->"A2", "B"->"2",  "C"->"CY", "accepted"->"Yes", mark-> "B,C")
       ))
       val schema = StructType(Array(
         StructField("A", StringType, nullable=true),
@@ -1362,59 +1360,142 @@ class AvroOutputWriterSpec
         StructField("reasonForReject", StringType, nullable=true)
       ))
     
-      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(enrichedRDD, schema, sqlCtx, wConfig)
+      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(
+        enrichedRDD, schema, sqlCtx, wConfig) //, addMissingFields = true)
       val rows = goodDF.collect()
     
-      goodDF.count should be (2)
       val afs: Array[StructField] = goodDF.schema.fields
-      afs.size should be (6)
     
+      // A added because marked as addded from input
       afs(0).name should be ("A")
       afs(0).dataType should be (StringType)
       afs(0).nullable should be (true)
     
-      // The union of all added columns is B,C,D, so all those should be strings:
+      // The union of all added columns is A,B,C, so all those should be strings:
+      // B added because marked as addded from input
       afs(1).name should be ("B")
       afs(1).dataType should be (StringType)
       afs(1).nullable should be (true)
     
+      // C added because marked as addded from input
       afs(2).name should be ("C")
       afs(2).dataType should be (StringType)
       afs(2).nullable should be (true)
     
+      // D added cuz in schema
       afs(3).name should be ("D")
-      afs(3).dataType should be (StringType)
+      afs(3).dataType should be (DoubleType)
       afs(3).nullable should be (true)
     
-      // These are unchanged
+      // accepted was in enriched and schema
       afs(4).name should be ("accepted")
       afs(4).dataType should be (StringType)
       afs(4).nullable should be (true)
     
+      // this should be added too cuz in schema
       afs(5).name should be ("reasonForReject")
       afs(5).dataType should be (StringType)
       afs(5).nullable should be (true)
     
-      rows.size should be (2)
+      afs.size should be (6)
+
       rows.foreach{ row => row.getAs[String]("A") match {
         case "A1" => 
           row.getAs[String]("B") should be ("BX")
           row.getAs[String]("C") should be ("CX")
-          row.getAs[String]("D") should be ("100")
+          row.fieldIsNull("D") should be (true)
           row.getAs[String]("accepted") should be ("Yes")
           row.fieldIsNull("reasonForReject") should be (true)
+          row.size should be (6)
         case "A2" => 
           row.getAs[String]("B") should be ("2")
           row.getAs[String]("C") should be ("CY")
-          row.getAs[String]("D") should be ("DX")
+          row.fieldIsNull("D") should be (true)
           row.getAs[String]("accepted") should be ("Yes")
           row.fieldIsNull("reasonForReject") should be (true)
+          row.size should be (6)
         case _ => fail()
       }}
+      rows.size should be (2)
     
       badRDD.count should be (0)
     }
 
+    it("""should not add columns in the schema that were not in input nor created 
+          via enrichement (addMissingFields is false)""") {
+    
+      val mark = ActionEngine.addedInputFieldsMarker
+      val enrichedRDD = sc.parallelize(List( 
+        Map("A"->"A1", "B"->"BX", "C"->"CX", "accepted"->"Yes", mark-> "A,B"),
+        Map("A"->"A2", "B"->"2",  "C"->"CY", "accepted"->"Yes", mark-> "B,C")
+      ))
+      val schema = StructType(Array(
+        StructField("A", StringType, nullable=true),
+        StructField("B", IntegerType, nullable=false),
+        StructField("C", LongType, nullable=false),
+        StructField("D", DoubleType, nullable=false),
+        StructField("accepted", StringType, nullable=true),
+        StructField("reasonForReject", StringType, nullable=true)
+      ))
+    
+      val (goodDF, badRDD) = convertEnrichedRDDToDataFrame(
+        enrichedRDD, schema, sqlCtx, wConfig,
+        addMissingFields = false
+      )
+      val rows = goodDF.collect()
+    
+      val afs: Array[StructField] = goodDF.schema.fields
+    
+      // A added because marked as addded from input
+      afs(0).name should be ("A")
+      afs(0).dataType should be (StringType)
+      afs(0).nullable should be (true)
+    
+      // The union of all added columns is A,B,C, so all those should be strings:
+      // B added because marked as addded from input
+      afs(1).name should be ("B")
+      afs(1).dataType should be (StringType)
+      afs(1).nullable should be (true)
+    
+      // C added because marked as addded from input
+      afs(2).name should be ("C")
+      afs(2).dataType should be (StringType)
+      afs(2).nullable should be (true)
+    
+      //afs(3).name should be ("D")
+      //afs(3).dataType should be (StringType)
+      //afs(3).nullable should be (true)
+    
+      // accepted was in enriched and schema
+      afs(3).name should be ("accepted")
+      afs(3).dataType should be (StringType)
+      afs(3).nullable should be (true)
+    
+      //// this is the new one:
+      //afs(4).name should be ("reasonForReject")
+      //afs(4).dataType should be (StringType)
+      //afs(4).nullable should be (true)
+    
+      afs.size should be (4)
+
+      rows.foreach{ row => row.getAs[String]("A") match {
+        case "A1" => 
+          row.getAs[String]("B") should be ("BX")
+          row.getAs[String]("C") should be ("CX")
+          row.getAs[String]("accepted") should be ("Yes")
+          row.size should be (4)
+        case "A2" => 
+          row.getAs[String]("B") should be ("2")
+          row.getAs[String]("C") should be ("CY")
+          row.getAs[String]("accepted") should be ("Yes")
+          row.size should be (4)
+        case _ => fail()
+      }}
+      rows.size should be (2)
+    
+      badRDD.count should be (0)
+    }
+    
     //it("should properly copy over the reasonForReject field") {
     //  fail()
     //}

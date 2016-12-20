@@ -7,17 +7,24 @@ import org.json4s.JsonAST.JNull
 
 import scala.annotation.tailrec
 import SQLContextUtil._
+import org.apache.spark.storage.StorageLevel._
 
 /** DataFrame helper functions.
   */
 object DataFrameUtil
 {
 
-  val changeSchemaErrorField = "__TURBOCOW_DATAFRAMEUTIL_CHANGESCHEMA_PROCESSFIELDS_ERRORS__"
+  val changeSchemaErrorField = "__turbocow_dataframeutil_changeschema_processfields_errors__"
+  private val isStringField = "__turbocow_dataframeutil_changeschema_is_row_all_string__"
 
   case class DataFrameOpResult(
     goodDF: DataFrame, 
     errorDF: DataFrame)
+
+  // Used to map old & new types together in changeSchema() and elsewhere
+  private case class OldNewFields(
+    oldField: Option[StructField], 
+    newAFC: Option[AvroFieldConfig])
 
   // New methods for DataFrame you get when importing DataFrameUtil._ :
   implicit class DataFrameAdditions(val df: DataFrame) {
@@ -74,7 +81,11 @@ object DataFrameUtil
         if (schemaFields.isEmpty) dfIn
         else {
           val sf = schemaFields.head
-          val modDF = dfIn.withColumn(sf.name, dfIn(sf.name).cast(StringType))
+          val modDF = { 
+            if (sf.dataType != StringType)
+              dfIn.withColumn(sf.name, dfIn(sf.name).cast(StringType))
+            else dfIn
+          }
           process(modDF, schemaFields.tail)
         }
       }
@@ -148,8 +159,8 @@ object DataFrameUtil
       val safeSchema = schema.filterNot{ filterBoolean }.filter{ filterNull }
 
       // Set the defaults for the non-boolean fields.  Easy:
-      val defaultsMap = safeSchema.map{ fc => 
-        ( fc.structField.name, fc.getDefaultValue )
+      val defaultsMap = safeSchema.map{ afc => 
+        ( afc.structField.name, afc.getDefaultValue )
       }.toMap
       val defaultDF = enrichedPlusDF.na.fill(defaultsMap)
       // na.fill changes Float data types to Double: see https://issues.apache.org/jira/browse/SPARK-14081 (fix in Spark 2.0)
@@ -172,10 +183,7 @@ object DataFrameUtil
             else if (boolVal) true
             else false
           }
-          val tempField = "___TURBOCOW_TEMP_DATAFRAMEUTIL_SETDEFAULTVALUES___"
-          val newDF = df.withColumn(tempField, defaultBools(col(name)))
-            .drop(name)
-            .withColumnRenamed(tempField, name)
+          val newDF = df.withColumn(name, defaultBools(col(name)))
 
           recursiveDefault(newDF, schema.tail)
         }
@@ -187,7 +195,7 @@ object DataFrameUtil
       * will be modified as follows:
       * 
       *   * Missing columns will be set to null
-      *   * Additional columns not in the specified schema will be filtered out
+      *   * Additional columns not in the specified schema will be dropped.
       *   * Columns that exist in both schemas but with different types will 
       *     be converted, and if not possible to convert, will be filtered out
       *     and returned as a separate dataframe.
@@ -195,9 +203,14 @@ object DataFrameUtil
       * @return DataFrameOpResult where goodDF contains all rows where 
       *         every field converted successfully; and errorDF contains all rows
       *         where at least 1 field did not convert successfully.
+      *         ErrorDF will be an all-string schema in order to preserve the 
+      *         input data that may have not converted properly.
       */
+    // TODO This version is bad and doesn't save any error information 
+    // or reject any records when converting.
+    // But it allows us to move on and do fields again.
     def changeSchema(
-      newSchema: List[AvroFieldConfig]): 
+      newSchema: Seq[AvroFieldConfig]): 
       DataFrameOpResult = {
 
       val stNewSchema = StructType( newSchema.map{ _.structField }.toArray )
@@ -207,7 +220,10 @@ object DataFrameUtil
         oldField: Option[StructField], 
         newAFC: Option[AvroFieldConfig])
 
+      // Create a list of case classes that include each field mapping.
+      // If either is None, that means it doesn't exist in the other side.
       // TODO If order matters, then this may not be a good struct to create:
+      println("changeSchema: 0")
       val listOldNew: Seq[OldNewFields] = {
         val allOld = oldSchema.fields.map{ oldSF => 
           val newOpt = newSchema.find( _.structField.name == oldSF.name )
@@ -219,136 +235,340 @@ object DataFrameUtil
             None
           }
           else {
-            val oldOpt = oldSchema.fields.find( _.name == newAFC.structField.name)
-            Option(OldNewFields( oldOpt, Option(newAFC) ))
+            Option(OldNewFields( None, Option(newAFC) ))
           }
         }.toSeq
         (allOld ++ allNew)
       }
+      println("changeSchema: 1")
 
       val tempField = "__TURBOCOW_DATAFRAMEUTIL_CHANGESCHEMA_PROCESSFIELDS_TEMPFIELD__"
       val errorField = changeSchemaErrorField
 
-      // udf function to add an error message to the error field
-      val addToErrorFieldUdf = udf { (existingErrorField: String, addition: String) =>
-        if (existingErrorField == null || existingErrorField.isEmpty) addition
-        else existingErrorField + "; " + addition
-      }
+      println("changeSchema: 2")
 
+      var count = 0
       @tailrec
-      def processFields( 
+      def processField( 
         fields: Seq[OldNewFields], 
-        dfr: DataFrameOpResult ): 
-        DataFrameOpResult = {
+        dfIn: DataFrame ): 
+        DataFrame = {
 
-        if (fields.isEmpty) dfr
+        count += 1
+
+        if (fields.isEmpty) dfIn
         else {
-          val on = fields.head
+          val headON = fields.head
 
-          println("on.oldField = "+on.oldField)
-          println("on.newAFC = "+on.newAFC)
+          println("===changeSchema.processField(); field = " +headON + "; count = "+count)
 
-          val newDFR = {
+          //println("on.oldField = "+on.oldField)
+          //println("on.newAFC = "+on.newAFC)
 
-            if (on.oldField.nonEmpty && on.newAFC.nonEmpty) {
+          val newDF = {
+
+            if (headON.oldField.nonEmpty && headON.newAFC.nonEmpty) {
               // old & new schema contains the same field name
-              val old = on.oldField.get
-              val nu = on.newAFC.get
+              val old = headON.oldField.get
+              val nu = headON.newAFC.get
+              val nuType = nu.structField.dataType
               val name = old.name
-              if ( old.dataType != nu.structField.dataType ) {
-                val dfTemp = {
-                  if (nu.structField.dataType == NullType) throw new Exception("can't cast anything to a NullType (schemas with NullType types not supported in this Spark version).")
-                  else {
-                    dfr.goodDF.withColumn(
-                      tempField, 
-                      col(name).cast(nu.structField.dataType))
-                  }
-                }
-                val split = dfTemp.split( col(tempField).isNotNull )
-                val errString = s"could not convert field '${name}' to '${nu.structField.dataType}'"
+              if ( old.dataType != nuType ) {
+                println(">>>>>>>> datatypes are different.")
 
-                val posMod = split.positive
-                  .drop(name)
-                  .withColumnRenamed(tempField, name)
-
-                println("RRRRRRRRRRRRRRRR posMod schema = ")
-                posMod.schema.fields.foreach{println}
-
-                // convert errors (negative) to all-strings
-                val negAllStrings = split.negative.drop(tempField).convertToAllStrings()
-                val negMod = negAllStrings
-                  .withColumn(
-                    errorField,
-                    addToErrorFieldUdf(col(errorField), lit(errString)))
-
-                println("RRRRRRRRRRRRRRR negMod schema = ")
-                negMod.schema.fields.foreach{println}
-
-                // now process the error side of the input.
-                // (needs slightly different processing, don't combine with above code)
-                val errorDFProcessed = {
-                  val dfErrorTemp = dfr.errorDF.withColumn(
-                    tempField,
-                    col(name).cast(nu.structField.dataType))
-                  val split = dfErrorTemp.split( col(tempField).isNotNull )
-
-                  // drop the tempfield
-                  val posMod = split.positive.drop(tempField)
-
-                  println("SSSSSSSSSSSSS posMod schema = ")
-                  posMod.schema.fields.foreach{println}
-
-                  val negMod = {
-                    val dropped = split.negative.drop(tempField)
-                    val errorUpdated = dropped.withColumn(
-                      errorField,
-                      addToErrorFieldUdf(col(errorField), lit(errString)))
-                    errorUpdated
-                  }
-
-                  println("SSSSSSSSSSSSS negMod schema = ")
-                  negMod.schema.fields.foreach{println}
-
-                  // now merge back together
-                  posMod.unionAll(negMod)
-                }
-
-                DataFrameOpResult(posMod, errorDFProcessed.unionAll(negMod))
+                println(s">>>>>>>> casting column '$name' to: $nuType")
+                dfIn.withColumn(
+                  name, 
+                  col(name).cast(nuType))
               }
-              else dfr
+              else dfIn
             }
-            else if (on.oldField.isEmpty && on.newAFC.nonEmpty) {
+            else if (headON.oldField.isEmpty && headON.newAFC.nonEmpty) {
               // Add the new field as null.
-              // Note for adding fields that are NOT String, we need to be fancier.
-              val sf = on.newAFC.get.structField
-              DataFrameOpResult(
-                df.withColumn(sf.name, lit(null).cast(sf.dataType)),
-                sqlCtx.createEmptyDataFrame(stNewSchema))
+              val sf = headON.newAFC.get.structField
+              println(s">>>>>>>> ELSE adding new null column: ${sf.name}")
+              dfIn.withColumn(sf.name, lit(null).cast(sf.dataType))
             }
-            else if (on.oldField.nonEmpty && on.newAFC.isEmpty) {
+            else if (headON.oldField.nonEmpty && headON.newAFC.isEmpty) {
               // Just drop the field
-              val sf = on.oldField.get
-              DataFrameOpResult(
-                df.drop(sf.name),
-                sqlCtx.createEmptyDataFrame(stNewSchema))
+              val sf = headON.oldField.get
+              println(s">>>>>>>> ELSE dropping ${sf.name}")
+              dfIn.drop(sf.name)
             }
             else {
               throw new Exception("It should be impossible for on.oldField AND on.newAFC to both be empty.")
             }
           }
 
-          processFields(fields.tail, newDFR)
+          // Persist only if the count is at 70 or above
+          if (false) { //count >= 70) {
+            val saveGood = (newDF ne dfIn) 
+            if (saveGood) {
+              println("Persisting new newDF...")
+              newDF.persist(MEMORY_ONLY)
+              println("size of newDF.take(1).size = "+newDF.take(1).size)
+            }
+            if (saveGood) {
+              println("Unpersisting old dfIn...")
+              dfIn.unpersist(blocking=true)
+            }
+          }
+
+          processField(fields.tail, newDF)
         }
       }
+      println("changeSchema: 3")
 
-      val nullString: String = null
-      val dfWithErrorField = df.withColumn(errorField, lit(nullString))
-      val allStringSchema = StructType( dfWithErrorField.schema.fields.map{ _.copy(dataType=StringType) }.toArray )
-      processFields(
-        listOldNew, 
-        DataFrameOpResult(
-          dfWithErrorField, 
-          df.sqlContext.createEmptyDataFrame(allStringSchema) ) )
+      val dfWithErrorField = df.withColumn(errorField, lit(null).cast(StringType))
+      val allStringSchema = StructType( dfWithErrorField.schema.fields.map{ _.copy(dataType=StringType, nullable=true) }.toArray )
+      println("changeSchema: 4")
+      val result = { 
+
+        var res = dfWithErrorField
+        //res.goodDF.persist(MEMORY_ONLY)
+        //res.errorDF.persist(MEMORY_ONLY)
+
+        // do the field drops first
+        println("Starting all field drops...")
+        res = processField(
+          listOldNew.filter( on => (on.oldField.nonEmpty && on.newAFC.isEmpty )),
+          res )
+
+        // then the field additions
+        println("Starting all field additions...")
+        res = processField(
+          listOldNew.filter( on => (on.oldField.isEmpty && on.newAFC.nonEmpty )),
+          res )
+
+        // do all the changes last
+        println("Starting all (potential) field changes...")
+        res = processField(
+          listOldNew.filter( on => (on.oldField.nonEmpty && on.newAFC.nonEmpty )),
+          res )
+
+        //println("Pulling out all fields where the erroField has something (converting errorFieldSplit to all strings)...")
+        //println("!!!!!!!! res.count = "+res.count)
+        //res.show
+        val errorFieldSplit = res.split( col(errorField).isNull || length(trim(col(errorField))) === lit(0) )
+        val goodDF = errorFieldSplit.positive.drop(errorField)
+        val errDF = errorFieldSplit.negative.convertToAllStrings
+        //println("!!!!!!!! goodDF.count = "+goodDF.count)
+        //println("!!!!!!!! errDF.count = "+errDF.count)
+
+        DataFrameOpResult(goodDF, errDF)
+      }
+      println("changeSchema: DONE")
+      result
     }
+    // SAVE:  UNDER CONSTRUCTION (works with modifyColumnTypesViaRDD())
+    //def changeSchema(
+    //  newSchema: Seq[AvroFieldConfig]): 
+    //  DataFrameOpResult = {
+    //
+    //  val stNewSchema = StructType( newSchema.map{ _.structField }.toArray )
+    //  val oldSchema = df.schema
+    //
+    //  // Create a list of case classes that include each field mapping.
+    //  // If either is None, that means it doesn't exist in the other side.
+    //  // TODO If order matters, then this may not be a good struct to create:
+    //  println("changeSchema: 0")
+    //  val listOldNew: Seq[OldNewFields] = {
+    //    val allOld = oldSchema.fields.map{ oldSF => 
+    //      val newOpt = newSchema.find( _.structField.name == oldSF.name )
+    //      OldNewFields( Option(oldSF), newOpt )
+    //    }.toSeq
+    //    val allNew = newSchema.flatMap{ newAFC => 
+    //      // only process this field if not already in allOld:
+    //      if (allOld.find{ e => (e.oldField.nonEmpty && (e.oldField.get.name == newAFC.structField.name)) }.nonEmpty ) {
+    //        None
+    //      }
+    //      else {
+    //        Option(OldNewFields( None, Option(newAFC) ))
+    //      }
+    //    }.toSeq
+    //    (allOld ++ allNew)
+    //  }
+    //  println("changeSchema: 1")
+    //
+    //  val errorField = changeSchemaErrorField
+    //
+    //  val dfWithExtras = df
+    //    .withColumn(errorField, lit(null).cast(StringType))
+    //    .withColumn(isStringField, lit(true).cast(BooleanType))
+    //  val allStringSchema = StructType( 
+    //    dfWithExtras.schema.fields.map{ 
+    //      _.copy(dataType=StringType, nullable=true) 
+    //    }.toArray 
+    //  )
+    //  println("changeSchema: 4")
+    //  val result = { 
+    //
+    //    var resultDF = dfWithExtras
+    //    //resultDF.goodDF.persist(MEMORY_ONLY)
+    //    //resultDF.errorDF.persist(MEMORY_ONLY)
+    //
+    //    // do the field drops first
+    //    println("Starting all field drops...")
+    //    resultDF = 
+    //      listOldNew
+    //        .filter( on => (on.oldField.nonEmpty && on.newAFC.isEmpty ))
+    //        .foldLeft(resultDF){ (lastResult, on) => 
+    //          val sf = on.oldField.get
+    //          println(s">>>>>>>> dropping ${sf.name}")
+    //          lastResult.goodDF.drop(sf.name))
+    //        }
+    //
+    //    // then the field additions
+    //    println("Starting all field additions...")
+    //    resultDF = 
+    //      listOldNew
+    //        .filter( on => (on.oldField.isEmpty && on.newAFC.nonEmpty ))
+    //        .foldLeft(resultDF){ (lastResult, on) => 
+    //          val sf = on.newAFC.get.structField
+    //          println(s">>>>>>>> adding new null column: ${sf.name}")
+    //          lastResult.goodDF.withColumn(sf.name, lit(null).cast(sf.dataType)))
+    //        }
+    //
+    //    // do all the changes last
+    //    println("Starting all (potential) field changes...")
+    //    val finalResult: DataFrameOpResult = resultDF.modifyColumnTypesViaRDD(
+    //      listOldNew.filter( on => (on.oldField.nonEmpty && on.newAFC.nonEmpty )))
+    //
+    //    //DataFrameOpResult(
+    //    //  res.goodDF.drop(errorField), 
+    //    //  res.errorDF)
+    //    //
+    //    //println("Pulling out all fields where the erroField has something (converting errorFieldSplit to all strings)...")
+    //    //println("!!!!!!!! res.count = "+res.count)
+    //    //res.show
+    //    //val errorFieldSplit = res.split( col(errorField).isNull || length(trim(col(errorField))) === lit(0) )
+    //    //val goodDF = errorFieldSplit.positive.drop(errorField)
+    //    //val errDF = errorFieldSplit.negative.convertToAllStrings
+    //    //println("!!!!!!!! goodDF.count = "+goodDF.count)
+    //    //println("!!!!!!!! errDF.count = "+errDF.count)
+    //    //
+    //    //DataFrameOpResult(goodDF, errDF)
+    //
+    //    finalResult
+    //  }
+    //  println("changeSchema: DONE")
+    //  result
+    //}
+
+    /** After calling changeSchema on a dataframe, you could call this to 
+      * add any errors to a field you specify.
+      */
+    def addChangeSchemaErrorsToRejectReasonField(
+      rejectReasonField: String, 
+      separator: String): 
+      DataFrame = {
+
+      def hasRejectReasonField(df: DataFrame): Boolean = 
+        df.schema.fields.find( _.name == rejectReasonField ).nonEmpty
+
+      // add the error field to the reasonforreject field
+      if ( !hasRejectReasonField(df) ) {
+        // don't have it yet, just rename the error field to be reject reason
+        df.withColumnRenamed(changeSchemaErrorField, rejectReasonField)
+      }
+      else {
+        // have it already, need to update the field:
+        df.withColumn(
+          rejectReasonField,
+          concat_ws( separator, col(rejectReasonField), col(changeSchemaErrorField))
+        )
+        .drop(changeSchemaErrorField)
+      }
+    }
+
+
+    /** Reorder columns to match something else.  Required before doing unionAll()
+      * in Spark 1.5.
+      */
+    def reorderColumns(seq: Seq[String]): DataFrame = {
+
+      // compare sets of columns, they must match
+      val requestedSet = seq.toSet
+      val thisSet = df.schema.fields.map(_.name).toSet
+      if (requestedSet != thisSet) throw new Exception("DataFrameUtil.reorderColumns: new column set must match content and size of existing column set.")
+
+      df.select(seq.head, seq.tail: _*)
+      //df.select(seq)
+    }
+
+    /** Do a safe unionall that reorders columns to match before unioning.
+      */
+    def safeUnionAll(other: DataFrame): DataFrame = {
+      // reorder 'other' schema to match this one.
+      val reorderedOther = other.reorderColumns(df.schema.fields.map(_.name).toSeq)
+      // Now do the union
+      df.unionAll(reorderedOther)
+    }
+
+    /** "Flatten" a dataframe so all the fields in StructTypes are moved to the
+      * top level.  
+      * 
+      * Note that spark removes the prefixes even though this doesn't look like 
+      * it would.
+      */
+    def flatten: DataFrame = {
+
+      def flattenSchema(schema: StructType, prefix: Option[String] = None):
+        Array[Column] = {
+
+        schema.fields.flatMap{structField => {
+          val colName = {
+            if (prefix.isEmpty) structField.name
+            else prefix.get + "." + structField.name
+          }
+          structField.dataType match {
+            case st: StructType => flattenSchema(st, Option(colName))
+            case _ => Array(col(colName))
+          }
+        }}
+      }
+      df.select(flattenSchema(df.schema):_*)
+    }
+
+
+    /** Action that does a cheap take & count to determine if this 
+      * dataframe is empty or not.
+      */
+    def isEmpty(): Boolean = {
+      df.take(1).size == 0
+    }
+
+    /** Convert to RDD to change the schema then convert back.
+      */
+    // SAVE:  UNDER CONSTRUCTION
+    //private def modifyColumnTypesViaRDD(
+    //  fieldChanges: Seq[OldNewFields],
+    //  finalSchema: StructType,
+    //  finalSchemaAllString: StructType): 
+    //  DataFrameOpResult = {
+    //
+    //  // convert to RDD
+    //  val origRDD = df.rdd
+    //
+    //  // Modify each row per fieldChanges
+    //  val modRDD = origRDD.map{ row => 
+    //    // convert to seq
+    //    val rowSeq = row.toSeq
+    //
+    //    // modify
+    //    val newSeq = ???
+    //
+    //    // bring back to Row
+    //    Row.fromSeq(newSeq)
+    //  }
+    //
+    //  // split RDD into two based on if any conversion errors
+    //  val splitRDD = modRDD.split( row => row.getAs[Boolean](isStringField) == false )
+    //
+    //  // convert each RDD into a dataframe and return
+    //  val pos = sqlContext.createDataFrame(splitRDD._1, finalSchema)
+    //  val neg = sqlContext.createDataFrame(splitRDD._2, finalSchemaAllString)
+    //  DataFrameOpResult(pos, neg)
+    //}
   }
 }

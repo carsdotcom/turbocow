@@ -346,14 +346,14 @@ object DataFrameUtil
           listOldNew.filter( on => (on.oldField.nonEmpty && on.newAFC.nonEmpty )),
           res )
 
-        println("Pulling out all fields where the erroField has something (converting errorFieldSplit to all strings)...")
-        println("!!!!!!!! res.count = "+res.count)
-        res.show
+        //println("Pulling out all fields where the erroField has something (converting errorFieldSplit to all strings)...")
+        //println("!!!!!!!! res.count = "+res.count)
+        //res.show
         val errorFieldSplit = res.split( col(errorField).isNull || length(trim(col(errorField))) === lit(0) )
         val goodDF = errorFieldSplit.positive.drop(errorField)
         val errDF = errorFieldSplit.negative.convertToAllStrings
-        println("!!!!!!!! goodDF.count = "+goodDF.count)
-        println("!!!!!!!! errDF.count = "+errDF.count)
+        //println("!!!!!!!! goodDF.count = "+goodDF.count)
+        //println("!!!!!!!! errDF.count = "+errDF.count)
 
         DataFrameOpResult(goodDF, errDF)
       }

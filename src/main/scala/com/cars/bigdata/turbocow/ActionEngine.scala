@@ -41,7 +41,7 @@ object ActionEngine
     RDD[Map[String, String]] = {
 
     // Get the input file
-    val inputJsonRDD = sc.textFile(inputDir.toString)
+    val inputJsonRDD = sc.textFile(inputDir.toString).map{ text => parse(text) }
 
     processJsonRDD(inputJsonRDD, config, sc, hiveContext, actionFactory, initialScratchPad, jdbcClientConfigs)
   }
@@ -72,7 +72,7 @@ object ActionEngine
     RDD[Map[String, String]] = {
 
     // Create RDD from the inputJson strings
-    val inputJsonRDD = sc.parallelize(inputJson)
+    val inputJsonRDD = sc.parallelize(inputJson).map{ text => parse(text) }
 
     processJsonRDD(inputJsonRDD, config, sc, hiveContext, actionFactory, initialScratchPad, jdbcClientConfigs)
   }
@@ -93,7 +93,7 @@ object ActionEngine
     * @return RDD of enriched data records, where each record is a key-value map.
     */
   def processJsonRDD(
-    inputJsonRDD: RDD[String],
+    inputJsonRDD: RDD[JValue],
     config: String,
     sc: SparkContext,
     hiveContext : Option[HiveContext] = None,
@@ -126,35 +126,12 @@ object ActionEngine
     * @todo add similar functions to the other process..() functions above
     */
   def processJsonRDD(
-    inputJsonRDD: RDD[String],
+    inputJsonRDD: RDD[JValue],
     bc: EngineBroadcasts):
     RDD[Map[String, String]] = {
 
-    // parse the input json data
-    val flattenedRDD = inputJsonRDD.map( jsonString => {
-      val ast = parse(jsonString)
-      // 'flatten' the json so activityMap & metaData's members are together at the
-      // same level:
-      // todo (open) make this configurable in the JSON.
-      val mergedAST = {
-        //val theRest = ast.children.flatMap{ jval =>
-        //  jval match {
-        //    case JNothing => 
-        //  } 
-        //}
-        val md = (ast \ "md").toOption 
-        val activityMap = (ast \ "activityMap").toOption
-        if (md.nonEmpty && activityMap.nonEmpty) md.get merge activityMap.get
-        else if (md.nonEmpty) md.get
-        else if (activityMap.nonEmpty) activityMap.get
-        else ast
-        // TODOTODO what if one or the other missing; what about the rest of the stuff?
-      }
-      mergedAST
-    })
-
     // for every impression, perform all actions from config file.
-    val enrichedRDD = flattenedRDD.mapPartitions{ iter =>
+    val enrichedRDD = inputJsonRDD.mapPartitions{ iter =>
 
       val jdbcClients: Map[String, Statement] = createJdbcClients(bc.jdbcClientConfigsBC.value)
 

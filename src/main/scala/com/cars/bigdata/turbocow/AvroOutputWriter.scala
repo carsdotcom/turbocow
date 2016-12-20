@@ -175,7 +175,7 @@ object AvroOutputWriter {
     writerConfig: AvroOutputWriterConfig = AvroOutputWriterConfig()):
     RDD[Map[String, Any]] = {
 
-    // Now change all the types to the actual needed types.
+    // Change all the types to the actual needed types.
     // Any fields that are in 'allAddedFieldsBC' need to be String because
     // they may have come from the input.
     rdd.map{ record => 
@@ -382,7 +382,23 @@ object AvroOutputWriter {
     outputDir: Path): 
     DataFrame = {
 
+    println("AvroOutputWriter.write: changing schema...")
     val conversionResult = df.changeSchema(conformToSchema)
+
+    println("=============111vvv")
+    println("conversionResult.goodDF.schema = ")
+    conversionResult.goodDF.schema.fields.foreach(println)
+    println("=============111^^^")
+
+    {
+      println("=============222vvv")
+      val confSchema = conformToSchema.map( _.structField )
+      val goodDFSchema = conversionResult.goodDF.schema.fields
+      println("confSchema.diff(goodDFSchema) = "+confSchema.diff(goodDFSchema).mkString("; "))
+      println("goodDFSchema.diff(confSchema) = "+goodDFSchema.diff(confSchema).mkString("; "))
+      println("=============222^^^")
+    }
+
     write(conversionResult.goodDF, outputDir)
     conversionResult.errorDF
   }
@@ -393,46 +409,76 @@ object AvroOutputWriter {
     *
     * Callers may wish to persist the enrichedRDD before calling this, as it is reused
     * for at least 2 actions.
+    * 
+    * @param addMissingFields -
+    *        if true (default): all fields from specified schema are added to dataframe.
+    *        if false: not all fields from specified schema may be added to dataframe.
+    *                 This is an optimization to allow for columns that are to be added
+    *                 later to not be added so early.
+    *                 Only fields that already exist in the enriched record, or
+    *                 are named in the field marked ActionEngine.addedInputFieldsMarker,
+    *                 will be added.  No fields in schema that don't yet exist
+    *                 in enriched will be added.
     *
     * @return (DataFrame, RDD) where the dataframe is the good records, and 
     *         the RDD is the bad records that need to be handled separately due
     *         to type conversion issues.
+    *
+    * @todo only optionally split up the return into rejected records.  That is only needed 
+    *       if calling from writeEnrichedRDD().
     */
   def convertEnrichedRDDToDataFrame(
     enrichedRDD: RDD[Map[String, String]],
     schema: StructType,
     sqlContext: SQLContext,
-    writerConfig: AvroOutputWriterConfig = AvroOutputWriterConfig()): 
+    writerConfig: AvroOutputWriterConfig = AvroOutputWriterConfig(),
+    addMissingFields: Boolean = true):
     (DataFrame, RDD[Map[String, String]]) = {
 
-    val errorMarker = avroTypeErrorMarker
     val sc = enrichedRDD.sparkContext
 
     // Create a schema that ensures every field is nullable,
     // and accounts for the fields added from the input record (makes them string).
+    // Note that the addedInputFieldsMarker is set in ActionEngine.processRecord().
     if (schema == null || schema.fields == null) throw new RuntimeException("schema must not be null in convertEnrichedRDDToDataFrame()")
     if (schema.fields.isEmpty) throw new RuntimeException("schema must not be empty in convertEnrichedRDDToDataFrame()")
     val safeSchema = { 
 
       // Merge all of the added input fields from each record, get a master 
       // set of added fields.  
-      val allAddedFields = enrichedRDD.map{ e =>
-        val list = e.get( ActionEngine.addedInputFieldsMarker )
+      println("Calculating allAddedFields...")
+      val allAddedFields = enrichedRDD.map{ record =>
+        val list = record.get( ActionEngine.addedInputFieldsMarker )
         if (list.nonEmpty) 
           list.get.split(",").toSet
         else 
           Set.empty[String] 
       }.fold(Set.empty[String]){ _ ++ _ }
+      println("Done calculating allAddedFields.")
 
-      StructType( schema.fields.map{ sf => 
+      // Figure out the set of all fields already in the enriched 
+      // (enriched should include input at this point)
+      println("Calculating allFieldsSet...")
+      val allFieldsSet = enrichedRDD.map{ record =>
+        record.keySet
+      }.fold(Set.empty[String]){ _ ++ _ }
+      println("Done calculating allFieldsSet.")
+
+      StructType( schema.fields.flatMap{ sf =>
         // If field is in the added fields set, modify the structfield to be 
         // string type and nullable:
         if (allAddedFields.contains(sf.name))
-          sf.copy(dataType=StringType, nullable=true)
-        else 
-          sf.copy(nullable=true)
+          Option(sf.copy(dataType=StringType, nullable=true))
+        else {
+          if ( addMissingFields || allFieldsSet.contains(sf.name) )
+            Option(sf.copy(nullable=true))
+          else
+            None
+        }
       })
     }
+
+    val errorMarker = avroTypeErrorMarker
 
     // Loop through enriched record fields, and extract the value of each field 
     // in the order of schema list (so the order matches the Avro schema). 
@@ -452,10 +498,11 @@ object AvroOutputWriter {
       }}
     }
 
-    // Filter them out in the main rdd.
+    // Filter out the error records and create the RDD of Rows.  
     val rowRDD: RDD[Row] = anyRDD.filter {
       _.get(errorMarker).isEmpty
-    }.map{ record =>
+    }
+    .map{ record =>
       val vals: Seq[Any] = safeSchema.fields.map{ structField =>
         val field = structField.name
         record.getOrElse(field, null)

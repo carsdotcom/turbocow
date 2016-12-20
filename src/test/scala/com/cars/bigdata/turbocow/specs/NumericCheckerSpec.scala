@@ -50,7 +50,7 @@ class NumericCheckerSpec extends UnitSpec {
     it("should run numeric action successfully") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "175"}}"""), // A with an integer
+        List("""{"A": "175"}"""), // A with an integer
         s"""{
           "activityType": "impressions",
           "items": [
@@ -99,7 +99,7 @@ class NumericCheckerSpec extends UnitSpec {
     it("should run numeric action successfully with a float value") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "175.43"}}"""), // A is float value
+        List("""{ "A": "175.43"}"""), // A is float value
         s"""{
           "activityType": "impressions",
           "items": [
@@ -148,7 +148,7 @@ class NumericCheckerSpec extends UnitSpec {
     it("should run numeric action successfully with negative float numbers") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "-9999999999999999999.9999999999999999999"}}"""), // A is negative float value
+        List("""{ "A": "-9999999999999999999.9999999999999999999"}"""), // A is negative float value
         s"""{
           "activityType": "impressions",
           "items": [
@@ -197,7 +197,7 @@ class NumericCheckerSpec extends UnitSpec {
     it("should run numeric action with OnFail search and replace action ") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "6754a9"}}"""), // A is non-numeric string.
+        List("""{ "A": "6754a9"}"""), // A is non-numeric string.
         s"""{
           "activityType": "impressions",
           "items": [
@@ -250,7 +250,7 @@ class NumericCheckerSpec extends UnitSpec {
     it("should run non-numeric action with d in inputValue with OnPass search and replace action ") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "547346d"}}"""), // A is non-numeric string.
+        List("""{ "A": "547346d"}"""), // A is non-numeric string.
         s"""{
           "activityType": "impressions",
           "items": [
@@ -299,7 +299,7 @@ class NumericCheckerSpec extends UnitSpec {
     it("should run non-numeric D in inputValue action with OnPass search and replace action ") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "547346D"}}"""), // A is non-numeric string.
+        List("""{ "A": "547346D"}"""), // A is non-numeric string.
         s"""{
           "activityType": "impressions",
           "items": [
@@ -348,7 +348,7 @@ class NumericCheckerSpec extends UnitSpec {
     it("should run non-numeric f in inputValue action with OnPass search and replace action ") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "547346f"}}"""), // A is non-numeric string.
+        List("""{ "A": "547346f"}"""), // A is non-numeric string.
         s"""{
           "activityType": "impressions",
           "items": [
@@ -397,7 +397,7 @@ class NumericCheckerSpec extends UnitSpec {
     it("should run non-numeric F in inputValue action with OnPass search and replace action ") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "547346F"}}"""), // A is non-numeric string.
+        List("""{ "A": "547346F"}"""), // A is non-numeric string.
         s"""{
           "activityType": "impressions",
           "items": [
@@ -446,7 +446,7 @@ class NumericCheckerSpec extends UnitSpec {
     it("should run non-numeric action with OnFail search and replace action. the input value has number ") {
 
       val enriched: Array[Map[String, String]] = ActionEngine.processJsonStrings(
-        List("""{ "activityMap": {"A": "5672934"}}"""), // A is non-numeric string.
+        List("""{ "A": "5672934"}"""), // A is non-numeric string.
         s"""{
           "activityType": "impressions",
           "items": [

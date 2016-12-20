@@ -13,8 +13,13 @@ object FileUtil {
 
   /** Helper function to quickly write a file to a temp dir.  Returns the file path.
     */
-  def writeTempFile(text: String, nameOfFile: String): String = {
-    val dir = Files.createTempDirectory("testoutput-")
+  def writeTempFile(
+    text: String, 
+    nameOfFile: String, 
+    tempDirPrefix: String = "tempdir-"): 
+    String = {
+
+    val dir = Files.createTempDirectory(tempDirPrefix)
     val path = dir + "/" + nameOfFile
     writeFile(text, path)
     path

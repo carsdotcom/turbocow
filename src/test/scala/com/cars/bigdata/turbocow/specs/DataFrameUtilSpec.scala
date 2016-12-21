@@ -1208,9 +1208,10 @@ class DataFrameUtilSpec
   }
 
   // DF with same types
-  val sameDF = sqlCtx.createDataFrame(sc.parallelize(
-    List(//             a    b    c
-      Row.fromSeq(List( "0", "1", "2")))),
+  val sameDF = sqlCtx.createDataFrame(
+    sc.parallelize(
+      List(//             a    b    c
+        Row.fromSeq(List( "0", "1", "2")))),
     StructType( List(
       StructField("a", StringType),
       StructField("b", StringType),
@@ -1218,9 +1219,10 @@ class DataFrameUtilSpec
   sameDF.persist
 
   // DF with same types, reversed
-  val sameRevDF = sqlCtx.createDataFrame(sc.parallelize(
-    List(//              c     b    a
-      Row.fromSeq(List( "22", "21", "20")))),
+  val sameRevDF = sqlCtx.createDataFrame(
+    sc.parallelize(
+      List(//              c     b    a
+        Row.fromSeq(List( "22", "21", "20")))),
     StructType( List(
       StructField("c", StringType),
       StructField("b", StringType),
@@ -1228,9 +1230,10 @@ class DataFrameUtilSpec
   sameRevDF.persist
 
   // DF with different types
-  val diffDF = sqlCtx.createDataFrame(sc.parallelize(
-    List(//             a    b    c
-      Row.fromSeq(List( "0", 1,   2.0)))),
+  val diffDF = sqlCtx.createDataFrame(
+    sc.parallelize(
+      List(//             a    b    c
+        Row.fromSeq(List( "0", 1,   2.0)))),
     StructType( List(
       StructField("a", StringType),
       StructField("b", IntegerType),
@@ -1238,9 +1241,10 @@ class DataFrameUtilSpec
   diffDF.persist
 
   // DF with different types, reversed
-  val diffRevDF = sqlCtx.createDataFrame(sc.parallelize(
-    List(//              c    b    a
-      Row.fromSeq(List( 22.0, 21,  "20")))),
+  val diffRevDF = sqlCtx.createDataFrame(
+    sc.parallelize(
+      List(//              c    b    a
+        Row.fromSeq(List( 22.0, 21,  "20")))),
     StructType( List(
       StructField("c", DoubleType),
       StructField("b", IntegerType),

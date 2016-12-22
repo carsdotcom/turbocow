@@ -490,10 +490,10 @@ object DataFrameUtil
       // compare sets of columns, they must match
       val requestedSet = seq.toSet
       val thisSet = df.schema.fields.map(_.name).toSet
-      if (requestedSet != thisSet) throw new Exception("DataFrameUtil.reorderColumns: new column set must match content and size of existing column set.")
+      if (seq.size != requestedSet.size) throw new Exception("DataFrameUtil.reorderColumns: there are column name duplicates in the requested schema sequence: "+seq.mkString(";"))
+      if (requestedSet != thisSet) throw new Exception(s"""DataFrameUtil.reorderColumns: new column set must match content and size of existing column set.  requested=${requestedSet.mkString(";")}, thisSet=${thisSet.mkString(";")}""")
 
       df.select(seq.head, seq.tail: _*)
-      //df.select(seq)
     }
 
     /** Do a safe unionall that reorders columns to match before unioning.

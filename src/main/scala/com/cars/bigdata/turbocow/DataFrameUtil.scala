@@ -487,11 +487,26 @@ object DataFrameUtil
       */
     def reorderColumns(seq: Seq[String]): DataFrame = {
 
+      def findDuplicates(list: Seq[String]): Seq[String] = {
+        val sorted = list.sorted
+        sorted.diff(sorted.distinct)
+      }
+
       // compare sets of columns, they must match
       val requestedSet = seq.toSet
       val thisSet = df.schema.fields.map(_.name).toSet
-      if (seq.size != requestedSet.size) throw new Exception("DataFrameUtil.reorderColumns: there are column name duplicates in the requested schema sequence: "+seq.mkString(";"))
-      if (requestedSet != thisSet) throw new Exception(s"""DataFrameUtil.reorderColumns: new column set must match content and size of existing column set.  requested=${requestedSet.mkString(";")}, thisSet=${thisSet.mkString(";")}""")
+      if (seq.size != requestedSet.size) {
+        val sortedFields = seq.sorted.mkString(";")
+        val duplicates = findDuplicates(seq)
+        throw new Exception(s"""DataFrameUtil.reorderColumns: there are column name duplicates in the requested schema sequence: $sortedFields // duplicate fields are: ${duplicates.mkString("; ")}""")
+      }
+      if (df.schema.fields.size != thisSet.size) {
+        val list = df.schema.fields.map(_.name)
+        val sortedFields = list.sorted.mkString(";")
+        val duplicates = findDuplicates(list)
+        throw new Exception(s"""DataFrameUtil.reorderColumns: there are column name duplicates in the 'df' schema sequence: $sortedFields // duplicate fields are: ${duplicates.mkString("; ")}""") //schema sequence: "+df.schema.fields.map(_.name).sorted.mkString(";"))
+      }
+      if (requestedSet != thisSet) throw new Exception(s"""DataFrameUtil.reorderColumns: new column set must match content and size of existing column set.  requested=${requestedSet.mkString(";")} // thisSet=${thisSet.mkString(";")} // diff = ${requestedSet.diff(thisSet)}""")
 
       df.select(seq.head, seq.tail: _*)
     }
@@ -530,6 +545,16 @@ object DataFrameUtil
       df.select(flattenSchema(df.schema):_*)
     }
 
+
+    /** Adds a field if it doesn't yet exist in the schema and defaults it to
+      * whatever you like.
+      */
+    def addFieldIfNotExist(fieldName: String, defaultValue: Column): DataFrame = {
+      if (df.schema.fields.find( _.name == fieldName ).isEmpty)
+        df.withColumn(fieldName, defaultValue)
+      else 
+        df
+    }
 
     /** Action that does a cheap take & count to determine if this 
       * dataframe is empty or not.

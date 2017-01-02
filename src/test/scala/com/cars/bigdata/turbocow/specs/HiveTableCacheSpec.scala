@@ -256,7 +256,19 @@ class HiveTableCacheSpec extends UnitSpec {
       }
 
       // Ensure that the Row objects are the same for each index-map:
-      //TODO
+      val rowsA = tableCache.tableMap("A")
+      val rowsB = tableCache.tableMap("B")
+      rowsA.foreach{ rowA =>
+
+        val index = rowA._1 match {
+          case s: String => (s.toInt + 1)
+          case _ => fail
+        }
+        val rowB = rowsB( f"${index}%02d" )
+
+        (rowA._2 == rowB) should be (true)
+        (rowA._2 eq rowB) should be (true)
+      }
     }
 
     it("should cache two different tables properly") {

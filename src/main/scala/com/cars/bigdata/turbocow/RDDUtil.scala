@@ -73,6 +73,22 @@ object RDDUtil {
       * @return tuple of (positiveFilteredRDD, negativeFilteredRDD)
       */
     def split(filter: (T) => Boolean): (RDD[T], RDD[T]) = RDDUtil.split(rdd, filter)
+
+
+    /** Does a coalesce or repartition based on current partition size.
+      */
+    def optimizedRepartition(numPartitions: Int): RDD[T] = {
+      
+      val currentNum = rdd.partitions.size
+
+      if (numPartitions > currentNum) 
+        rdd.repartition(numPartitions)
+      else if (numPartitions < currentNum) 
+        rdd.coalesce(numPartitions)
+      else  // equal, don't repartition
+        rdd
+    }
+
   }
 
 

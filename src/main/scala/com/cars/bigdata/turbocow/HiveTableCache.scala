@@ -21,21 +21,23 @@ class HiveTableCache(
 
   /** Lookup function that returns the whole row if found.  
     * 
-    * @param keyField the name of the key field to lookup on
+    * @param keyField the name of the key object to lookup on
     * @param keyValue the value to search for in the keyField
     * 
     * @return Some[Row] if found; None if not.
     */
   override def lookup(
     keyField: String,
-    keyValue: Option[String]
+    keyValue: Option[Any]
   ): Option[Row] = {
 
     if (keyValue.nonEmpty)  {
       // If we can't find this index's map, we just return None
       val map = tableMap.getOrElse(keyField, return None)
 
-      val convertedKeyValue: Option[Any] = convertToCorrectLookupType(keyField, keyValue.get)
+      val convertedKeyValue: Option[Any] = 
+        keyValue
+        //convertToCorrectLookupType(keyField, keyValue.get)
       if (convertedKeyValue.isEmpty){
         None
       }
@@ -55,7 +57,7 @@ class HiveTableCache(
     */
   override def lookup(
     keyField: String,
-    keyValue: Option[String],
+    keyValue: Option[Any],
     select: List[String]
   ): Option[Map[String, Option[String]]] = {
 
@@ -76,20 +78,20 @@ class HiveTableCache(
 
   /** convert the type
     */
-  def convertToCorrectLookupType(keyField: String, keyValue: String): Option[Any] = {
-
-    // TODO test coverage
-    //println(s"CCCCCCCCCCCCCCCCCCCCCCCC converting keyField, keyValue($keyField, $keyValue) to.......")
-    val lookupTable = tableMap.get(keyField).getOrElse(return Option(keyValue)) // todo handle failure
-    lookupTable.head._1 match {
-      case a: Long => Try{Option(keyValue.toLong)}.getOrElse( None)
-      case a: Int => Try{Option(keyValue.toInt)}.getOrElse( None)
-      case a: Double => Try{Option(keyValue.toDouble)}.getOrElse( None)
-      case a: Float => Try{Option(keyValue.toFloat)}.getOrElse( None)
-      case a: String => Option(keyValue.toString)
-      case a => Option(a)
-    }
-  }
+  //def convertToCorrectLookupType(keyField: String, keyValue: Any): Option[Any] = {
+  //
+  //  // TODO test coverage
+  //  //println(s"CCCCCCCCCCCCCCCCCCCCCCCC converting keyField, keyValue($keyField, $keyValue) to.......")
+  //  val lookupTable = tableMap.get(keyField).getOrElse(return Option(keyValue)) // todo handle failure
+  //  lookupTable.head._1 match {
+  //    case a: Long => Try{Option(keyValue.toLong)}.getOrElse( None)
+  //    case a: Int => Try{Option(keyValue.toInt)}.getOrElse( None)
+  //    case a: Double => Try{Option(keyValue.toDouble)}.getOrElse( None)
+  //    case a: Float => Try{Option(keyValue.toFloat)}.getOrElse( None)
+  //    case a: String => Option(keyValue.toString)
+  //    case a => Option(a)
+  //  }
+  //}
 }
 
 /** Companion object.  

@@ -475,13 +475,13 @@ class HiveTableCacheSpec extends UnitSpec {
       |  ]
       |}""".stripMargin
 
-    it("should return a row that is requested in lookup call with invalid table values") {
+    it("should not find a row that is requested in lookup call with invalid table values") {
         val tcMap: Map[String, TableCache] = createTableCaches(testConfig2)
-        val tableCache = tcMap.head._2 match {
-          case h: HiveTableCache => h
-        }
+        val tableCache = tcMap.head._2 match { case h: HiveTableCache => h }
 
-        val result: Any = tableCache.convertToCorrectLookupType("dc", "")
+        //val result: Any = tableCache.convertToCorrectLookupType("dc", "")
+        //result should be (None)
+        val result: Option[Row] = tableCache.lookup("dc", Some(""))
         result should be (None)
     }
 

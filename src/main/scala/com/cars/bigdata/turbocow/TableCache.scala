@@ -10,18 +10,18 @@ trait TableCache extends Serializable {
 
   /** Lookup function that returns the whole row if found.  
     * 
-    * @param keyField the name of the key field to lookup on
+    * @param keyField the name of the key object to lookup on
     * @param keyValue the value to search for in the keyField
     * @return Some[Row] if found; None if not.
     */
   def lookup(
     keyField: String,
-    keyValue: Option[String]
+    keyValue: Option[Any]
   ): Option[Row]
 
   /** Do a lookup.  Only returns the values you select.
     * 
-    * @param keyField - name of the key field to search on
+    * @param keyField the name of the key object to lookup on
     * @param keyValue - the value to find in the key field (the value of the 
     *                   "primary key")
     * @param select - list of fields whose values should be grabbed from the row
@@ -32,7 +32,7 @@ trait TableCache extends Serializable {
     */
   def lookup(
     keyField: String,
-    keyValue: Option[String],
+    keyValue: Option[Any],
     select: List[String]
   ): Option[Map[String, Option[String]]]
 

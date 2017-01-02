@@ -17,6 +17,7 @@ class HiveTableCacheSpec extends UnitSpec {
 
   var actionFactory: ActionFactory = null
   val testTable = "testtable"
+  val testTable2 = "testtable2"
 
   // before all tests have run
   override def beforeAll() = {
@@ -133,7 +134,7 @@ class HiveTableCacheSpec extends UnitSpec {
       }
     }
 
-    it("should cache two tables properly") {
+    it("should cache two tables with different indexes properly") {
 
       val config = 
         s"""{
@@ -257,7 +258,132 @@ class HiveTableCacheSpec extends UnitSpec {
       // Ensure that the Row objects are the same for each index-map:
       //TODO
     }
-     
+
+    it("should cache two different tables properly") {
+
+      val config = 
+        s"""{
+           |  "activityType": "impressions",
+           |  "items": [
+           |    {
+           |      "actions":[
+           |        {
+           |          "actionType":"lookup",
+           |          "config": {
+           |            "select": [
+           |              "B",
+           |              "C"
+           |            ],
+           |            "fromDBTable": "$testTable",
+           |            "fromFile": "$resDir/testdimension-3row.json",
+           |            "where": "A",
+           |            "equals": "11"
+           |          }
+           |        }
+           |      ]
+           |    },
+           |    {
+           |      "actions":[
+           |        {
+           |          "actionType":"lookup",
+           |          "config": {
+           |            "select": [
+           |              "H"
+           |            ],
+           |            "fromDBTable": "$testTable2",
+           |            "fromFile": "$resDir/testdimension2-3row.json",
+           |            "where": "F",
+           |            "equals": "22"
+           |          }
+           |        }
+           |      ]
+           |    }
+           |  ]
+           |}""".stripMargin
+
+      printAllTableNames("BEFORE creating cache 2")
+
+      val tcMap: Map[String, TableCache] = createTableCaches(config)
+
+      printAllTableNames("AFTER creating cache 2")
+
+      val numTables = tcMap.size
+      numTables should be (2)
+      tcMap.keySet should be (Set(testTable, testTable2))
+
+      {
+        val tableCache = tcMap.get(testTable).get match { case h: HiveTableCache => h }
+        val numIndexes = tableCache.tableMap.size 
+        numIndexes should be (1)
+
+        val allIndices = tableCache.tableMap.keys.toList.sorted
+        allIndices should be (List("A"))
+
+        // Test A index:
+        {
+          val rowsMap = tableCache.tableMap("A")
+          println("rowsMap = "+rowsMap.toString)
+          rowsMap.size should be (3)
+          rowsMap.foreach{ row =>
+            row._2.schema.fields.map(_.name).toSeq.sorted should be (Seq("A", "B", "C"))
+          }
+
+          {
+            val row = rowsMap("01")
+            row.getAs[String]("A") should be ("01")
+            row.getAs[String]("B") should be ("02")
+            row.getAs[String]("C") should be ("03")
+          }
+          {
+            val row = rowsMap("11")
+            row.getAs[String]("A") should be ("11")
+            row.getAs[String]("B") should be ("12")
+            row.getAs[String]("C") should be ("13")
+          }
+          {
+            val row = rowsMap("21")
+            row.getAs[String]("A") should be ("21")
+            row.getAs[String]("B") should be ("22")
+            row.getAs[String]("C") should be ("23")
+          }
+        }
+      }
+
+      // do 2nd test table
+      {
+        val tableCache = tcMap.get(testTable2).get match { case h: HiveTableCache => h }
+        val numIndexes = tableCache.tableMap.size 
+        numIndexes should be (1)
+
+        val allIndices = tableCache.tableMap.keys.toList.sorted
+        allIndices should be (List("F"))
+
+        // Test A index:
+        {
+          val rowsMap = tableCache.tableMap("F")
+          rowsMap.size should be (3)
+          rowsMap.foreach{ row =>
+            row._2.schema.fields.map(_.name).toSeq.sorted should be (Seq("F", "H"))
+          }
+
+          {
+            val row = rowsMap("02")
+            row.getAs[String]("F") should be ("02")
+            row.getAs[String]("H") should be ("04")
+          }
+          {
+            val row = rowsMap("12")
+            row.getAs[String]("F") should be ("12")
+            row.getAs[String]("H") should be ("14")
+          }
+          {
+            val row = rowsMap("22")
+            row.getAs[String]("F") should be ("22")
+            row.getAs[String]("H") should be ("24")
+          }
+        }
+      }
+    }
   }
 
   describe("lookup()") {

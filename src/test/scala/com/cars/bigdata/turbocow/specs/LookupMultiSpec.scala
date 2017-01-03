@@ -284,7 +284,7 @@ class LookupMultiSpec extends UnitSpec {
                     ],
                     "fromDBTable": "testTable",
                     "where": ["A", "B"],
-                    "equals": ["AField", "BField"]
+                    "equals": ["AField", "BField", "xtraField" ]
                   }
                 }
               ]

@@ -453,6 +453,38 @@ class HiveTableCacheSpec extends UnitSpec {
       row.getAs[Boolean]("AlwaysNull") should be ({val v: java.lang.Boolean = null; v})
     }
 
+    //it("should return a row that is requested in lookup call when index is a tuple") {
+    //
+    //  val tcMap: Map[String, TableCache] = {
+    //    
+    //  }
+    //  val tableCache = tcMap.head._2 match { case h: HiveTableCache => h }
+    //
+    //  val result : Option[Row] = tableCache.lookup("Row", Some("2"))
+    //  result.nonEmpty should be (true)
+    //
+    //  val row = result.get
+    //  row.getAs[String]("String") should be ("string")
+    //  row.getAs[Int]("Int") should be (21)
+    //  row.getAs[Long]("Long") should be (22L)
+    //  row.getAs[Double]("Double") should be (-24.1)
+    //
+    //  // Note that Float gets converted to Double; it doesn't return a Float:
+    //  row.getAs[Float]("Float") should be (23.1)
+    //
+    //  row.getAs[Boolean]("Boolean") should be (true)
+    //
+    //  // Note, we have to use a java Integer to set it to null and compare:
+    //  row.getAs[Int]("NullInt") should be ({val v: Integer = null; v})
+    //  row.getAs[Int]("NonNullInt") should be (50)
+    //
+    //  // Shouldn't matter the type, this should return null
+    //  row.getAs[Int]("AlwaysNull") should be ({val v: Integer = null; v})
+    //  row.getAs[String]("AlwaysNull") should be ({val v: String = null; v})
+    //  // (Note, again using java type to do null comparison... Row api is annoying...
+    //  row.getAs[Boolean]("AlwaysNull") should be ({val v: java.lang.Boolean = null; v})
+    //}
+
     val testConfig2 = s"""{
       |  "activityType": "impressions",
       |  "items": [

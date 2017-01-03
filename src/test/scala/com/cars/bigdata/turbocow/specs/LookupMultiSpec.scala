@@ -83,12 +83,10 @@ class LookupMultiSpec extends UnitSpec {
       val action = LookupMulti(actionConfig, None)
       action.fromDBTable should be("testTable")
       action.fromFile should be(None)
+      action.select should be(List("EnhField1", "EnhField2"))
       action.where should be(List("KEYFIELD", "KEYFIELD2"))
       action.equals should be(List("AField", "BField"))
-      action.select should be(List("EnhField1", "EnhField2"))
     }
-
-  }/*
 
     it("should parse the config correctly with a fromFile") {
 
@@ -110,8 +108,8 @@ class LookupMultiSpec extends UnitSpec {
                     ],
                     "fromDBTable": "testTable",
                     "fromFile": "./src/test/resources/testdimension-multirow.json",
-                    "where": "KEYFIELD",
-                    "equals": "AField"
+                    "where": ["KEYFIELD", "KEYFIELD2"],
+                    "equals": ["AField", "BField"]
                   }
                 }
               ]
@@ -128,16 +126,17 @@ class LookupMultiSpec extends UnitSpec {
       val actionConfig = actionsList.children.head \ "config"
       actionConfig should not be (JNothing)
 
-      val action = Lookup(actionConfig, None)
+      val action = LookupMulti(actionConfig, None)
       action.fromDBTable should be("testTable")
       action.fromFile should be(Some("./src/test/resources/testdimension-multirow.json"))
-      action.where should be("KEYFIELD")
-      action.equals should be("AField")
       action.select should be(List("EnhField1", "EnhField2"))
+      action.where should be(List("KEYFIELD", "KEYFIELD2"))
+      action.equals should be(List("AField", "BField"))
     }
   }
+  /*
 
-  describe("Lookup action") {
+  describe("LookupMulti action") {
 
     it("should successfully process one lookup") {
       val enriched: Array[Map[String, String]] = ActionEngine.processDir(

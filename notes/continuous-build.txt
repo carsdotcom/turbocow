@@ -1,8 +1,0 @@
-# SBT revolver plugin watches for code changes and continually runs your command:
-$ sbt 
-$ > ~test
-# turnaround times as low as 2 seconds (one file change)
-
-# Gradle can do it to, using "-t" option (incubating feature, may not be ready for prime time)
-$ gradle -t test
-# turnaround times average 6 seconds (one file change)

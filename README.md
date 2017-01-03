@@ -1,6 +1,8 @@
 # TurboCow
 
-This is a library to help with common data validation and enrichment activities in Spark.
+This is a framework library to help with common data validation and enrichment activities in Spark.  It allows you to define your enrichment & validation steps in JSON so you don't have to write as much code to do these common ETL activities.
+
+Currently only Spark 1.5 is supported.  We have plans to upgrade our cluster soon, and 1.6 and 2.0 updates will follow soon after.
 
 ## Setup
 
@@ -13,6 +15,8 @@ To use this library in your SBT project, add the following line to your build.sb
 There is example code in the ExampleApp.scala file in this project, that you can use as a template to get started.
 
 ## Overview
+
+The framework supports "Actions" that are defined in the JSON file.  Each action list works on one field of an input data set.  The data set is processed by rows in an RDD.  When finished with those actions, the RDD is converted to a Dataframe which is then written out in Avro format.  (Only avro is supported currently.)
 
 The code flow is as follows:
 
@@ -27,9 +31,11 @@ The code flow is as follows:
 
 ## Action Engine
 
+The ActionEngine is what performs the row processing.
+
 ### Actions
 
-TODO
+See notes/configuration-schema.json for detailed examples of each JSON action and how to write the JSON.
 
 #### Lookup ("lookup")
 
@@ -38,6 +44,24 @@ Here's how lookup works:
 The framework searches in the config file for every Lookup action, determines exactly what fields to cache from which tables, and creates an in-memory map of Row objects where the key is the index fields needed.  There are multiple maps, because we may need different keys, but they all point to the same Row objects (to save memory).   The cached tables are then broadcast to every spark executor and 'queried' when a Lookup action is performed.
 
 In the "onPass" and "onFail" sections, you can run any action list.  You can even reject the record here (or even in OnPass) by adding a "reject" actionType (see below).
+
+#### Check
+
+This is the validation action.  It supports validation using the following operators:
+
+Unary operators:
+
+ * empty                                             
+ * non-empty                                         
+ * null                                              
+ * non-null                                          
+ * numeric                                           
+ * non-numeric                                       
+
+Binary operators (two operands):
+
+  * equals                                            
+
 
 ##### DataFrames
 
@@ -49,22 +73,5 @@ Rejection is a separate action, but it has ramifications in the framework beyond
 
 ## Testing
 
-When testing, if you "`import test.SparkTestContext._`" you will get access to global spark, sql, and hive contexts to use in your tests.  Do not create new contexts.  This allows you to separate the tests into different files.  
+When writing tests for your application code or the framework code, if you "`import test.SparkTestContext._`" you will get access to global spark, sql, and hive contexts to use in your tests.  Do not create new contexts.  This allows you to separate the tests into different files.  
 
-## Publishing
-
-1. Compile & test locally
-1. Run integration tests (or manual tests on cluster)
-1. Test
-1. When you're sure it's ready, apply a tag.  (currently in the 0.X series)
-1. Create the jar and pom files via 'sbt publish-local'.
-1. Publish to artifactory via:
-
-```
-SCALAVER=2.10
-VER=0.3
-# pom:
-curl -v -H "X-JFrog-Art-Api: $ARTIFACTORY_KEY" -T ./turbocow_$SCALAVER-$VER.pom "https://repository.cars.com/artifactory/cars-data-local/com/cars/bigdata/turbocow_2.10/0.3/turbocow_$SCALAVER-$VER.pom"
-# jar:
-curl -v -H "X-JFrog-Art-Api: $ARTIFACTORY_KEY" -T ./turbocow_$SCALAVER-$VER.jar "https://repository.cars.com/artifactory/cars-data-local/com/cars/bigdata/turbocow_2.10/0.3/turbocow_$SCALAVER-$VER.jar"
-```

@@ -265,7 +265,6 @@ class LookupMultiSpec extends UnitSpec {
     }
 
     it ("should error out on parsing if 'where' list size does not match 'equals' list size") {
-      fail
       implicit val formats = org.json4s.DefaultFormats
       val actionConfig = getActionConfig(
         """

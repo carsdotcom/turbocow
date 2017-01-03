@@ -392,6 +392,81 @@
         },
 
         // --------------------------------------------------------------------
+        // CompoundLookup 
+        // Does a lookup into a pre-cached table.  May use multiple fields to do
+        // the lookup, however you must ensure that the lookup will result in 
+        // only 0 or 1 records returned.  The result for returning > 1 record
+        // will be a 'failure'.  
+        {
+          "actionType": "lookup",
+          "config": {
+
+            // "SELECT ..."
+            // All of these fields (if found), will be selected and added to the 
+            // enriched record (the X in "select X from ....")
+            "select": [
+              "some_field",
+              "some_other_field"
+            ],
+
+            // -------------------------------------------------------
+            // "FROM ..."
+            // How to access the hive table to do the lookup.  
+            // Usually this should be in the form "databaseName.tableName",
+            // but may be just "tableName" if running tests with a test 
+            // hive table.
+            "fromDBTable": "als_search.local_offer_group",
+
+            // (Optional) If this FROM field is used, a temporary table will be 
+            // registered with Hive and created from the specified file.  (This 
+            // field will probably only be used during tests.)  The file must 
+            // follow a specific format; see the wiki for more details: 
+            // https://confluence.cars.com/display/HAD/Testing+Spark+Applications+That+Use+Hive
+            "fromFile": "./path/to/a/local/file.json",
+            // -------------------------------------------------------
+
+            // "WHERE ..."
+            // Fields to look up (lookup on the value of the source field).  
+            // This field is always required.
+            "where": [ "lookupA", "lookupB" ]
+
+            // "= ..." (EQUALS)
+            // This is the value to look up on.  
+            // (The 'X' in "select ... where A = X").
+            // This is a field name that is read from the INPUT record.
+            "equals": [ "inputA", "inputB" ]
+
+            // (OPTIONAL) If the lookup succeeds, all the actions in the onPass 
+            // list will be run. 
+            "onPass": [
+              {
+                "actionType": "custom-action",
+                "config": { "key": "val" }
+              },
+              {
+                "actionType": "custom-action2",
+                "config": { "key": "val2" }
+              }
+            ],
+
+            // (OPTIONAL) If the lookup fails, all the actions in the onFail list 
+            // will be run. 
+            "onFail": [
+               {
+                 "actionType": "custom-action",
+                 "config": { "key": "val" }
+               },
+               {
+                 "actionType": "reject",
+                 "config": {
+                   "reasonFrom": "lookup"
+                 }
+               }
+            ]
+          }
+        },
+
+        // --------------------------------------------------------------------
         // Reject 
         // 
         {

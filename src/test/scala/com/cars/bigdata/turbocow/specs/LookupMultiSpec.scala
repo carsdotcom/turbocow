@@ -41,6 +41,14 @@ class LookupMultiSpec extends UnitSpec {
 
   val resourcesDir = "./src/test/resources/"
 
+  def getActionConfig(config: String) = {
+    val configAST = parse(config)
+    val actionsList = ((configAST \ "items").children.head \ "actions")
+    val actionConfig = actionsList.children.head \ "config"
+    actionConfig should not be (JNothing)
+    actionConfig
+  }
+
   describe("constructor") // ------------------------------------------------
   {
     it("should parse the config correctly (without a fromFile)") {
@@ -133,8 +141,161 @@ class LookupMultiSpec extends UnitSpec {
       action.where should be(List("KEYFIELD", "KEYFIELD2"))
       action.equals should be(List("AField", "BField"))
     }
+
+    it ("should error out on parsing if 'where' is missing") {
+      implicit val formats = org.json4s.DefaultFormats
+      val actionConfig = getActionConfig(
+        """
+        {
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "lookup test", 
+              "actions":[
+                {
+                  "actionType":"compound-lookup",
+                  "config": {
+                    "select": [
+                      "EnhField1",
+                      "EnhField2"
+                    ],
+                    "fromDBTable": "testTable",
+                    "equals": ["AField", "BField"]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+        """)
+
+      intercept[Exception]{ LookupMulti(actionConfig, None) }
+    }
+
+    it ("should error out on parsing if 'where' is empty") {
+      implicit val formats = org.json4s.DefaultFormats
+      val actionConfig = getActionConfig(
+        """
+        {
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "lookup test", 
+              "actions":[
+                {
+                  "actionType":"compound-lookup",
+                  "config": {
+                    "select": [
+                      "EnhField1",
+                      "EnhField2"
+                    ],
+                    "fromDBTable": "testTable",
+                    "where": [],
+                    "equals": ["AField", "BField"]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+        """)
+
+      intercept[Exception]{ LookupMulti(actionConfig, None) }
+    }
+
+    it ("should error out on parsing if 'equals' is missing") {
+      implicit val formats = org.json4s.DefaultFormats
+      val actionConfig = getActionConfig(
+        """
+        {
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "lookup test", 
+              "actions":[
+                {
+                  "actionType":"compound-lookup",
+                  "config": {
+                    "select": [
+                      "EnhField1",
+                      "EnhField2"
+                    ],
+                    "fromDBTable": "testTable",
+                    "where": ["A", "B"]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+        """)
+
+      intercept[Exception]{ LookupMulti(actionConfig, None) }
+    }
+
+    it ("should error out on parsing if 'equals' is empty") {
+      implicit val formats = org.json4s.DefaultFormats
+      val actionConfig = getActionConfig(
+        """
+        {
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "lookup test", 
+              "actions":[
+                {
+                  "actionType":"compound-lookup",
+                  "config": {
+                    "select": [
+                      "EnhField1",
+                      "EnhField2"
+                    ],
+                    "fromDBTable": "testTable",
+                    "where": ["A", "B"],
+                    "equals": []
+                  }
+                }
+              ]
+            }
+          ]
+        }
+        """)
+
+      intercept[Exception]{ LookupMulti(actionConfig, None) }
+    }
+
+    it ("should error out on parsing if 'where' list size does not match 'equals' list size") {
+      fail
+      implicit val formats = org.json4s.DefaultFormats
+      val actionConfig = getActionConfig(
+        """
+        {
+          "activityType": "impressions",
+          "items": [
+            {
+              "name": "lookup test", 
+              "actions":[
+                {
+                  "actionType":"compound-lookup",
+                  "config": {
+                    "select": [
+                      "EnhField1",
+                      "EnhField2"
+                    ],
+                    "fromDBTable": "testTable",
+                    "where": ["A", "B"],
+                    "equals": ["AField", "BField"]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+        """)
+
+      intercept[Exception]{ LookupMulti(actionConfig, None) }
+    }
   }
-  /*
 
   describe("LookupMulti action") {
 
@@ -146,8 +307,8 @@ class LookupMultiSpec extends UnitSpec {
              "items": [
                {
                  "actions":[
-                   {
-                     "actionType":"lookup",
+                   {                     
+                     "actionType":"lookup-multi",
                      "config": {
                        "select": [
                          "EnhField1",
@@ -155,9 +316,9 @@ class LookupMultiSpec extends UnitSpec {
                          "EnhField3"
                        ],
                        "fromDBTable": "testTable",
-                       "fromFile": "./src/test/resources/testdimension-multirow.json",
-                       "where": "KEYFIELD",
-                       "equals": "AField"
+                       "fromFile": "./src/test/resources/testdimension-for-lookupmulti.json",
+                       "where": ["KEYFIELD", "KEYFIELD2"],
+                       "equals": ["AField", "BField"]
                      }
                    }
                  ]
@@ -168,11 +329,12 @@ class LookupMultiSpec extends UnitSpec {
         Option(hiveCtx)).collect()
 
       enriched.size should be(1) // always one because there's only one json input object
-      //println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched)
+      println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX enriched = "+enriched.mkString)
       enriched.head("EnhField1") should be("1")
       enriched.head("EnhField2") should be("2")
       enriched.head("EnhField3") should be("3")
     }
+  }/*
 
     it("should successfully lookup non string values and convert to its String representation on the enrichedMap") {
       val enriched: Array[Map[String, String]] = ActionEngine.processDir(
@@ -230,7 +392,7 @@ class LookupMultiSpec extends UnitSpec {
                        "where": "KEYFIELD",
                        "equals": "AField",
                        "onFail": [
-                         { 
+                         {
                            "actionType": "reject",
                            "config": {
                              "reasonFrom": "lookup"

@@ -392,13 +392,13 @@
         },
 
         // --------------------------------------------------------------------
-        // CompoundLookup 
+        // LookupMulti
         // Does a lookup into a pre-cached table.  May use multiple fields to do
         // the lookup, however you must ensure that the lookup will result in 
         // only 0 or 1 records returned.  The result for returning > 1 record
         // will be a 'failure'.  
         {
-          "actionType": "lookup",
+          "actionType": "lookup-multi",
           "config": {
 
             // "SELECT ..."
@@ -428,12 +428,16 @@
             // "WHERE ..."
             // Fields to look up (lookup on the value of the source field).  
             // This field is always required.
+            // The number of elements in 'where' must match the number of elements
+            // in 'equals', below.
             "where": [ "lookupA", "lookupB" ]
 
             // "= ..." (EQUALS)
             // This is the value to look up on.  
             // (The 'X' in "select ... where A = X").
             // This is a field name that is read from the INPUT record.
+            // The number of elements in 'equals' must match the number of elements
+            // in 'where', above.
             "equals": [ "inputA", "inputB" ]
 
             // (OPTIONAL) If the lookup succeeds, all the actions in the onPass 

@@ -126,6 +126,7 @@ class ActionFactory(val customActionCreators: List[ActionCreator] = List.empty[A
       case "check" => createCheckAction(actionConfig, Option(this))
       case JdbcLookup.actionName => Option(new JdbcLookup(actionConfig, Option(this)))
       case "lookup" => Option(Lookup(actionConfig, Option(this)))
+      case "lookup-multi" => Option(LookupMulti(actionConfig, Option(this)))
       case "null" => Option(new NullAction(actionConfig))
       case "reject" => Option(new Reject(actionConfig))
       case "replace-null" => Option(new ReplaceNull(actionConfig))

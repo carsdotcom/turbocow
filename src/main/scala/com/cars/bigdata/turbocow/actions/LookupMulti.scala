@@ -41,6 +41,10 @@ class LookupMulti(
     sb.toString
   }
 
+  // should error out if 'where' is empty
+  if (where.isEmpty) throw new Exception("lookup-multi has an empty 'where' list: "+this.toString)
+  if (equals.isEmpty) throw new Exception("lookup-multi has an empty 'equals' list: "+this.toString)
+
   // Extract separate database and table names from fromDBTable:
   private val split = fromDBTable.split('.')
   val dbName: Option[String] = ValidString(

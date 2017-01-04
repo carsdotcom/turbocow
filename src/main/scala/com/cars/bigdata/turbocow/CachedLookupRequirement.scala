@@ -1,10 +1,26 @@
 package com.cars.bigdata.turbocow
 
 case class CachedLookupRequirement(
+
+  // "database.table" string
   dbTableName: String,
+
+  // All the fields needed to be used as individual index fields:
   keyFields: List[String] = List.empty[String],
+
+  // All the fields needed to be selected:
   selectFields: List[String] = List.empty[String],
-  jsonRecordsFile: Option[String] = None // optionally specify this path to create a table when preloading
+
+  // TODO the above lists should be Sets.
+
+  // optionally specify this path to create a table when preloading
+  jsonRecordsFile: Option[String] = None, 
+
+  // Any multi-field index columns.
+  // Specify this only if using a key that consists of multiple fields
+  // (for example, in lookup-multi).  These fields do not have to be specified
+  // in keyFields, above.  Our functions take care of that.
+  val multiFieldKeys: Set[ Set[String] ] = Set.empty[Set[String]] 
 )
 {
   def allNeededFields: List[String] = (keyFields ++ selectFields).distinct
@@ -22,7 +38,13 @@ case class CachedLookupRequirement(
   def combineWith(other: CachedLookupRequirement): CachedLookupRequirement = {
     if (dbTableName != other.dbTableName) throw new Exception("combining fields from different tables!")
     if (jsonRecordsFile != other.jsonRecordsFile) throw new Exception("combining fields from different jsonRecordsFile(s)!")
-    CachedLookupRequirement(dbTableName, allKeyFields(other), allNeededFields(other), jsonRecordsFile)
+    CachedLookupRequirement(
+      dbTableName, 
+      allKeyFields(other), 
+      allNeededFields(other), 
+      jsonRecordsFile, 
+      multiFieldKeys ++ other.multiFieldKeys
+    )
   }
 
 }

@@ -57,19 +57,6 @@ class CachedLookupRequirementSpec
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  val clReqsList = List(
-    CachedLookupRequirement(
-      "tableA", 
-      List("key1", "key2"),
-      List("select1", "select2")
-    ),
-    CachedLookupRequirement(
-      "tableB", 
-      List("keyB1", "keyB2"),
-      List("selectB1", "selectB2")
-    )
-  ) 
-
   describe("getAllFrom") {
 
     it("should collect all the things") {
@@ -81,6 +68,19 @@ class CachedLookupRequirementSpec
     }
 
     it("should collect all the lookups for an item that has multiple requirements") {
+
+      val clReqsList = List(
+        CachedLookupRequirement(
+          "tableA", 
+          List("key1", "key2"),
+          List("select1", "select2")
+        ),
+        CachedLookupRequirement(
+          "tableB", 
+          List("keyB1", "keyB2"),
+          List("selectB1", "selectB2")
+        )
+      ) 
 
       class ActionWithManyLookupRequirements extends Action {
 
@@ -108,6 +108,64 @@ class CachedLookupRequirementSpec
       gotReqsMap.get("tableA") should be (shouldMap.get("tableA"))
       gotReqsMap.get("tableB") should be (shouldMap.get("tableB"))
     }
+
+    it("should combine all the lookups properly for an item that has multiFieldKeys") {
+
+      val clReqsList1 = List(
+        CachedLookupRequirement(
+          "tableA", 
+          Nil,
+          List("select1", "select2"),
+          None,
+          multiFieldKeys = Set( Set("A", "B", "C") )
+        )
+      )
+
+      val clReqsList2 = List(
+        CachedLookupRequirement(
+          "tableA",
+          Nil,
+          List("selectB1", "selectB2"),
+          None,
+          multiFieldKeys = Set( Set("X", "Y", "Z") )
+        )
+      ) 
+
+      class ActionWithMultiKeyFields1 extends Action {
+        override def getLookupRequirements: List[CachedLookupRequirement] = clReqsList1
+        override def perform(
+          inputRecord: JValue, 
+          currentEnrichedMap: Map[String, String],
+          context: ActionContext): 
+          PerformResult = PerformResult()
+      }
+      class ActionWithMultiKeyFields2 extends Action {
+        override def getLookupRequirements: List[CachedLookupRequirement] = clReqsList2
+        override def perform(
+          inputRecord: JValue, 
+          currentEnrichedMap: Map[String, String],
+          context: ActionContext): 
+          PerformResult = PerformResult()
+      }
+
+      val itemList = List(
+        Item(List(new ActionWithMultiKeyFields1(), new ActionWithMultiKeyFields2()))
+      )
+
+      // transform to maps to test easier.  (The order can change)
+      val allReqs = CachedLookupRequirement.getAllFrom(itemList)
+
+      allReqs.size should be (1)
+      val req = allReqs.head
+
+      req.allNeededFields.sorted should be (
+        List("select1", "select2", "selectB1", "selectB2"))
+
+      req.keyFields should be (List.empty[String])
+
+      req.multiFieldKeys should be (Set( Set("A", "B", "C"), Set("X", "Y", "Z") ))
+    }
+
   }
 
 }

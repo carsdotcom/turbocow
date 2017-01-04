@@ -109,7 +109,7 @@ class Lookup(
 
     // get the table cache and do lookup
     val tableCacheOpt = caches.get(fromDBTable)
-    tableCacheOpt.getOrElse{ throw new Exception("Lookup.perform:  couldn't find cached lookup table for: "+fromDBTable) } // TODOTODO how to avoid exception??
+    tableCacheOpt.getOrElse{ throw new Exception("Lookup.perform:  couldn't find cached lookup table for: "+fromDBTable) } // TODO how to avoid exception??
     val tc = tableCacheOpt.get
 
     // Get the selected fields out of the table

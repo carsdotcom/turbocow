@@ -396,6 +396,84 @@ class HiveTableCacheSpec extends UnitSpec {
         }
       }
     }
+
+    it("should properly cache a table with multFieldKeys") {
+      val config = 
+        s"""{
+           |  "activityType": "impressions",
+           |  "items": [
+           |    {
+           |      "actions":[
+           |        {
+           |          "actionType":"lookup-multi",
+           |          "config": {
+           |            "select": [
+           |              "EnhField1",
+           |              "EnhField2"
+           |            ],
+           |            "fromDBTable": "$testTable",
+           |            "fromFile": "$resDir/testdimension-for-lookupmulti.json",
+           |            "where": ["KEYFIELD", "KEYFIELD2"],
+           |            "equals": ["x", "y"]
+           |          }
+           |        }
+           |      ]
+           |    }
+           |  ]
+           |}""".stripMargin
+
+
+      printAllTableNames("BEFORE creating cache 1")
+
+      val tcMap: Map[String, TableCache] = createTableCaches(config)
+
+      printAllTableNames("AFTER creating cache 1")
+
+      val numTables = tcMap.size
+      numTables should be (1)
+      val table = tcMap.head
+      val tableName = table._1
+      tableName should be (testTable)
+
+      val tableCache = table._2 match { case h: HiveTableCache => h; case _ => fail }
+      val numIndexes = tableCache.tableMap.size 
+      numIndexes should be (1)
+
+      val indexField = tableCache.tableMap.head._1
+      indexField should be ("KEYFIELD, KEYFIELD2")
+
+      val rowsMap: Map[Any, Row] = tableCache.tableMap.head._2
+      rowsMap.size should be (3)
+
+      //"KEYFIELD": "B1", "KEYFIELD2": "B1-0", 
+      //"KEYFIELD": "A",  "KEYFIELD2": "B",    
+      //"KEYFIELD": "B2", "KEYFIELD2": "B2-0", 
+
+      {
+        val row = rowsMap(List("A", "B"))
+        row.getAs[String]("KEYFIELD") should be ("A")
+        row.getAs[String]("KEYFIELD2") should be ("B")
+        row.getAs[String]("EnhField1") should be ("1")
+        row.getAs[String]("EnhField2") should be ("2")
+        row.size should be (4)
+      }
+      {
+        val row = rowsMap(List("B1", "B1-0"))
+        row.getAs[String]("KEYFIELD") should be ("B1")
+        row.getAs[String]("KEYFIELD2") should be ("B1-0")
+        row.getAs[String]("EnhField1") should be ("B1-1")
+        row.getAs[String]("EnhField2") should be ("B1-2")
+        row.size should be (4)
+      }
+      {
+        val row = rowsMap(List("B2", "B2-0"))
+        row.getAs[String]("KEYFIELD") should be ("B2")
+        row.getAs[String]("KEYFIELD2") should be ("B2-0")
+        row.getAs[String]("EnhField1") should be ("B2-1")
+        row.getAs[String]("EnhField2") should be ("B2-2")
+        row.size should be (4)
+      }
+    }
   }
 
   describe("lookup()") {

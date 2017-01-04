@@ -63,15 +63,15 @@ class LookupMulti(
       None
   ).getOrElse("Problem with 'lookup': couldn't determine table name from 'fromDBTable'.")
 
-  // The select fields separated by commas:
-  val fields = if(select.length > 1) {
-    val table = "`" + tableName + "."
-    table + select.mkString("`," + table) + "`"
-  }
-  else if(select.length == 1){
-    select.head
-  }
-  else ""
+  //// The select fields separated by commas:
+  //val fields = if(select.length > 1) {
+  //  val table = "`" + tableName + "."
+  //  table + select.mkString("`," + table) + "`"
+  //}
+  //else if(select.length == 1){
+  //  select.head
+  //}
+  //else ""
 
   //// get all the fields needed in this table (select + where), without dups
   //val allFields = { 
@@ -81,18 +81,19 @@ class LookupMulti(
   //  else select
   //}.distinct
 
-  ///** Get the lookup requirements
-  //  */
-  //override def getLookupRequirements: List[CachedLookupRequirement] = {
-  //  List(
-  //    CachedLookupRequirement(
-  //      fromDBTable, 
-  //      List(where),
-  //      select,
-  //      fromFile
-  //    )
-  //  ) ++ onPass.getLookupRequirements ++ onFail.getLookupRequirements
-  //}
+  /** Get the lookup requirements
+    */
+  override def getLookupRequirements: List[CachedLookupRequirement] = {
+    List(
+      CachedLookupRequirement(
+        fromDBTable, 
+        Nil,
+        select,
+        fromFile,
+        Set(where.toSet)
+      )
+    ) ++ onPass.getLookupRequirements ++ onFail.getLookupRequirements
+  }
   
   /** Perform the lookup
     *
@@ -103,14 +104,16 @@ class LookupMulti(
     context: ActionContext): 
     PerformResult = { 
 
-    PerformResult()
-  }
-  
+    PerformResult() }
+
   //  implicit val jsonFormats = org.json4s.DefaultFormats
   //
-  //  // get value of source field from the input JSON:
-  //  val lookupValueOpt = JsonUtil.extractOption[String](inputRecord \ equals)
-  //  // TODOTODO if getting this value fails.....  - lookup will fail.....
+  //  // Get the values of source fields from the input JSON.
+  //  // Sets it to null if not found.
+  //  val lookupValueOpt = Option(equals.map{ e => 
+  //    val nullStr: String = null
+  //    JsonUtil.extractOption[String](inputRecord \ e).getOrElse(nullStr)
+  //  })
   //
   //  // Get the table caches
   //  val caches = context.tableCaches
@@ -118,7 +121,7 @@ class LookupMulti(
   //
   //  // get the table cache and do lookup
   //  val tableCacheOpt = caches.get(fromDBTable)
-  //  tableCacheOpt.getOrElse{ throw new Exception("Lookup.perform:  couldn't find cached lookup table for: "+fromDBTable) } // TODOTODO how to avoid exception??
+  //  tableCacheOpt.getOrElse{ throw new Exception("LookupMulti.perform:  couldn't find cached lookup table for: "+fromDBTable) } // TODO how to avoid exception??
   //  val tc = tableCacheOpt.get
   //
   //  // Get the selected fields out of the table

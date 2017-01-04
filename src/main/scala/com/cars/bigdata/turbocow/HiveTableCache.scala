@@ -102,12 +102,14 @@ object HiveTableCache
   /** Alternate constructor.
     * Use this constructor so that we don't store the hiveContext
     * in the object.  (It gets broadcast by spark)
+    * 
     */
   def apply(
     hiveContext: Option[HiveContext],
     dbTableName: String,
     keyFields: List[String],
-    fieldsToSelect: List[String]
+    fieldsToSelect: List[String],
+    multiFieldKeys: Set[ Set[String] ]
   ): HiveTableCache = {
 
     // check all the input
@@ -116,9 +118,11 @@ object HiveTableCache
     keyFields.foreach{ kf => ValidString(kf).getOrElse(throw new Exception("a keyField was not a valid string!: "+keyFields)) }
     fieldsToSelect.headOption.getOrElse(throw new Exception("fieldsToSelect must not be empty!"))
     fieldsToSelect.foreach{ f => ValidString(f).getOrElse(throw new Exception("a fieldToSelect was not a valid string!: "+fieldsToSelect)) }
+    multiFieldKeys.foreach{ set => set.foreach{ key => ValidString(key).getOrElse(throw new Exception("a multiFieldKey was not a valid (nonzero length) string!: "+multiFieldKeys.mkString)) } }
 
     // create the dataframe.
-    val fields = (keyFields ++ fieldsToSelect).distinct.mkString(",")
+    val allMultiKeyFields = multiKeyFields.reduce( _ ++ _ )
+    val fields = (keyFields ++ fieldsToSelect ++ allMultiKeyFields.toList).distinct.mkString(",")
     val query = s"""
       SELECT $fields
         FROM ${dbTableName}
@@ -130,34 +134,87 @@ object HiveTableCache
     //df.show
     //println("SSSSSSSSSSSSSSSSSSS showed df.")
 
-    //Transform into a key->Row map on the driver
-    val refMap: Map[Any, Row] = df.map( row =>
-      Map(row.getAs[Any](keyFields.head) -> row)
-    ).reduce(_ ++ _)
+    // Get the single-field index map:
+    val singleFieldTableMap = if (keyFields.nonEmpty) {
+      //Transform into a key->Row map on the driver
+      val refMap: Map[Any, Row] = df.map( row =>
+        Map(row.getAs[Any](keyFields.head) -> row)
+      ).reduce(_ ++ _)
 
-    //refMap.foreach{ case(key, row) => println( "row size: "+row.size)}
-    println("**************************************************************")
-    println("HiveContext.sql - query = "+query)
-    println("ref map size:"+refMap.size)
+      //refMap.foreach{ case(key, row) => println( "row size: "+row.size)}
+      println("**************************************************************")
+      println("HiveContext.sql - query = "+query)
+      println("ref map size:"+refMap.size)
 
-    // create the other maps, using the reference map (use tail - skipping the head)
-    val otherMaps: Map[String, Map[Any, Row]] = keyFields.tail.flatMap{ keyField => 
-      Some(
-        keyField, 
-        refMap.map{ case (refKey, refRow) => 
-          (refRow.getAs[Any](keyField) -> refRow)
-        }
-      )
-    }.toMap
+      // create the other maps, using the reference map (use tail - skipping the head)
+      val otherMaps: Map[String, Map[Any, Row]] = keyFields.tail.flatMap{ keyField =>
+        Some(
+          keyField,
+          refMap.map{ case (refKey, refRow) =>
+            (refRow.getAs[Any](keyField) -> refRow)
+          }
+        )
+      }.toMap
 
-    // return otherMaps with the addition of the refmap
-    val tableMap = otherMaps + (keyFields.head-> refMap)
-    println("table map outer size:"+tableMap.size )
-    tableMap.foreach{ case(key, map) => println("for "+key+", map size is:"+map.size)}
+      // return otherMaps with the addition of the refmap
+      val tableMap = otherMaps + (keyFields.head-> refMap)
+      println("table map outer size:"+tableMap.size )
+      tableMap.foreach{ case(key, map) => println("for "+key+", map size is:"+map.size)}
+      tableMap
+    }
+    else Map.empty[String, Map[Any, Row]]
 
-    val htc = new HiveTableCache(tableMap)
+    val multiFieldKeyMap = if (multiKeyFields.nonEmpty) {
+
+      //Transform into a key->Row map on the driver
+      val refMap: Map[Any, Row] = df.map( row =>
+
+        
+        Map(row.getAs[Any](multiKeyFields.head) -> row)
+      ).reduce(_ ++ _)
+      
+      //refMap.foreach{ case(key, row) => println( "row size: "+row.size)}
+      println("**************************************************************")
+      println("HiveContext.sql - query = "+query)
+      println("ref map size:"+refMap.size)
+      
+      // create the other maps, using the reference map (use tail - skipping the head)
+      val otherMaps: Map[String, Map[Any, Row]] = keyFields.tail.flatMap{ keyField =>
+        Some(
+          keyField,
+          refMap.map{ case (refKey, refRow) =>
+            (refRow.getAs[Any](keyField) -> refRow)
+          }
+        )
+      }.toMap
+      
+      // return otherMaps with the addition of the refmap
+      val tableMap = otherMaps + (keyFields.head-> refMap)
+      println("table map outer size:"+tableMap.size )
+      tableMap.foreach{ case(key, map) => println("for "+key+", map size is:"+map.size)}
+      tableMap
+    }
+    else Map.empty[String, Map[Any, Row]]
+
+    val comboMap = singleFieldTableMap ++ multiFieldKeyMap
+
+    val htc = new HiveTableCache(comboMap)
     htc
   }
+
+  /** Alternate constructor.
+    * Use this constructor so that we don't store the hiveContext
+    * in the object.  (It gets broadcast by spark)
+    * 
+    * This version defaults multiFieldKeys to the empty set.
+    */
+  def apply(
+    hiveContext: Option[HiveContext],
+    dbTableName: String,
+    keyFields: List[String],
+    fieldsToSelect: List[String]
+  ): HiveTableCache = 
+    apply(hiveContext, dbTableName, keyFields, fieldsToSelect, Set.empty[Set[String]])
 
   /** Alternate constructor - lets you specify the JSON file from which to read
     * the data and register a temporary hive table.
@@ -169,7 +226,8 @@ object HiveTableCache
     dbTableName: String,
     keyFields: List[String],
     fieldsToSelect: List[String],
-    jsonRecordsFile: Option[String] // one line per record, only each line is valid json.  Can be local or hdfs, I suppose
+    jsonRecordsFile: Option[String], // one line per record, only each line is valid json.  Can be local or hdfs, I suppose
+    multiFieldKeys: Set[ Set[String] ]
   ): HiveTableCache = {
 
     if (jsonRecordsFile.nonEmpty) {
@@ -184,8 +242,24 @@ object HiveTableCache
     }
 
     // Call the other constructor
-    apply(hiveContext, dbTableName, keyFields, fieldsToSelect)
+    apply(hiveContext, dbTableName, keyFields, fieldsToSelect, multiFieldKeys)
   }
+
+  /** Alternate constructor - lets you specify the JSON file from which to read
+    * the data and register a temporary hive table.
+    * 
+    * This function is meant to be used while testing.
+    * 
+    * This version defaults the multiFieldKeys to the empty set.
+    */
+  def apply(
+    hiveContext: Option[HiveContext],
+    dbTableName: String,
+    keyFields: List[String],
+    fieldsToSelect: List[String],
+    jsonRecordsFile: Option[String] // one line per record, only each line is valid json.  Can be local or hdfs, I suppose
+  ): HiveTableCache = 
+    apply(hiveContext, dbTableName, keyFields, fieldsToSelect, jsonRecordsFile, Set.empty[Set[String]])
 
   /** Create local caches of all of the tables in the action list.
     * 
@@ -206,7 +280,8 @@ object HiveTableCache
         req.dbTableName,
         keyFields = req.keyFields,
         fieldsToSelect = req.allNeededFields,
-        req.jsonRecordsFile
+        req.jsonRecordsFile,
+        req.multiFieldKeys
       )
     )}.toMap
   }

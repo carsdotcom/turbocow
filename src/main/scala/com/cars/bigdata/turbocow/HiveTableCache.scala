@@ -121,8 +121,8 @@ object HiveTableCache
     multiFieldKeys.foreach{ set => set.foreach{ key => ValidString(key).getOrElse(throw new Exception("a multiFieldKey was not a valid (nonzero length) string!: "+multiFieldKeys.mkString)) } }
 
     // create the dataframe.
-    val allMultiKeyFields = multiKeyFields.reduce( _ ++ _ )
-    val fields = (keyFields ++ fieldsToSelect ++ allMultiKeyFields.toList).distinct.mkString(",")
+    val allMultiFieldKeys = multiFieldKeys.reduce( _ ++ _ )
+    val fields = (keyFields ++ fieldsToSelect ++ allMultiFieldKeys.toList).distinct.mkString(",")
     val query = s"""
       SELECT $fields
         FROM ${dbTableName}
@@ -164,35 +164,36 @@ object HiveTableCache
     }
     else Map.empty[String, Map[Any, Row]]
 
-    val multiFieldKeyMap = if (multiKeyFields.nonEmpty) {
+    val multiFieldKeyMap = if (multiFieldKeys.nonEmpty) {
+      Map.empty[String, Map[Any, Row]]
 
-      //Transform into a key->Row map on the driver
-      val refMap: Map[Any, Row] = df.map( row =>
-
-        
-        Map(row.getAs[Any](multiKeyFields.head) -> row)
-      ).reduce(_ ++ _)
-      
-      //refMap.foreach{ case(key, row) => println( "row size: "+row.size)}
-      println("**************************************************************")
-      println("HiveContext.sql - query = "+query)
-      println("ref map size:"+refMap.size)
-      
-      // create the other maps, using the reference map (use tail - skipping the head)
-      val otherMaps: Map[String, Map[Any, Row]] = keyFields.tail.flatMap{ keyField =>
-        Some(
-          keyField,
-          refMap.map{ case (refKey, refRow) =>
-            (refRow.getAs[Any](keyField) -> refRow)
-          }
-        )
-      }.toMap
-      
-      // return otherMaps with the addition of the refmap
-      val tableMap = otherMaps + (keyFields.head-> refMap)
-      println("table map outer size:"+tableMap.size )
-      tableMap.foreach{ case(key, map) => println("for "+key+", map size is:"+map.size)}
-      tableMap
+//      //Transform into a key->Row map on the driver
+//      val refMap: Map[Any, Row] = df.map( row =>
+//
+//
+//        Map(row.getAs[Any](multiFieldKeys.head) -> row)
+//      ).reduce(_ ++ _)
+//
+//      //refMap.foreach{ case(key, row) => println( "row size: "+row.size)}
+//      println("**************************************************************")
+//      println("HiveContext.sql - query = "+query)
+//      println("ref map size:"+refMap.size)
+//
+//      // create the other maps, using the reference map (use tail - skipping the head)
+//      val otherMaps: Map[String, Map[Any, Row]] = keyFields.tail.flatMap{ keyField =>
+//        Some(
+//          keyField,
+//          refMap.map{ case (refKey, refRow) =>
+//            (refRow.getAs[Any](keyField) -> refRow)
+//          }
+//        )
+//      }.toMap
+//
+//      // return otherMaps with the addition of the refmap
+//      val tableMap = otherMaps + (keyFields.head-> refMap)
+//      println("table map outer size:"+tableMap.size )
+//      tableMap.foreach{ case(key, map) => println("for "+key+", map size is:"+map.size)}
+//      tableMap
     }
     else Map.empty[String, Map[Any, Row]]
 

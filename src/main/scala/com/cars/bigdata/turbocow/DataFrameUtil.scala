@@ -7,6 +7,7 @@ import org.json4s.JsonAST.JNull
 
 import scala.annotation.tailrec
 import SQLContextUtil._
+import org.apache.spark.storage.StorageLevel
 import org.apache.spark.storage.StorageLevel._
 
 /** DataFrame helper functions.
@@ -16,10 +17,6 @@ object DataFrameUtil
 
   val changeSchemaErrorField = "__turbocow_dataframeutil_changeschema_processfields_errors__"
   private val isStringField = "__turbocow_dataframeutil_changeschema_is_row_all_string__"
-
-  case class DataFrameOpResult(
-    goodDF: DataFrame, 
-    errorDF: DataFrame)
 
   // Used to map old & new types together in changeSchema() and elsewhere
   private case class OldNewFields(
@@ -349,13 +346,22 @@ object DataFrameUtil
         //println("Pulling out all fields where the erroField has something (converting errorFieldSplit to all strings)...")
         //println("!!!!!!!! res.count = "+res.count)
         //res.show
+        //res.persist(MEMORY_ONLY)
         val errorFieldSplit = res.split( col(errorField).isNull || length(trim(col(errorField))) === lit(0) )
         val goodDF = errorFieldSplit.positive.drop(errorField)
         val errDF = errorFieldSplit.negative.convertToAllStrings
         //println("!!!!!!!! goodDF.count = "+goodDF.count)
         //println("!!!!!!!! errDF.count = "+errDF.count)
 
-        DataFrameOpResult(goodDF, errDF)
+        val opResult = DataFrameOpResult(goodDF, errDF)
+
+        //println("changeSchema: persisting opResult")
+        //opResult.persist(MEMORY_ONLY)
+        //
+        //println("changeSchema: unpersisting 'res'")
+        //res.unpersist(blocking=true)
+
+        opResult
       }
       println("changeSchema: DONE")
       result
@@ -506,7 +512,7 @@ object DataFrameUtil
         val duplicates = findDuplicates(list)
         throw new Exception(s"""DataFrameUtil.reorderColumns: there are column name duplicates in the 'df' schema sequence: $sortedFields // duplicate fields are: ${duplicates.mkString("; ")}""") //schema sequence: "+df.schema.fields.map(_.name).sorted.mkString(";"))
       }
-      if (requestedSet != thisSet) throw new Exception(s"""DataFrameUtil.reorderColumns: new column set must match content and size of existing column set.  requested=${requestedSet.mkString(";")} // thisSet=${thisSet.mkString(";")} // diff = ${requestedSet.diff(thisSet)}""")
+      if (requestedSet != thisSet) throw new Exception(s"""DataFrameUtil.reorderColumns: new column set must match content and size of existing column set.  \nrequestedSet.size=${requestedSet.size}\nrequested=${requestedSet.mkString(";")} \n// \nthisSet.size=${thisSet.size}\nthisSet=${thisSet.mkString(";")} \n// diff = ${requestedSet.diff(thisSet)}""")
 
       df.select(seq.head, seq.tail: _*)
     }

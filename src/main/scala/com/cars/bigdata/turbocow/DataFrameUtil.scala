@@ -10,6 +10,8 @@ import SQLContextUtil._
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.storage.StorageLevel._
 
+import scala.util.Try
+
 /** DataFrame helper functions.
   */
 object DataFrameUtil
@@ -623,4 +625,29 @@ object DataFrameUtil
       else newDF
     }
   }
+
+
+  /** UDF function to determine if a string column is all-numeric.
+    * Accomplished through checking if successive substrings convert to 
+    * Long successfully.
+    */
+  def isNumeric = udf { (column: String) =>
+
+    val segmentSize = 18 // long is 19 digits; just to be safe use less
+
+    @tailrec
+    def check(str: String, lastResult: Boolean): Boolean = {
+
+      val end = Math.min(segmentSize, str.size)
+      val checkStr = str.substring(0, end)
+      val result = Try{ checkStr.toLong }.isSuccess
+
+      if ( !result || end == str.size) result
+      else check(str.substring(segmentSize), result)
+    }
+
+    if (column == null || column.trim.isEmpty) false
+    else check(column, true)
+  }
+
 }

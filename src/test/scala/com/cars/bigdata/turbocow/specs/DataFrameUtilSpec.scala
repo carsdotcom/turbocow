@@ -1,7 +1,7 @@
 package com.cars.bigdata.turbocow
 
 import com.cars.bigdata.turbocow.test.SparkTestContext._
-import org.apache.spark.sql.{DataFrame, Row}
+import org.apache.spark.sql.{Column, DataFrame, Row}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
 import org.apache.spark.storage.StorageLevel._
@@ -35,6 +35,8 @@ class DataFrameUtilSpec
   }
 
   sc.setLogLevel("WARN")
+
+  def colNot(c: Column) = org.apache.spark.sql.functions.not(c)
 
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
@@ -1501,6 +1503,58 @@ class DataFrameUtilSpec
       modDF.schema.fields.size should be (0)
       modDF.count should be (0)
       modDF.collect.size should be (0)
+    }
+  }
+
+  describe("isNumeric()") {
+    it("should be able to be used to determine if a string is decimal") {
+      val df = sqlCtx.createDataFrame(sc.parallelize(
+        List(//             id   text
+          // pass:
+          Row.fromSeq(List( 0, "129837923334681255321665432543134211432135268230")),
+          Row.fromSeq(List( 1, "129837923434343255321665432543134211432135268231")),
+          Row.fromSeq(List( 2, "+129837968239198755321665432543134211432135268232")),
+          Row.fromSeq(List( 3, "-129837923334681255321665432543134211432135268233")),
+          // fail:
+          Row.fromSeq(List( 4, "129837923334681255321665432543134211432135268233X")),
+          Row.fromSeq(List( 5, "a129837923334681255321665432543134211432135268233")),
+          Row.fromSeq(List( 6, ".129837923334681255321665432543134211432135268233")),
+          Row.fromSeq(List( 7, ";125783262545326532753653295653653653735293272564")),
+          Row.fromSeq(List( 11, "%125783262545326532753653295653653653735293272564")),
+          Row.fromSeq(List( 12, """"125783262545326532753653295653653653735293272564""")),
+          Row.fromSeq(List( 13, " 129837923334681255321665432543134211432135268233")),
+          Row.fromSeq(List( 14, "129837923334681255321665432543134211432135268233 ")),
+          Row.fromSeq(List( 15, "12983792333468125  5321665432543134211432135268233")),
+          Row.fromSeq(List( 16, "129837923334681255321665432543134211432135268233d")),
+          Row.fromSeq(List( 8, "N")),
+          Row.fromSeq(List( 9, " ")),
+          Row.fromSeq(List( 10, null)))),
+        StructType( List(
+          StructField("id", IntegerType, nullable=true),
+          StructField("text", StringType, nullable=true))))
+      df.persist
+      val dfCount = df.count
+
+      df.show(100)
+
+      val allDecimals = df.filter( isNumeric(col("text")) )
+
+      {
+        allDecimals.persist
+        val rows = allDecimals.collect
+        allDecimals.show
+        rows.map{ _.getAs[Int]("id") }.sorted should be (Seq(0,1,2,3))
+      }
+
+      // another way
+      val notDecimals = df.filter( colNot(isNumeric(col("text"))) )
+
+      {
+        notDecimals.persist
+        val rows = notDecimals.collect
+        notDecimals.show
+        rows.map{ _.getAs[Int]("id") }.sorted should be (4 until dfCount.toInt)
+      }
     }
   }
 }

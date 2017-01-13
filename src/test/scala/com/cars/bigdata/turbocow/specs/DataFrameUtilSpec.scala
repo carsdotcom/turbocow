@@ -4,6 +4,7 @@ import com.cars.bigdata.turbocow.test.SparkTestContext._
 import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
+import org.apache.spark.storage.StorageLevel._
 import org.json4s._
 import DataFrameUtil._
 import RowUtil._
@@ -1216,7 +1217,7 @@ class DataFrameUtilSpec
       StructField("a", StringType),
       StructField("b", StringType),
       StructField("c", StringType))))
-  sameDF.persist
+  sameDF.persist(MEMORY_ONLY)
 
   // DF with same types, reversed
   val sameRevDF = sqlCtx.createDataFrame(
@@ -1227,7 +1228,7 @@ class DataFrameUtilSpec
       StructField("c", StringType),
       StructField("b", StringType),
       StructField("a", StringType))))
-  sameRevDF.persist
+  sameRevDF.persist(MEMORY_ONLY)
 
   // DF with different types
   val diffDF = sqlCtx.createDataFrame(
@@ -1238,7 +1239,7 @@ class DataFrameUtilSpec
       StructField("a", StringType),
       StructField("b", IntegerType),
       StructField("c", DoubleType))))
-  diffDF.persist
+  diffDF.persist(MEMORY_ONLY)
 
   // DF with different types, reversed
   val diffRevDF = sqlCtx.createDataFrame(
@@ -1249,7 +1250,7 @@ class DataFrameUtilSpec
       StructField("c", DoubleType),
       StructField("b", IntegerType),
       StructField("a", StringType))))
-  diffRevDF.persist
+  diffRevDF.persist(MEMORY_ONLY)
 
   /** Helper fn
     */
@@ -1454,6 +1455,52 @@ class DataFrameUtilSpec
       flat.schema.size should be (7)
       flat.schema.fields.map(_.name).toSeq.sorted should be (Seq("a",  "ba",  "bba", "bbb", "bbc", "bc",  "c"))
       flat.count should be (0)
+    }
+  }
+
+  describe("dropFieldsStartingWith()") {
+
+    val df = sqlCtx.createDataFrame(
+      sc.parallelize(
+        List(//              AA    AB      CC
+          Row.fromSeq(List( "10",  1,     2.0)),
+          Row.fromSeq(List( "11", 11,   12.0)),
+          Row.fromSeq(List( "20", null, 22.0)),
+          Row.fromSeq(List( "201", 0,    32.0)),
+          Row.fromSeq(List( "90", 91,   92.0)))),
+      StructType( 
+        List(
+          StructField("AA", StringType),
+          StructField("AB", IntegerType),
+          StructField("CC", DoubleType))))
+    df.persist(MEMORY_ONLY)
+
+    it("should drop fields properly") {
+
+      // Don't know what to do with blanks or nulls:
+      intercept[Exception](df.dropFieldsStartingWith(null))
+      intercept[Exception](df.dropFieldsStartingWith(""))
+
+      // not-found prefixes should return same dataframe
+      df.dropFieldsStartingWith("X").collect should be (df.collect)
+      df.dropFieldsStartingWith("AAX").collect should be (df.collect)
+
+      // These should eliminate others
+      var modDF = df.dropFieldsStartingWith("A")
+      modDF.schema.fields.map(_.name).sorted should be (Seq("CC"))
+      modDF.collect.size should be (5)
+      modDF.collect.foreach{ row => row.size should be (1) }
+
+      modDF = df.dropFieldsStartingWith("C")
+      modDF.schema.fields.map(_.name).sorted should be (Seq("AA", "AB"))
+      modDF.collect.size should be (5)
+      modDF.collect.foreach{ row => row.size should be (2) }
+
+      // now dropping the rest of the columns should leave an empty dataframe
+      modDF = modDF.dropFieldsStartingWith("A")
+      modDF.schema.fields.size should be (0)
+      modDF.count should be (0)
+      modDF.collect.size should be (0)
     }
   }
 }

@@ -601,5 +601,26 @@ object DataFrameUtil
     //  val neg = sqlContext.createDataFrame(splitRDD._2, finalSchemaAllString)
     //  DataFrameOpResult(pos, neg)
     //}
+
+    /** Drop fields that start with a certain prefix.
+      *
+      */
+    def dropFieldsStartingWith(prefix: String): DataFrame = {
+      // What does a null or empty prefix mean?  Have to throw in that case.
+      ValidString(prefix) getOrElse( throw new Exception("DataFrameUtil.dropFieldsStartingWith(prefix): error - prefix was null or empty") )
+
+      println("dropping all extraneous fields...")
+      val fieldsToDrop = df.schema.fields.map( _.name ).filter( _.startsWith(prefix) ).toSeq
+      val newDF = fieldsToDrop.foldLeft(df){ (accDF, fieldNameToDrop) =>
+        println("dropping "+fieldNameToDrop+"...")
+        accDF.drop(fieldNameToDrop)
+      }
+
+      if (newDF.schema.fields.isEmpty) {
+        // No fields left; filter out everything and return empty dataframe
+        newDF.filter( lit(0) === lit(1) )
+      }
+      else newDF
+    }
   }
 }
